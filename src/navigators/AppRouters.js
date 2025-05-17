@@ -1,30 +1,33 @@
 import React, { useState, useEffect } from "react";
 import MainNavigator from "./MainNavigator";
 import AuthNavigator from "./AuthNavigator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  useAsyncStorage,
+} from "@react-native-async-storage/async-storage";
+import { addAuth, authSelector } from "../redux/reducers/authReducer";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function AppRouters() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const auth = useSelector(authSelector);
+  const { getItem: getToken } = useAsyncStorage("token");
+  const { getItem: getUserData } = useAsyncStorage("userData");
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    checkAuthStatus();
+    handleGetData();
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      setIsAuthenticated(!!token);
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGetData = async () => {
+    await checkLogin();
   };
 
-  if (isLoading) {
-    return null; // Or a loading screen component
-  }
+  const checkLogin = async () => {
+    const token = await getToken();
+    const userData = await getUserData();
+    token &&
+      userData &&
+      dispatch(addAuth({ token, user: JSON.parse(userData) }));
+  };
 
-  return isAuthenticated ? <MainNavigator /> : <AuthNavigator />;
+  return auth.token ? <MainNavigator /> : <AuthNavigator />;
 }

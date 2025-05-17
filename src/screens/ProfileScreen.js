@@ -9,10 +9,17 @@ import {
   Switch,
   Platform,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { useAuth } from "../hooks/useAuth";
+import { toast } from "sonner-native";
+import { authSelector } from "../redux/reducers/authReducer";
+import { useSelector } from "react-redux";
 
 export default function ProfileScreen({ navigation }) {
+  const { logout } = useAuth();
+  const { user } = useSelector(authSelector);
   const [isAvailableToDonate, setIsAvailableToDonate] = useState(true);
   const [notifications, setNotifications] = useState(true);
 
@@ -26,24 +33,6 @@ export default function ProfileScreen({ navigation }) {
     avatar:
       "https://scontent.fdad3-3.fna.fbcdn.net/v/t39.30808-6/470178082_1248838163045665_1238041745852048418_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=-Bg09IyBXNkQ7kNvwEH2oSI&_nc_oc=Admv-jvwuxmYdG-HS-u0Dy8TWzyc9fwzXCPdTG80F8iuDzcPZw_HhzMDFcrZBMENTTTlJIpV0f4kN4u1ZsMlq_Gl&_nc_zt=23&_nc_ht=scontent.fdad3-3.fna&_nc_gid=qDQNB1CkhGryLz_8HH9rBA&oh=00_AfKbZqwg4v-MpDsLjR9xaWTqA_jo5IlF9173JEwCZtJz-g&oe=682B97B7",
   };
-
-  const donationHistory = [
-    {
-      id: 1,
-      date: "15/01/2024",
-      location: "Bệnh viện Chợ Rẫy",
-      amount: "350ml",
-      status: "Thành công",
-    },
-    {
-      id: 2,
-      date: "10/10/2023",
-      location: "Viện Huyết học",
-      amount: "350ml",
-      status: "Thành công",
-    },
-    // Add more history items
-  ];
 
   const menuItems = [
     {
@@ -72,6 +61,34 @@ export default function ProfileScreen({ navigation }) {
       onPress: () => navigation.navigate("About"),
     },
   ];
+  
+  const handleLogout = async () => {
+    Alert.alert(
+      'Xác nhận đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              toast.success('Đăng xuất thành công');
+              // Navigation will be handled automatically by AppRouters
+            } catch (error) {
+              console.error('Logout error:', error);
+              toast.error('Có lỗi xảy ra khi đăng xuất');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,7 +170,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={24} color="#FF6B6B" />
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
