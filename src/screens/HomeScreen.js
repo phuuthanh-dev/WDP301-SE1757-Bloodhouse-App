@@ -11,7 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
-import * as Location from 'expo-location';
+import * as Location from "expo-location";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -25,8 +25,8 @@ export default function HomeScreen({ navigation }) {
   const getLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setAddress('Không thể lấy vị trí');
+      if (status !== "granted") {
+        setAddress("Không thể lấy vị trí");
         return;
       }
 
@@ -40,11 +40,13 @@ export default function HomeScreen({ navigation }) {
       });
 
       if (address) {
-        const locationString = `${address.street || ''}, ${address.district || ''}, ${address.city || ''}`;
+        const locationString = `${address.street || ""}, ${
+          address.district || ""
+        }, ${address.city || ""}`;
         setAddress(locationString);
       }
     } catch (error) {
-      setAddress('Không thể lấy vị trí');
+      setAddress("Không thể lấy vị trí");
     }
   };
 
@@ -114,11 +116,17 @@ export default function HomeScreen({ navigation }) {
       onPress={() => navigation.navigate("BloodTypeDetail", { info })}
     >
       <View style={styles.bloodTypeHeader}>
-        <Text style={styles.bloodType}>{info.type}</Text>
-        <Text style={styles.percentage}>{info.percentage}</Text>
+        <View style={styles.bloodTypeContainer}>
+          <Text style={styles.bloodType}>{info.type}</Text>
+          <View style={styles.percentageContainer}>
+            <Text style={styles.percentage}>{info.percentage}</Text>
+            <Text style={styles.percentageLabel}>dân số</Text>
+          </View>
+        </View>
       </View>
+      <View style={styles.divider} />
       <View style={styles.compatibilityInfo}>
-        <View>
+        <View style={styles.compatibilitySection}>
           <Text style={styles.compatibilityLabel}>Có thể cho</Text>
           <View style={styles.bloodTypeList}>
             {info.canGiveTo.map((type) => (
@@ -128,7 +136,8 @@ export default function HomeScreen({ navigation }) {
             ))}
           </View>
         </View>
-        <View>
+        <View style={styles.verticalDivider} />
+        <View style={styles.compatibilitySection}>
           <Text style={styles.compatibilityLabel}>Có thể nhận</Text>
           <View style={styles.bloodTypeList}>
             {info.canReceiveFrom.map((type) => (
@@ -210,10 +219,10 @@ export default function HomeScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate("Search")}
+            onPress={() => navigation.navigate("Nearby")}
           >
-            <MaterialIcons name="search" size={24} color="#FF6B6B" />
-            <Text style={styles.actionText}>Tìm kiếm</Text>
+            <MaterialIcons name="near-me" size={24} color="#FF6B6B" />
+            <Text style={styles.actionText}>Tìm Gần đây</Text>
           </TouchableOpacity>
         </View>
 
@@ -319,65 +328,97 @@ const styles = StyleSheet.create({
   bloodTypeCard: {
     backgroundColor: "#FFFFFF",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginRight: 12,
-    width: 280,
+    width: 300,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    marginBottom: 8,
   },
   bloodTypeHeader: {
+    marginBottom: 12,
+  },
+  bloodTypeContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   bloodType: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
     color: "#FF6B6B",
   },
+  percentageContainer: {
+    alignItems: "flex-end",
+  },
   percentage: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2D3436",
+  },
+  percentageLabel: {
+    fontSize: 12,
     color: "#95A5A6",
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 12,
+  },
+  verticalDivider: {
+    width: 1,
+    backgroundColor: "#E2E8F0",
+    marginHorizontal: 12,
+    alignSelf: "stretch",
   },
   compatibilityInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  compatibilitySection: {
+    flex: 1,
+  },
   compatibilityLabel: {
     fontSize: 14,
-    color: "#95A5A6",
+    color: "#64748B",
     marginBottom: 8,
+    fontWeight: "500",
   },
   bloodTypeList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    width: 120,
+    gap: 6,
   },
   smallBloodType: {
-    backgroundColor: "#F8F9FA",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginRight: 4,
-    marginBottom: 4,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   smallBloodTypeText: {
-    fontSize: 12,
-    color: "#2D3436",
+    fontSize: 13,
+    color: "#334155",
+    fontWeight: "600",
   },
   blogCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
+    borderColor: "#E2E8F0",
+    borderWidth: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 8,
     overflow: "hidden",
   },
   blogImage: {

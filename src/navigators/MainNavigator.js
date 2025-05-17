@@ -5,14 +5,17 @@ import EmergencyStatusScreen from "../screens/EmergencyStatusScreen";
 import TabNavigator from "./TabNavigator";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import BloodTypeDetailScreen from "../screens/BloodTypeDetailScreen";
-import BlogDetailScreen from "../screens/BlogDetailScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import SecurityScreen from "../screens/profile/SecurityScreen";
 import HelpScreen from "../screens/profile/HelpScreen";
 import AboutScreen from "../screens/profile/AboutScreen";
 import DonationScreen from "../screens/DonationScreen";
 import BloodTypeListScreen from "../screens/BloodTypeListScreen";
-import BlogListScreen from "../screens/BlogListScreen";
+import DonationHistoryScreen from "../screens/DonationHistoryScreen";
+import NearbyScreen from '../screens/map/NearbyScreen';
+import BlogListScreen from "../screens/blog/BlogListScreen";
+import BlogDetailScreen from "../screens/blog/BlogDetailScreen";
+import NotificationTestScreen from "../screens/NotificationTestScreen";
 
 const MainNavigator = () => {
   const Stack = createNativeStackNavigator();
@@ -38,6 +41,8 @@ const MainNavigator = () => {
       <Stack.Screen name="Security" component={SecurityScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Nearby" component={NearbyScreen} />
+      <Stack.Screen name="DonationHistory" component={DonationHistoryScreen} />
     </Stack.Navigator>
   );
 };

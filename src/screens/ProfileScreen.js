@@ -47,6 +47,11 @@ export default function ProfileScreen({ navigation }) {
 
   const menuItems = [
     {
+      icon: "history",
+      title: "Lịch sử hiến máu",
+      onPress: () => navigation.navigate("DonationHistory"),
+    },
+    {
       icon: "person",
       title: "Thông tin cá nhân",
       onPress: () => navigation.navigate("EditProfile"),
@@ -85,7 +90,10 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* Stats Section */}
-        <View style={styles.statsContainer}>
+        <TouchableOpacity 
+          style={styles.statsContainer}
+          onPress={() => navigation.navigate("DonationHistory")}
+        >
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userInfo.totalDonations}</Text>
             <Text style={styles.statLabel}>Lần hiến máu</Text>
@@ -95,7 +103,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.statNumber}>{userInfo.lastDonation}</Text>
             <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Settings Section */}
         <View style={styles.section}>
@@ -141,23 +149,6 @@ export default function ProfileScreen({ navigation }) {
               </View>
               <MaterialIcons name="chevron-right" size={24} color="#95A5A6" />
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Donation History */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Lịch sử hiến máu</Text>
-          {donationHistory.map((donation) => (
-            <View key={donation.id} style={styles.historyItem}>
-              <View style={styles.historyHeader}>
-                <Text style={styles.historyDate}>{donation.date}</Text>
-                <Text style={styles.historyStatus}>{donation.status}</Text>
-              </View>
-              <Text style={styles.historyLocation}>{donation.location}</Text>
-              <Text style={styles.historyAmount}>
-                Lượng máu: {donation.amount}
-              </Text>
-            </View>
           ))}
         </View>
 
@@ -287,35 +278,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 16,
     color: "#2D3436",
-  },
-  historyItem: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  historyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  historyDate: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#2D3436",
-  },
-  historyStatus: {
-    color: "#4CAF50",
-    fontWeight: "bold",
-  },
-  historyLocation: {
-    fontSize: 14,
-    color: "#636E72",
-    marginBottom: 4,
-  },
-  historyAmount: {
-    fontSize: 14,
-    color: "#636E72",
   },
   logoutButton: {
     flexDirection: "row",
