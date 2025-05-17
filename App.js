@@ -1,15 +1,34 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { StatusBar } from "react-native";
+import { StatusBar, StyleSheet } from "react-native";
 import AppRouters from "./src/navigators/AppRouters";
 import { NotificationProvider } from "./src/contexts/NotificationContext";
+import { Provider } from "react-redux";
+import store from "./src/redux/store";
+import { Toaster } from "sonner-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 export default function App() {
   return (
-    <NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar backgroundColor="#FF6B6B" barStyle="dark-content" />
-      <NotificationProvider>
-        <AppRouters />
-      </NotificationProvider>
-    </NavigationContainer>
+      <Provider store={store}>
+        <SafeAreaProvider style={styles.container}>
+          <Toaster />
+          <NotificationProvider>
+            <NavigationContainer>
+              <AppRouters />
+            </NavigationContainer>
+          </NotificationProvider>
+        </SafeAreaProvider>
+      </Provider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

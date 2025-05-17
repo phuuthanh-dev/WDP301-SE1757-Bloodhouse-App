@@ -16,6 +16,7 @@ import * as Location from "expo-location";
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState(null);
+  const [bloodGroup, setBloodGroup] = useState(null);
   const [address, setAddress] = useState("Đang tải vị trí...");
 
   useEffect(() => {

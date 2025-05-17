@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -7,164 +7,246 @@ import {
   TouchableOpacity,
   Platform,
   SafeAreaView,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import bloodCompatibilityAPI from "../apis/bloodCompatibility";
+import bloodGroupAPI from "../apis/bloodGroup";
+import bloodComponentAPI from "../apis/bloodComponent";
 
 const bloodCompatibility = {
   wholeBlood: {
-    'A+': {
-      canGiveTo: ['A+', 'AB+'],
-      canReceiveFrom: ['A+', 'A-', 'O+', 'O-'],
+    "A+": {
+      canGiveTo: ["A+", "AB+"],
+      canReceiveFrom: ["A+", "A-", "O+", "O-"],
     },
-    'A-': {
-      canGiveTo: ['A+', 'A-', 'AB+', 'AB-'],
-      canReceiveFrom: ['A-', 'O-'],
+    "A-": {
+      canGiveTo: ["A+", "A-", "AB+", "AB-"],
+      canReceiveFrom: ["A-", "O-"],
     },
-    'B+': {
-      canGiveTo: ['B+', 'AB+'],
-      canReceiveFrom: ['B+', 'B-', 'O+', 'O-'],
+    "B+": {
+      canGiveTo: ["B+", "AB+"],
+      canReceiveFrom: ["B+", "B-", "O+", "O-"],
     },
-    'B-': {
-      canGiveTo: ['B+', 'B-', 'AB+', 'AB-'],
-      canReceiveFrom: ['B-', 'O-'],
+    "B-": {
+      canGiveTo: ["B+", "B-", "AB+", "AB-"],
+      canReceiveFrom: ["B-", "O-"],
     },
-    'AB+': {
-      canGiveTo: ['AB+'],
-      canReceiveFrom: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+    "AB+": {
+      canGiveTo: ["AB+"],
+      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
     },
-    'AB-': {
-      canGiveTo: ['AB+', 'AB-'],
-      canReceiveFrom: ['A-', 'B-', 'AB-', 'O-'],
+    "AB-": {
+      canGiveTo: ["AB+", "AB-"],
+      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
     },
-    'O+': {
-      canGiveTo: ['A+', 'B+', 'AB+', 'O+'],
-      canReceiveFrom: ['O+', 'O-'],
+    "O+": {
+      canGiveTo: ["A+", "B+", "AB+", "O+"],
+      canReceiveFrom: ["O+", "O-"],
     },
-    'O-': {
-      canGiveTo: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-      canReceiveFrom: ['O-'],
+    "O-": {
+      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+      canReceiveFrom: ["O-"],
     },
   },
   redBloodCells: {
-    'A+': ['A+', 'A-', 'O+', 'O-'],
-    'A-': ['A-', 'O-'],
-    'B+': ['B+', 'B-', 'O+', 'O-'],
-    'B-': ['B-', 'O-'],
-    'AB+': ['AB+', 'AB-', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-'],
-    'AB-': ['AB-', 'A-', 'B-', 'O-'],
-    'O+': ['O+', 'O-'],
-    'O-': ['O-'],
+    "A+": {
+      canGiveTo: ["A+", "AB+"],
+      canReceiveFrom: ["A+", "A-", "O+", "O-"],
+    },
+    "A-": {
+      canGiveTo: ["A+", "A-", "AB+", "AB-"],
+      canReceiveFrom: ["A-", "O-"],
+    },
+    "B+": {
+      canGiveTo: ["B+", "AB+"],
+      canReceiveFrom: ["B+", "B-", "O+", "O-"],
+    },
+    "B-": {
+      canGiveTo: ["B+", "B-", "AB+", "AB-"],
+      canReceiveFrom: ["B-", "O-"],
+    },
+    "AB+": {
+      canGiveTo: ["AB+"],
+      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    },
+    "AB-": {
+      canGiveTo: ["AB+", "AB-"],
+      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
+    },
+    "O+": {
+      canGiveTo: ["A+", "B+", "AB+", "O+"],
+      canReceiveFrom: ["O+", "O-"],
+    },
+    "O-": {
+      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+      canReceiveFrom: ["O-"],
+    },
   },
   plasma: {
-    'A+': ['A+', 'AB+'],
-    'A-': ['A+', 'A-', 'AB+', 'AB-'],
-    'B+': ['B+', 'AB+'],
-    'B-': ['B+', 'B-', 'AB+', 'AB-'],
-    'AB+': ['AB+'],
-    'AB-': ['AB+', 'AB-'],
-    'O+': ['O+', 'A+', 'B+', 'AB+'],
-    'O-': ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'],
+    "A+": {
+      canGiveTo: ["A+", "AB+"],
+      canReceiveFrom: ["A+", "A-"],
+    },
+    "A-": {
+      canGiveTo: ["A+", "A-", "AB+", "AB-"],
+      canReceiveFrom: ["A-"],
+    },
+    "B+": {
+      canGiveTo: ["B+", "AB+"],
+      canReceiveFrom: ["B+", "B-"],
+    },
+    "B-": {
+      canGiveTo: ["B+", "B-", "AB+", "AB-"],
+      canReceiveFrom: ["B-"],
+    },
+    "AB+": {
+      canGiveTo: ["AB+"],
+      canReceiveFrom: ["AB+", "AB-"],
+    },
+    "AB-": {
+      canGiveTo: ["AB+", "AB-"],
+      canReceiveFrom: ["AB-"],
+    },
+    "O+": {
+      canGiveTo: ["A+", "B+", "AB+", "O+"],
+      canReceiveFrom: ["O+", "O-"],
+    },
+    "O-": {
+      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+      canReceiveFrom: ["O-"],
+    },
   },
   platelets: {
-    'A+': ['A+', 'AB+'],
-    'A-': ['A+', 'A-', 'AB+', 'AB-'],
-    'B+': ['B+', 'AB+'],
-    'B-': ['B+', 'B-', 'AB+', 'AB-'],
-    'AB+': ['AB+'],
-    'AB-': ['AB+', 'AB-'],
-    'O+': ['O+', 'A+', 'B+', 'AB+'],
-    'O-': ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'],
+    "A+": {
+      canGiveTo: ["A+", "AB+"],
+      canReceiveFrom: ["A+", "A-", "O+", "O-"],
+    },
+    "A-": {
+      canGiveTo: ["A+", "A-", "AB+", "AB-"],
+      canReceiveFrom: ["A-", "O-"],
+    },
+    "B+": {
+      canGiveTo: ["B+", "AB+"],
+      canReceiveFrom: ["B+", "B-", "O+", "O-"],
+    },
+    "B-": {
+      canGiveTo: ["B+", "B-", "AB+", "AB-"],
+      canReceiveFrom: ["B-", "O-"],
+    },
+    "AB+": {
+      canGiveTo: ["AB+"],
+      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    },
+    "AB-": {
+      canGiveTo: ["AB+", "AB-"],
+      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
+    },
+    "O+": {
+      canGiveTo: ["A+", "B+", "AB+", "O+"],
+      canReceiveFrom: ["O+", "O-"],
+    },
+    "O-": {
+      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+      canReceiveFrom: ["O-"],
+    },
   },
 };
 
 export default function BloodCompatibilityScreen() {
   const [selectedBloodType, setSelectedBloodType] = useState(null);
-  const [selectedComponent, setSelectedComponent] = useState('wholeBlood');
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [bloodGroup, setBloodGroup] = useState(null);
+  const [bloodComponent, setBloodComponent] = useState(null);
+  const [bloodCompatibility, setBloodCompatibility] = useState(null);
 
-  const components = [
-    { id: 'wholeBlood', label: 'Máu toàn phần' },
-    { id: 'redBloodCells', label: 'Hồng cầu' },
-    { id: 'plasma', label: 'Huyết tương' },
-    { id: 'platelets', label: 'Tiểu cầu' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [bloodGroupData, bloodComponentData] = await Promise.all([
+          bloodGroupAPI.HandleBloodGroup(),
+          bloodComponentAPI.HandleBloodComponent(),
+        ]);
+        setBloodGroup(bloodGroupData.data);
+        setBloodComponent(bloodComponentData.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
 
-  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    fetchData();
+  }, []);
 
-  const getCompatibleTypes = (bloodType, component) => {
-    if (!bloodType) return [];
-    
-    if (component === 'wholeBlood') {
-      return {
-        canGiveTo: bloodCompatibility.wholeBlood[bloodType].canGiveTo,
-        canReceiveFrom: bloodCompatibility.wholeBlood[bloodType].canReceiveFrom,
-      };
-    }
-    
-    return bloodCompatibility[component][bloodType];
-  };
+  useEffect(() => {
+    const fetchCompatibility = async () => {
+      if (selectedBloodType && selectedComponent) {
+        try {
+          const data = {
+            bloodGroupId: selectedBloodType,
+            componentId: selectedComponent,
+          };
+          const response = await bloodCompatibilityAPI.HandleBloodCompatibility(
+            "?bloodGroupId=" +
+              selectedBloodType +
+              "&componentId=" +
+              selectedComponent
+          );
+          
+          setBloodCompatibility(response.data);
+        } catch (error) {
+          console.error("Error fetching compatibility:", error);
+          setBloodCompatibility(null);
+        }
+      }
+    };
+
+    fetchCompatibility();
+  }, [selectedBloodType, selectedComponent]);
 
   const renderBloodTypeButton = (type) => (
     <TouchableOpacity
-      key={type}
+      key={type._id}
       style={[
         styles.bloodTypeButton,
-        selectedBloodType === type && styles.selectedBloodType,
+        selectedBloodType === type._id && styles.selectedBloodType,
       ]}
-      onPress={() => setSelectedBloodType(type)}
+      onPress={() => setSelectedBloodType(type._id)}
     >
       <Text
         style={[
           styles.bloodTypeButtonText,
-          selectedBloodType === type && styles.selectedBloodTypeText,
+          selectedBloodType === type._id && styles.selectedBloodTypeText,
         ]}
       >
-        {type}
+        {type.name}
       </Text>
     </TouchableOpacity>
   );
 
   const renderCompatibilityInfo = () => {
-    if (!selectedBloodType) return null;
-
-    const compatibility = getCompatibleTypes(selectedBloodType, selectedComponent);
-
-    if (selectedComponent === 'wholeBlood') {
-      return (
-        <View style={styles.compatibilityContainer}>
-          <View style={styles.compatibilitySection}>
-            <Text style={styles.compatibilityTitle}>Có thể cho máu cho</Text>
-            <View style={styles.bloodTypeGrid}>
-              {compatibility.canGiveTo.map((type) => (
-                <View key={type} style={styles.compatibleType}>
-                  <Text style={styles.compatibleTypeText}>{type}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.compatibilitySection}>
-            <Text style={styles.compatibilityTitle}>Có thể nhận máu từ</Text>
-            <View style={styles.bloodTypeGrid}>
-              {compatibility.canReceiveFrom.map((type) => (
-                <View key={type} style={styles.compatibleType}>
-                  <Text style={styles.compatibleTypeText}>{type}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      );
-    }
-
+    if (!selectedBloodType || !selectedComponent || !bloodCompatibility)
+      return null;
     return (
       <View style={styles.compatibilityContainer}>
-        <Text style={styles.compatibilityTitle}>Có thể nhận từ</Text>
-        <View style={styles.bloodTypeGrid}>
-          {compatibility.map((type) => (
-            <View key={type} style={styles.compatibleType}>
-              <Text style={styles.compatibleTypeText}>{type}</Text>
-            </View>
-          ))}
+        <View style={styles.compatibilitySection}>
+          <Text style={styles.compatibilityTitle}>Có thể cho máu cho</Text>
+          <View style={styles.bloodTypeGrid}>
+            {bloodCompatibility?.canDonateTo?.map((type) => (
+              <View key={type._id} style={styles.compatibleType}>
+                <Text style={styles.compatibleTypeText}>{type.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.compatibilitySection}>
+          <Text style={styles.compatibilityTitle}>Có thể nhận máu từ</Text>
+          <View style={styles.bloodTypeGrid}>
+            {bloodCompatibility?.canReceiveFrom?.map((type) => (
+              <View key={type._id} style={styles.compatibleType}>
+                <Text style={styles.compatibleTypeText}>{type.name}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -181,22 +263,23 @@ export default function BloodCompatibilityScreen() {
 
       {/* Component Selection */}
       <View style={styles.componentSelection}>
-        {components.map((component) => (
+        {bloodComponent?.map((component) => (
           <TouchableOpacity
-            key={component.id}
+            key={component._id}
             style={[
               styles.componentButton,
-              selectedComponent === component.id && styles.selectedComponent,
+              selectedComponent === component._id && styles.selectedComponent,
             ]}
-            onPress={() => setSelectedComponent(component.id)}
+            onPress={() => setSelectedComponent(component._id)}
           >
             <Text
               style={[
                 styles.componentButtonText,
-                selectedComponent === component.id && styles.selectedComponentText,
+                selectedComponent === component._id &&
+                  styles.selectedComponentText,
               ]}
             >
-              {component.label}
+              {component.name}
             </Text>
           </TouchableOpacity>
         ))}
@@ -206,7 +289,7 @@ export default function BloodCompatibilityScreen() {
       <View style={styles.bloodTypeSelection}>
         <Text style={styles.sectionTitle}>Chọn nhóm máu</Text>
         <View style={styles.bloodTypeGrid}>
-          {bloodTypes.map(renderBloodTypeButton)}
+          {bloodGroup?.map(renderBloodTypeButton)}
         </View>
       </View>
 
@@ -219,33 +302,33 @@ export default function BloodCompatibilityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
     padding: 20,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.9,
   },
   componentSelection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     marginTop: -10,
     marginHorizontal: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -253,61 +336,61 @@ const styles = StyleSheet.create({
   },
   componentButton: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: "45%",
     margin: 4,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    alignItems: 'center',
+    borderColor: "#E9ECEF",
+    alignItems: "center",
   },
   selectedComponent: {
-    backgroundColor: '#FF6B6B',
-    borderColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
+    borderColor: "#FF6B6B",
   },
   componentButtonText: {
-    color: '#2D3436',
+    color: "#2D3436",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   selectedComponentText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   bloodTypeSelection: {
     padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 16,
   },
   bloodTypeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -4,
   },
   bloodTypeButton: {
-    width: '23%',
-    margin: '1%',
+    width: "23%",
+    margin: "1%",
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#E9ECEF",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
   },
   selectedBloodType: {
-    backgroundColor: '#FF6B6B',
-    borderColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
+    borderColor: "#FF6B6B",
   },
   bloodTypeButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
   },
   selectedBloodTypeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   compatibilityContainer: {
     padding: 16,
@@ -317,20 +400,20 @@ const styles = StyleSheet.create({
   },
   compatibilityTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 12,
   },
   compatibleType: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
     margin: 4,
   },
   compatibleTypeText: {
-    color: '#4CAF50',
+    color: "#4CAF50",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-}); 
+});
