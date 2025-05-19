@@ -12,16 +12,25 @@ import {
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import contentAPI from "../apis/contentAPI";
+import { formatDateTime } from "../utils/formatHelpers";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState(null);
   const [bloodGroup, setBloodGroup] = useState(null);
   const [address, setAddress] = useState("Đang tải vị trí...");
+  const [blogPosts, setBlogPosts] = useState([]);
 
   useEffect(() => {
     getLocation();
+    fetchBlogPosts();
   }, []);
+
+  const fetchBlogPosts = async () => {
+    const response = await contentAPI.HandleContent();
+    setBlogPosts(response.data);
+  };
 
   const getLocation = async () => {
     try {
@@ -88,28 +97,6 @@ export default function HomeScreen({ navigation }) {
     // Add more blood types...
   ];
 
-  // Mock data for blog posts
-  const blogPosts = [
-    {
-      id: 1,
-      title: "Những điều cần biết trước khi hiến máu",
-      author: "BS. Nguyễn Văn A",
-      date: "22/02/2024",
-      image:
-        "https://vienhuyethoc.vn/wp-content/uploads/2021/07/luu-y-truoc-va-sau-khi-hien-mau-1-1024x628.jpg",
-      readTime: "5 phút",
-    },
-    {
-      id: 2,
-      title: "Chế độ ăn uống sau khi hiến máu",
-      author: "BS. Trần Thị B",
-      date: "20/02/2024",
-      image:
-        "https://cdn.tgdd.vn/Files/2022/06/13/1439533/can-luu-y-gi-truoc-va-sau-khi-hien-mau-tinh-nguyen-202206131418440901.jpg",
-      readTime: "3 phút",
-    },
-  ];
-
   const renderBloodTypeCard = (info) => (
     <TouchableOpacity
       key={info.type}
@@ -152,25 +139,42 @@ export default function HomeScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderBlogPost = (post) => (
+  const renderBlogPost = (blog) => (
     <TouchableOpacity
-      key={post.id}
+      key={blog?._id}
       style={styles.blogCard}
-      onPress={() => navigation.navigate("BlogDetail", { blog: post })}
+      onPress={() => navigation.navigate("BlogDetail", { blog })}
     >
       <Image
-        source={{ uri: post.image }}
+        source={{ uri: blog?.image }}
         style={styles.blogImage}
         defaultSource={require("../../assets/onboarding1.png")}
       />
       <View style={styles.blogContent}>
-        <Text style={styles.blogTitle}>{post.title}</Text>
+        <View style={styles.categoryContainer}>
+          <Text style={styles.categoryText}>
+            {blog?.categoryId?.name?.replace("_", " ").toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.blogTitle} numberOfLines={2}>
+          {blog?.title}
+        </Text>
         <View style={styles.blogMeta}>
-          <Text style={styles.blogAuthor}>{post.author}</Text>
-          <Text style={styles.blogDate}>{post.date}</Text>
-          <View style={styles.readTimeContainer}>
-            <MaterialIcons name="access-time" size={12} color="#95A5A6" />
-            <Text style={styles.readTime}>{post.readTime}</Text>
+          <View style={styles.authorContainer}>
+            <Image
+              source={{ uri: blog?.authorId?.avatar }}
+              style={styles.authorAvatar}
+              // defaultSource={require("../../assets/default-avatar.png")}
+            />
+            <View style={styles.authorInfo}>
+              <Text style={styles.blogAuthor}>{blog?.authorId?.fullName}</Text>
+              <View style={styles.readTimeContainer}>
+                <MaterialIcons name="access-time" size={12} color="#95A5A6" />
+                <Text style={styles.blogDate}>
+                  {formatDateTime(blog?.createdAt)}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </View>
@@ -411,20 +415,22 @@ const styles = StyleSheet.create({
   },
   blogCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 20,
     borderColor: "#E2E8F0",
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 8,
     overflow: "hidden",
   },
   blogImage: {
     width: "100%",
     height: 200,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   blogContent: {
     padding: 16,
@@ -433,28 +439,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#2D3436",
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 24,
   },
   blogMeta: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  authorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  authorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#2D3436",
+  },
+  authorInfo: {
+    flex: 1,
   },
   blogAuthor: {
     fontSize: 14,
+    fontWeight: "600",
     color: "#2D3436",
-    marginRight: 8,
-  },
-  blogDate: {
-    fontSize: 14,
-    color: "#95A5A6",
-    marginRight: 8,
+    marginBottom: 4,
   },
   readTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  readTime: {
-    fontSize: 14,
+  blogDate: {
+    fontSize: 12,
     color: "#95A5A6",
     marginLeft: 4,
   },
@@ -468,4 +487,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginLeft: 4,
   },
+  categoryContainer: {
+    backgroundColor: '#FFE8E8',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  categoryText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
 });
