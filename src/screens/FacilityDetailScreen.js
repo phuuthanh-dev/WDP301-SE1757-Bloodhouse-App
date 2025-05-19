@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -10,40 +10,51 @@ import {
   Platform,
   Share,
   StatusBar,
-} from 'react-native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+} from "react-native";
+import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import facilityAPI from "../apis/facilityAPI";
 
-export default function DonationDetailsScreen({ route, navigation }) {
-  const { center } = route.params;
-  const [selectedTab, setSelectedTab] = useState('info'); // 'info' or 'reviews'
+export default function FacilityDetailcreen({ route, navigation }) {
+  const { facilityId } = route.params;
+  const [selectedTab, setSelectedTab] = useState("info"); // 'info' or 'reviews'
+  const [facility, setFacility] = useState(null);
+
+  useEffect(() => {
+    const fetchFacility = async () => {
+      const response = await facilityAPI.HandleFacility(`/${facilityId}`);
+      setFacility(response.data);
+    };
+    fetchFacility();
+  }, [facilityId]);
 
   // Mock reviews data (in a real app, this would come from an API)
   const reviews = [
     {
       id: 1,
-      user: 'Nguyễn Văn B',
+      user: "Nguyễn Văn B",
       rating: 5,
-      date: '20/02/2024',
-      comment: 'Nhân viên rất thân thiện, quy trình hiến máu nhanh chóng và chuyên nghiệp.',
-      bloodType: 'A+',
+      date: "20/02/2024",
+      comment:
+        "Nhân viên rất thân thiện, quy trình hiến máu nhanh chóng và chuyên nghiệp.",
+      bloodType: "A+",
     },
     {
       id: 2,
-      user: 'Trần Thị C',
+      user: "Trần Thị C",
       rating: 4,
-      date: '18/02/2024',
-      comment: 'Cơ sở vật chất tốt, sạch sẽ. Thời gian chờ hơi lâu.',
-      bloodType: 'O+',
+      date: "18/02/2024",
+      comment: "Cơ sở vật chất tốt, sạch sẽ. Thời gian chờ hơi lâu.",
+      bloodType: "O+",
     },
   ];
 
   const openMaps = () => {
     const scheme = Platform.select({
-      ios: 'maps:0,0?q=',
-      android: 'geo:0,0?q=',
+      ios: "maps:0,0?q=",
+      android: "geo:0,0?q=",
     });
     const latLng = `10.7553,106.6658`; // Example coordinates for Ho Chi Minh City
-    const label = center.name;
+    const label = facility.name;
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
       android: `${scheme}${latLng}(${label})`,
@@ -53,14 +64,14 @@ export default function DonationDetailsScreen({ route, navigation }) {
   };
 
   const callCenter = () => {
-    Linking.openURL('tel:+84123456789');
+    Linking.openURL("tel:+84123456789");
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Hãy cùng hiến máu tại ${center.name}!\n${center.address}`,
-        title: 'Chia sẻ trung tâm hiến máu',
+        message: `Hãy cùng hiến máu tại ${facility.name}!\n${facility.address}`,
+        title: "Chia sẻ trung tâm hiến máu",
       });
     } catch (error) {
       console.log(error.message);
@@ -71,7 +82,7 @@ export default function DonationDetailsScreen({ route, navigation }) {
     return [...Array(5)].map((_, index) => (
       <MaterialIcons
         key={index}
-        name={index < rating ? 'star' : 'star-border'}
+        name={index < rating ? "star" : "star-border"}
         size={16}
         color="#FFD700"
       />
@@ -99,7 +110,7 @@ export default function DonationDetailsScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.headerNav}>
         <TouchableOpacity
@@ -108,77 +119,99 @@ export default function DonationDetailsScreen({ route, navigation }) {
         >
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleShare}
-        >
+
+        <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
           <MaterialIcons name="share" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       <ScrollView>
-        <Image source={{ uri: center.image }} style={styles.image} />
-        
+        <Image
+          source={{ uri: facility?.mainImage?.url }}
+          style={styles.image}
+        />
+
         {/* Header Info */}
         <View style={styles.header}>
-          <Text style={styles.name}>{center.name}</Text>
+          <View style={styles.headerTop}>
+            <Text style={styles.name}>{facility?.name}</Text>
+            <View style={[
+              styles.statusBadge,
+              facility?.schedules?.[0]?.isOpen ? styles.openBadge : styles.closedBadge
+            ]}>
+              <Text style={[
+                styles.statusText,
+                facility?.schedules?.[0]?.isOpen ? styles.openText : styles.closedText
+              ]}>
+                {facility?.schedules?.[0]?.isOpen ? 'Đang mở cửa' : 'Đang đóng cửa'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.ratingContainer}>
             <MaterialIcons name="star" size={20} color="#FFD700" />
-            <Text style={styles.rating}>{center.rating}</Text>
-            <Text style={styles.reviewCount}> ({reviews.length} đánh giá)</Text>
+            <Text style={styles.rating}>{facility?.avgRating}</Text>
+            <Text style={styles.reviewCount}>
+              {" "}
+              ({facility?.totalFeedback} đánh giá)
+            </Text>
           </View>
-        </View>
-
-        {/* Status Badge */}
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
-            <Text style={[styles.statusText, { color: '#4CAF50' }]}>{center.status}</Text>
-          </View>
-          {center.urgentNeed && (
-            <View style={[styles.statusBadge, { backgroundColor: '#FFE0E0', marginLeft: 8 }]}>
-              <Text style={[styles.statusText, { color: '#FF6B6B' }]}>Cần máu khẩn cấp</Text>
-            </View>
-          )}
         </View>
 
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
-            style={[styles.tab, selectedTab === 'info' && styles.activeTab]}
-            onPress={() => setSelectedTab('info')}
+            style={[styles.tab, selectedTab === "info" && styles.activeTab]}
+            onPress={() => setSelectedTab("info")}
           >
-            <Text style={[styles.tabText, selectedTab === 'info' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === "info" && styles.activeTabText,
+              ]}
+            >
               Thông tin
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, selectedTab === 'reviews' && styles.activeTab]}
-            onPress={() => setSelectedTab('reviews')}
+            style={[styles.tab, selectedTab === "reviews" && styles.activeTab]}
+            onPress={() => setSelectedTab("reviews")}
           >
-            <Text style={[styles.tabText, selectedTab === 'reviews' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === "reviews" && styles.activeTabText,
+              ]}
+            >
               Đánh giá
             </Text>
           </TouchableOpacity>
         </View>
 
-        {selectedTab === 'info' ? (
+        {selectedTab === "info" ? (
           <>
             {/* Info Cards */}
             <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { marginTop: 16 }]}>
                 <MaterialIcons name="location-on" size={24} color="#FF6B6B" />
-                <Text style={styles.infoText}>{center.address}</Text>
+                <Text style={styles.infoText}>{facility?.address}</Text>
               </View>
 
               <View style={styles.infoRow}>
                 <MaterialIcons name="access-time" size={24} color="#FF6B6B" />
-                <Text style={styles.infoText}>{center.openHours}</Text>
+                <Text style={styles.infoText}>
+                  {facility?.schedules[0]?.openTime} -{" "}
+                  {facility?.schedules[0]?.closeTime}
+                </Text>
               </View>
 
               <View style={styles.infoRow}>
                 <MaterialIcons name="phone" size={24} color="#FF6B6B" />
-                <Text style={styles.infoText}>+84 123 456 789</Text>
+                <Text style={styles.infoText}>{facility?.contactPhone}</Text>
+              </View>
+
+              <View style={styles.infoRow}>
+                <MaterialIcons name="email" size={24} color="#FF6B6B" />
+                <Text style={styles.infoText}>{facility?.contactEmail}</Text>
               </View>
 
               <View style={styles.infoRow}>
@@ -186,18 +219,6 @@ export default function DonationDetailsScreen({ route, navigation }) {
                 <Text style={styles.infoText}>
                   Vui lòng mang theo CMND/CCCD khi đến hiến máu
                 </Text>
-              </View>
-            </View>
-
-            {/* Blood Types Needed */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Nhóm máu đang cần</Text>
-              <View style={styles.bloodTypesGrid}>
-                {center.bloodTypes?.map((type) => (
-                  <View key={type} style={styles.bloodTypeCard}>
-                    <Text style={styles.bloodTypeCardText}>{type}</Text>
-                  </View>
-                ))}
               </View>
             </View>
 
@@ -238,7 +259,7 @@ export default function DonationDetailsScreen({ route, navigation }) {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
-            onPress={() => navigation.navigate('Donation', { center })}
+            onPress={() => navigation.navigate("Donation", { facility })}
           >
             <Text style={styles.buttonText}>Đăng ký hiến máu</Text>
           </TouchableOpacity>
@@ -279,14 +300,14 @@ const RequirementItem = ({ icon, text, description }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   headerNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 40 : StatusBar.currentHeight,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    position: "absolute",
+    top: Platform.OS === "ios" ? 40 : StatusBar.currentHeight,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -295,136 +316,154 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderRadius: 20,
   },
   image: {
-    width: '100%',
+    width: "100%",
     height: 250,
   },
   header: {
     padding: 16,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D3436',
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2D3436",
+    flex: 1,
+    marginRight: 12,
+  },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   rating: {
     marginLeft: 4,
-    fontWeight: 'bold',
-    color: '#FFB300',
+    fontWeight: "bold",
+    color: "#FFB300",
     fontSize: 16,
   },
   reviewCount: {
-    color: '#95A5A6',
+    color: "#95A5A6",
     fontSize: 14,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 16,
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  openBadge: {
+    backgroundColor: "#E8F5E9",
+    borderColor: "#4CAF50",
+  },
+  closedBadge: {
+    backgroundColor: "#FFEBEE",
+    borderColor: "#F44336",
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  openText: {
+    color: "#2E7D32",
+  },
+  closedText: {
+    color: "#C62828",
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     marginBottom: 16,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomWidth: 2,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: "#E9ECEF",
   },
   activeTab: {
-    borderBottomColor: '#FF6B6B',
+    borderBottomColor: "#FF6B6B",
   },
   tabText: {
     fontSize: 16,
-    color: '#95A5A6',
-    fontWeight: '500',
+    color: "#95A5A6",
+    fontWeight: "500",
   },
   activeTabText: {
-    color: '#FF6B6B',
-    fontWeight: 'bold',
+    color: "#FF6B6B",
+    fontWeight: "bold",
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     margin: 16,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
   },
   infoText: {
     marginLeft: 12,
     fontSize: 16,
-    color: '#2D3436',
+    color: "#2D3436",
     flex: 1,
   },
   section: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 16,
   },
   bloodTypesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 16,
   },
   bloodTypeCard: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     margin: 4,
   },
   bloodTypeCardText: {
-    color: '#4CAF50',
+    color: "#4CAF50",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   requirementsList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   requirementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
   },
   requirementText: {
     marginLeft: 12,
@@ -432,63 +471,63 @@ const styles = StyleSheet.create({
   },
   requirementTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 4,
   },
   requirementDescription: {
     fontSize: 14,
-    color: '#636E72',
+    color: "#636E72",
   },
   reviewsContainer: {
     padding: 16,
   },
   reviewCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
   reviewUser: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 4,
   },
   reviewRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   reviewDate: {
-    color: '#95A5A6',
+    color: "#95A5A6",
     fontSize: 14,
   },
   reviewComment: {
-    color: '#636E72',
+    color: "#636E72",
     fontSize: 14,
     lineHeight: 20,
   },
   bloodTypeChip: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   bloodTypeText: {
-    color: '#4CAF50',
+    color: "#4CAF50",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   actionButtons: {
     padding: 16,
@@ -497,33 +536,33 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
     marginBottom: 12,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   secondaryButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
     flex: 0.48,
     borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderColor: "#FF6B6B",
   },
   secondaryButtonText: {
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
   },
-}); 
+});

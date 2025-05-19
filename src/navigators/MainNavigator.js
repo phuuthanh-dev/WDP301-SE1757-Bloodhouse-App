@@ -1,5 +1,5 @@
 import React from "react";
-import DonationDetailsScreen from "../screens/DonationDetailsScreen";
+import FacilityDetailScreen from "../screens/FacilityDetailScreen";
 import EmergencyRequestScreen from "../screens/EmergencyRequestScreen";
 import EmergencyStatusScreen from "../screens/EmergencyStatusScreen";
 import TabNavigator from "./TabNavigator";
@@ -29,7 +29,7 @@ const MainNavigator = () => {
       }}
     >
       <Stack.Screen name="TabNavigator" component={TabNavigator} />
-      <Stack.Screen name="DonationDetails" component={DonationDetailsScreen} />
+      <Stack.Screen name="FacilityDetail" component={FacilityDetailScreen} />
       <Stack.Screen name="Donation" component={DonationScreen} />
       <Stack.Screen name="EmergencyRequest" component={EmergencyRequestScreen} />
       <Stack.Screen name="EmergencyStatus" component={EmergencyStatusScreen} />
