@@ -12,11 +12,8 @@ import {
   Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
-import { useAuth } from "../hooks/useAuth";
-import { toast } from "sonner-native";
-import { authSelector } from "../redux/reducers/authReducer";
-import { useSelector } from "react-redux";
-import userAPI from "../apis/userAPI";
+import { useAuth } from "@/hooks/useAuth";
+import userAPI from "@/apis/userAPI";
 
 export default function ProfileScreen({ navigation }) {
   const { logout } = useAuth();

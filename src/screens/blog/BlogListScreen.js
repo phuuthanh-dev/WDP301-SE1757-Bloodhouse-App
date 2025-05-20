@@ -10,8 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import contentAPI from '../../apis/contentAPI';
-import { formatDateTime } from '../../utils/formatHelpers';
+import contentAPI from '@/apis/contentAPI';
+import { formatDateTime } from '@/utils/formatHelpers';
 
 export default function BlogListScreen({ navigation }) {
   const [blogPosts, setBlogPosts] = useState([]);

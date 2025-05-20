@@ -12,10 +12,10 @@ import {
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import contentAPI from "../apis/contentAPI";
-import { formatDateTime } from "../utils/formatHelpers";
-import bloodGroupAPI from "../apis/bloodGroup";
-import { useLocation } from "../contexts/LocationContext";
+import contentAPI from "@/apis/contentAPI";
+import { formatDateTime } from "@/utils/formatHelpers";
+import bloodGroupAPI from "@/apis/bloodGroup";
+import { useLocation } from "@/contexts/LocationContext";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -121,7 +121,7 @@ export default function HomeScreen({ navigation }) {
       <Image
         source={{ uri: blog?.image }}
         style={styles.blogImage}
-        defaultSource={require("../../assets/onboarding1.png")}
+        defaultSource={require("@/assets/images/onboarding1.png")}
       />
       <View style={styles.blogContent}>
         <View style={styles.categoryContainer}>

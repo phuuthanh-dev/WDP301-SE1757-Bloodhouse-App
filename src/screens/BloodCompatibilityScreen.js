@@ -9,9 +9,9 @@ import {
   SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import bloodCompatibilityAPI from "../apis/bloodCompatibility";
-import bloodGroupAPI from "../apis/bloodGroup";
-import bloodComponentAPI from "../apis/bloodComponent";
+import bloodCompatibilityAPI from "@/apis/bloodCompatibility";
+import bloodGroupAPI from "@/apis/bloodGroup";
+import bloodComponentAPI from "@/apis/bloodComponent";
 
 const bloodCompatibility = {
   wholeBlood: {

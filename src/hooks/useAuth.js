@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { addAuth, removeAuth } from "../redux/reducers/authReducer";
+import { addAuth, removeAuth } from "@/redux/reducers/authReducer";
 import { useDispatch } from "react-redux";
 
 export const useAuth = () => {

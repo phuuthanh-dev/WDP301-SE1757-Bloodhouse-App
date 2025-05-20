@@ -15,8 +15,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import userAPI from '../../apis/userAPI';
-import { formatDate } from '../../utils/formatHelpers';
+import userAPI from "@/apis/userAPI";
+import { formatDate } from "@/utils/formatHelpers";
 
 const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 

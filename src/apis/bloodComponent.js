@@ -1,4 +1,4 @@
-import axiosClient from "./axiosClient";
+import axiosClient from "@/apis/axiosClient";
 
 class BloodComponentAPI {
   HandleBloodComponent = async (url = "", data, method = "get") => {

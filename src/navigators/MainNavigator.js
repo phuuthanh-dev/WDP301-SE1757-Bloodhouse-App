@@ -1,21 +1,20 @@
 import React from "react";
-import FacilityDetailScreen from "../screens/FacilityDetailScreen";
-import EmergencyRequestScreen from "../screens/EmergencyRequestScreen";
-import EmergencyStatusScreen from "../screens/EmergencyStatusScreen";
 import TabNavigator from "./TabNavigator";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import BloodTypeDetailScreen from "../screens/BloodTypeDetailScreen";
-import EditProfileScreen from "../screens/profile/EditProfileScreen";
-import SecurityScreen from "../screens/profile/SecurityScreen";
-import HelpScreen from "../screens/profile/HelpScreen";
-import AboutScreen from "../screens/profile/AboutScreen";
-import DonationScreen from "../screens/DonationScreen";
-import BloodTypeListScreen from "../screens/BloodTypeListScreen";
-import DonationHistoryScreen from "../screens/DonationHistoryScreen";
-import NearbyScreen from '../screens/map/NearbyScreen';
-import BlogListScreen from "../screens/blog/BlogListScreen";
-import BlogDetailScreen from "../screens/blog/BlogDetailScreen";
-import NotificationTestScreen from "../screens/NotificationTestScreen";
+import DonationScreen from "@/screens/DonationScreen";
+import BloodTypeDetailScreen from "@/screens/bloodType/BloodTypeDetailScreen";
+import BloodTypeListScreen from "@/screens/bloodType/BloodTypeListScreen";
+import BlogDetailScreen from "@/screens/blog/BlogDetailScreen";
+import BlogListScreen from "@/screens/blog/BlogListScreen";
+import EditProfileScreen from "@/screens/profile/EditProfileScreen";
+import SecurityScreen from "@/screens/profile/SecurityScreen";
+import HelpScreen from "@/screens/profile/HelpScreen";
+import AboutScreen from "@/screens/profile/AboutScreen";
+import NearbyScreen from "@/screens/map/NearbyScreen";
+import DonationHistoryScreen from "@/screens/DonationHistoryScreen";
+import EmergencyStatusScreen from "@/screens/EmergencyStatusScreen";
+import EmergencyRequestScreen from "@/screens/EmergencyRequestScreen";
+import FacilityDetailScreen from "@/screens/FacilityDetailScreen";
 
 const MainNavigator = () => {
   const Stack = createNativeStackNavigator();
