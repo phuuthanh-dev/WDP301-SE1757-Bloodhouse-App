@@ -14,6 +14,7 @@ import {
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import userAPI from "@/apis/userAPI";
+import { toast } from "sonner-native";
 
 export default function ProfileScreen({ navigation }) {
   const { logout } = useAuth();

@@ -1,5 +1,4 @@
 import React from "react";
-import TabNavigator from "./TabNavigator";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DonationScreen from "@/screens/member/donation/DonationScreen";
 import BloodTypeDetailScreen from "@/screens/member/bloodType/BloodTypeDetailScreen";
@@ -15,8 +14,9 @@ import DonationHistoryScreen from "@/screens/member/profile/DonationHistoryScree
 import EmergencyStatusScreen from "@/screens/member/emergency/EmergencyStatusScreen";
 import EmergencyRequestScreen from "@/screens/member/emergency/EmergencyRequestScreen";
 import FacilityDetailScreen from "@/screens/member/facility/FacilityDetailScreen";
+import TabNavigatorMember from "./TabNavigatorMember";
 
-const MainNavigator = () => {
+const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
 
   return (
@@ -27,7 +27,7 @@ const MainNavigator = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      <Stack.Screen name="TabNavigator" component={TabNavigatorMember} />
       <Stack.Screen name="FacilityDetail" component={FacilityDetailScreen} />
       <Stack.Screen name="Donation" component={DonationScreen} />
       <Stack.Screen name="EmergencyRequest" component={EmergencyRequestScreen} />
@@ -46,4 +46,4 @@ const MainNavigator = () => {
   );
 };
 
-export default MainNavigator;
+export default MainNavigatorMember;
