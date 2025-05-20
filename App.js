@@ -1,14 +1,14 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar, StyleSheet } from "react-native";
-import AppRouters from "./src/navigators/AppRouters";
-import { NotificationProvider } from "./src/contexts/NotificationContext";
+import AppRouters from "@/navigators/AppRouters";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Provider } from "react-redux";
-import store from "./src/redux/store";
+import store from "@/redux/store";
 import { Toaster } from "sonner-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LocationProvider } from "./src/contexts/LocationContext";
+import { LocationProvider } from "@/contexts/LocationContext";
 
 export default function App() {
   return (

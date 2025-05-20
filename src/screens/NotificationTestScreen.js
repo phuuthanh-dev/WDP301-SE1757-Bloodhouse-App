@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Button, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import * as Clipboard from 'expo-clipboard';
 import * as Notifications from 'expo-notifications';
 

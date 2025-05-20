@@ -1,4 +1,4 @@
-import axiosClient from './axiosClient';
+import axiosClient from '@/apis/axiosClient';
 
 class FacilityAPI {
     HandleFacility = async (

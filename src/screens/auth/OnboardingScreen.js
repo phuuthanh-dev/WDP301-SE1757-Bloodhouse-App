@@ -10,19 +10,19 @@ export default function OnboardingScreen({ navigation }) {
       key: '1',
       title: 'Chào mừng đến với BloodHouse',
       text: 'Nền tảng kết nối cộng đồng hiến máu',
-      image: require('../../../assets/onboarding1.png'),
+      image: require('@/assets/images/onboarding1.png'),
     },
     {
       key: '2',
       title: 'Hiến máu cứu người',
       text: 'Mỗi giọt máu là một món quà của sự sống',
-      image: require('../../../assets/onboarding2.png'),
+      image: require('@/assets/images/onboarding2.png'),
     },
     {
       key: '3',
       title: 'Tìm kiếm và kết nối',
       text: 'Dễ dàng tìm kiếm người hiến máu phù hợp',
-      image: require('../../../assets/onboarding3.png'),
+      image: require('@/assets/images/onboarding3.png'),
     },
   ];
 

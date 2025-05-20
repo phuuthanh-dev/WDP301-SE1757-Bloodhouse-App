@@ -12,7 +12,7 @@ import {
   StatusBar,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
-import facilityAPI from "../apis/facilityAPI";
+import facilityAPI from "@/apis/facilityAPI";
 
 export default function FacilityDetailcreen({ route, navigation }) {
   const { facilityId } = route.params;

@@ -1,5 +1,4 @@
-import axios from 'axios';
-import axiosClient from './axiosClient';
+import axiosClient from '@/apis/axiosClient';
 
 class BloodCompatibilityAPI {
     HandleBloodCompatibility = async (

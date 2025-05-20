@@ -3,10 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 // Import screens
-import HomeScreen from '../screens/HomeScreen';
-import SearchScreen from '../screens/SearchScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import BloodCompatibilityScreen from '../screens/BloodCompatibilityScreen';
+import HomeScreen from '@/screens/HomeScreen';
+import SearchScreen from '@/screens/SearchScreen';
+import ProfileScreen from '@/screens/ProfileScreen';
+import BloodCompatibilityScreen from '@/screens/BloodCompatibilityScreen';
 
 const Tab = createBottomTabNavigator();
 

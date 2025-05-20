@@ -12,7 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { formatDateTime } from '../../utils/formatHelpers';
+import { formatDateTime } from '@/utils/formatHelpers';
 import RenderHtml from 'react-native-render-html';
 
 const { width } = Dimensions.get('window');

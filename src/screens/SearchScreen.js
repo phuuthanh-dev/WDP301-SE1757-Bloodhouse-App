@@ -11,7 +11,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import facilityAPI from "../apis/facilityAPI";
+import facilityAPI from "@/apis/facilityAPI";
 
 // Mock data (in a real app, this would come from an API)
 const mockCenters = [

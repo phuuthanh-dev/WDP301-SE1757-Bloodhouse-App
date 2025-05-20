@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import authenticationAPI from "../../apis/authAPI";
+import authenticationAPI from "@/apis/authAPI";
 import { toast } from "sonner-native";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();

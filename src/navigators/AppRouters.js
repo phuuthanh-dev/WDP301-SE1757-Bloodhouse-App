@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import MainNavigator from "./MainNavigator";
-import AuthNavigator from "./AuthNavigator";
+import MainNavigator from "@/navigators/MainNavigator";
+import AuthNavigator from "@/navigators/AuthNavigator";
 import {
   useAsyncStorage,
 } from "@react-native-async-storage/async-storage";
-import { addAuth, authSelector } from "../redux/reducers/authReducer";
+import { addAuth, authSelector } from "@/redux/reducers/authReducer";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function AppRouters() {
