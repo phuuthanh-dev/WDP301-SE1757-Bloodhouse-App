@@ -10,7 +10,7 @@ import BloodCompatibilityScreen from '@/screens/member/bloodCompatibility/BloodC
 
 const Tab = createBottomTabNavigator();
 
-export default function TabNavigator() {
+export default function TabNavigatorMember() {
   return (
     <Tab.Navigator
       screenOptions={{
