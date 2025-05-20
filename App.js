@@ -8,6 +8,7 @@ import store from "./src/redux/store";
 import { Toaster } from "sonner-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LocationProvider } from "./src/contexts/LocationContext";
 
 export default function App() {
   return (
@@ -16,11 +17,13 @@ export default function App() {
       <Provider store={store}>
         <SafeAreaProvider style={styles.container}>
           <Toaster />
-          <NotificationProvider>
-            <NavigationContainer>
-              <AppRouters />
-            </NavigationContainer>
-          </NotificationProvider>
+          <LocationProvider>
+            <NotificationProvider>
+              <NavigationContainer>
+                <AppRouters />
+              </NavigationContainer>
+            </NotificationProvider>
+          </LocationProvider>
         </SafeAreaProvider>
       </Provider>
     </GestureHandlerRootView>

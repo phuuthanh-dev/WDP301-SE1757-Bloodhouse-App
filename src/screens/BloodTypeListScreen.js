@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,109 +9,109 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import bloodGroupAPI from '../apis/bloodGroup';
 
 export default function BloodTypeListScreen({ navigation }) {
   // Mock data for blood type information
-  const bloodTypeInfo = [
+  const [bloodGroupList, setBloodGroupList] = useState([]);
+
+  useEffect(() => {
+    const fetchBloodGroupList = async () => {
+      const response = await bloodGroupAPI.HandleBloodGroup();
+      setBloodGroupList(response.data);
+    };
+    fetchBloodGroupList();
+  }, []);
+
+  const bloodCompatibility = [
     {
       type: "A+",
       canGiveTo: ["A+", "AB+"],
       canReceiveFrom: ["A+", "A-", "O+", "O-"],
-      percentage: "29.1%",
-      description: "Nhóm máu A+ là một trong những nhóm máu phổ biến nhất.",
     },
     {
       type: "A-",
       canGiveTo: ["A+", "A-", "AB+", "AB-"],
       canReceiveFrom: ["A-", "O-"],
-      percentage: "6.3%",
-      description: "Nhóm máu A- có thể cho máu cho cả A+ và AB+.",
     },
     {
       type: "B+",
       canGiveTo: ["B+", "AB+"],
       canReceiveFrom: ["B+", "B-", "O+", "O-"],
-      percentage: "20.1%",
-      description: "Nhóm máu B+ là nhóm máu phổ biến thứ ba.",
     },
     {
       type: "B-",
       canGiveTo: ["B+", "B-", "AB+", "AB-"],
       canReceiveFrom: ["B-", "O-"],
-      percentage: "1.7%",
-      description: "Nhóm máu B- khá hiếm gặp.",
     },
     {
       type: "AB+",
       canGiveTo: ["AB+"],
       canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      percentage: "3.4%",
-      description: "Người có nhóm máu AB+ có thể nhận máu từ tất cả các nhóm.",
     },
     {
       type: "AB-",
       canGiveTo: ["AB+", "AB-"],
       canReceiveFrom: ["A-", "B-", "AB-", "O-"],
-      percentage: "0.6%",
-      description: "AB- là một trong những nhóm máu hiếm nhất.",
     },
     {
       type: "O+",
       canGiveTo: ["O+", "A+", "B+", "AB+"],
       canReceiveFrom: ["O+", "O-"],
-      percentage: "35.7%",
-      description: "O+ là nhóm máu phổ biến nhất.",
     },
     {
       type: "O-",
       canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
       canReceiveFrom: ["O-"],
-      percentage: "3.1%",
-      description: "O- được gọi là người cho máu toàn năng.",
     },
   ];
 
-  const renderBloodTypeCard = (info) => (
-    <TouchableOpacity
-      key={info.type}
-      style={styles.bloodTypeCard}
-      onPress={() => navigation.navigate("BloodTypeDetail", { info })}
-    >
-      <View style={styles.bloodTypeHeader}>
-        <View style={styles.typeContainer}>
-          <Text style={styles.bloodType}>{info.type}</Text>
-          <Text style={styles.percentage}>{info.percentage}</Text>
+  const renderBloodTypeCard = (group) => {
+    // Find matching blood type compatibility data
+    const compatibilityData = bloodCompatibility.find(item => item.type === group?.name);
+
+    return (
+      <TouchableOpacity
+        key={group?._id}
+        style={styles.bloodTypeCard}
+        onPress={() => navigation.navigate("BloodTypeDetail", { group })}
+      >
+        <View style={styles.bloodTypeHeader}>
+          <View style={styles.typeContainer}>
+            <Text style={styles.bloodType}>{group?.name}</Text>
+            <Text style={styles.percentage}>{group?.populationRate}%</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#95A5A6" />
         </View>
-        <MaterialIcons name="chevron-right" size={24} color="#95A5A6" />
-      </View>
 
-      <Text style={styles.description}>{info.description}</Text>
+        <Text style={styles.description}>{group?.note}</Text>
 
-      <View style={styles.compatibilityContainer}>
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityLabel}>Có thể cho</Text>
-          <View style={styles.bloodTypeList}>
-            {info.canGiveTo.map((type) => (
-              <View key={`give-${type}`} style={styles.smallBloodType}>
-                <Text style={styles.smallBloodTypeText}>{type}</Text>
-              </View>
-            ))}
+        <View style={styles.compatibilityContainer}>
+          <View style={styles.compatibilitySection}>
+            <Text style={styles.compatibilityLabel}>Có thể cho</Text>
+            <View style={styles.bloodTypeList}>
+              {compatibilityData?.canGiveTo?.map((type) => (
+                <View key={`give-${type}`} style={styles.smallBloodType}>
+                  <Text style={styles.smallBloodTypeText}>{type}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.compatibilitySection}>
+            <Text style={styles.compatibilityLabel}>Có thể nhận</Text>
+            <View style={styles.bloodTypeList}>
+              {compatibilityData?.canReceiveFrom?.map((type) => (
+                <View key={`receive-${type}`} style={styles.smallBloodType}>
+                  <Text style={styles.smallBloodTypeText}>{type}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityLabel}>Có thể nhận</Text>
-          <View style={styles.bloodTypeList}>
-            {info.canReceiveFrom.map((type) => (
-              <View key={`receive-${type}`} style={styles.smallBloodType}>
-                <Text style={styles.smallBloodTypeText}>{type}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -130,7 +130,7 @@ export default function BloodTypeListScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 32 }}>
-        {bloodTypeInfo.map(renderBloodTypeCard)}
+        {bloodGroupList?.map(renderBloodTypeCard)}
       </ScrollView>
     </View>
   );

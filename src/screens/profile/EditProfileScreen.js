@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,39 +7,217 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Alert,
+  Modal,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import userAPI from '../../apis/userAPI';
+import { formatDate } from '../../utils/formatHelpers';
+
+const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function EditProfileScreen({ navigation }) {
   const [formData, setFormData] = useState({
-    fullName: 'Phùng Hữu Thành',
-    email: 'phuuthanh2002@gmail.com',
-    phone: '0909090909',
-    bloodType: 'A+',
-    address: 'Hà Nội, Việt Nam',
-    dateOfBirth: '01/01/1990',
+    fullName: '',
+    email: '',
+    phone: '',
+    bloodType: '',
+    address: '',
+    dateOfBirth: '',
+    avatar: null,
   });
+  const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showBloodTypeModal, setShowBloodTypeModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState(null);
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    navigation.goBack();
+  useEffect(() => {
+    fetchUserInfo();
+    requestPermissions();
+  }, []);
+
+  const requestPermissions = async () => {
+    if (Platform.OS !== 'web') {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
+        Alert.alert(
+          'Cần quyền truy cập',
+          'Vui lòng cấp quyền truy cập camera và thư viện ảnh'
+        );
+      }
+    }
   };
 
-  const renderInput = (label, key, placeholder, keyboardType = 'default') => (
+  const fetchUserInfo = async () => {
+    try {
+      const response = await userAPI.HandleUser("/me");
+      const userData = response.data;
+      setFormData({
+        fullName: userData.fullName || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        bloodType: userData.bloodGroup || '',
+        address: userData.address || '',
+        dateOfBirth: userData.dateOfBirth || '',
+        avatar: userData.avatar || null,
+      });
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin người dùng');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.bloodType) {
+      Alert.alert('Thông báo', 'Vui lòng chọn nhóm máu');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await userAPI.HandleUser("/update", {
+        method: 'PUT',
+        data: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          bloodGroup: formData.bloodType,
+          address: formData.address,
+          dateOfBirth: formData.dateOfBirth,
+        },
+      });
+      Alert.alert('Thành công', 'Cập nhật thông tin thành công', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật thông tin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImagePick = async (type) => {
+    try {
+      let result;
+      if (type === 'camera') {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+        });
+      }
+
+      if (!result.canceled) {
+        setFormData({ ...formData, avatar: result.assets[0].uri });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Lỗi', 'Không thể chọn ảnh');
+    }
+  };
+
+  const showImagePickerOptions = () => {
+    Alert.alert(
+      'Chọn ảnh đại diện',
+      'Bạn muốn chọn ảnh từ đâu?',
+      [
+        {
+          text: 'Chụp ảnh mới',
+          onPress: () => handleImagePick('camera'),
+        },
+        {
+          text: 'Chọn từ thư viện',
+          onPress: () => handleImagePick('library'),
+        },
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleDateChange = (event, date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (date) {
+      setTempDate(date);
+    }
+  };
+
+  const handleConfirmDate = () => {
+    if (tempDate) {
+      setSelectedDate(tempDate);
+      setFormData({ ...formData, dateOfBirth: formatDate(tempDate) });
+    }
+    setShowDatePicker(false);
+  };
+
+  const handleCancelDate = () => {
+    setTempDate(null);
+    setShowDatePicker(false);
+  };
+
+  const renderInput = (label, key, placeholder, keyboardType = 'default', onPress = null) => (
     <View style={styles.inputContainer}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
+      <TouchableOpacity
         style={styles.input}
-        value={formData[key]}
-        onChangeText={(text) => setFormData({ ...formData, [key]: text })}
-        placeholder={placeholder}
-        keyboardType={keyboardType}
-      />
+        onPress={onPress}
+        disabled={!onPress}
+      >
+        <TextInput
+          style={[styles.textInput, !onPress && { flex: 1 }]}
+          value={formData[key]}
+          onChangeText={(text) => setFormData({ ...formData, [key]: text })}
+          placeholder={placeholder}
+          keyboardType={keyboardType}
+          editable={!onPress && key !== 'email'}
+        />
+        {onPress && (
+          <MaterialIcons name="calendar-today" size={24} color="#95A5A6" />
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderBloodTypeSelector = () => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>Nhóm máu</Text>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowBloodTypeModal(true)}
+      >
+        <Text style={[styles.textInput, { flex: 1 }]}>
+          {formData.bloodType || 'Chọn nhóm máu'}
+        </Text>
+        <MaterialIcons name="arrow-drop-down" size={24} color="#95A5A6" />
+      </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -49,8 +227,14 @@ export default function EditProfileScreen({ navigation }) {
           <MaterialIcons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chỉnh sửa hồ sơ</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Lưu</Text>
+        <TouchableOpacity 
+          style={styles.saveButton} 
+          onPress={handleSave}
+          disabled={loading}
+        >
+          <Text style={styles.saveButtonText}>
+            {loading ? 'Đang lưu...' : 'Lưu'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -58,10 +242,13 @@ export default function EditProfileScreen({ navigation }) {
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
           <Image
-            source={{ uri: 'https://example.com/avatar.jpg' }}
+            source={{ uri: formData.avatar || 'https://example.com/avatar.jpg' }}
             style={styles.avatar}
           />
-          <TouchableOpacity style={styles.changeAvatarButton}>
+          <TouchableOpacity 
+            style={styles.changeAvatarButton}
+            onPress={showImagePickerOptions}
+          >
             <Text style={styles.changeAvatarText}>Thay đổi ảnh đại diện</Text>
           </TouchableOpacity>
         </View>
@@ -70,11 +257,105 @@ export default function EditProfileScreen({ navigation }) {
         {renderInput('Họ và tên', 'fullName', 'Nhập họ và tên')}
         {renderInput('Email', 'email', 'Nhập email', 'email-address')}
         {renderInput('Số điện thoại', 'phone', 'Nhập số điện thoại', 'phone-pad')}
-        {renderInput('Nhóm máu', 'bloodType', 'Chọn nhóm máu')}
+        {renderBloodTypeSelector()}
         {renderInput('Địa chỉ', 'address', 'Nhập địa chỉ')}
-        {renderInput('Ngày sinh', 'dateOfBirth', 'DD/MM/YYYY')}
+        {renderInput(
+          'Ngày sinh',
+          'dateOfBirth',
+          'DD/MM/YYYY',
+          'default',
+          () => setShowDatePicker(true)
+        )}
       </ScrollView>
-    </View>
+
+      {/* Blood Type Modal */}
+      <Modal
+        visible={showBloodTypeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowBloodTypeModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chọn nhóm máu</Text>
+              <TouchableOpacity onPress={() => setShowBloodTypeModal(false)}>
+                <MaterialIcons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.bloodTypeList}>
+              {bloodTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.bloodTypeItem,
+                    formData.bloodType === type && styles.bloodTypeItemSelected,
+                  ]}
+                  onPress={() => {
+                    setFormData({ ...formData, bloodType: type });
+                    setShowBloodTypeModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.bloodTypeItemText,
+                      formData.bloodType === type && styles.bloodTypeItemTextSelected,
+                    ]}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={handleCancelDate}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Chọn ngày sinh</Text>
+                <TouchableOpacity onPress={handleCancelDate}>
+                  <MaterialIcons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate || selectedDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+              />
+              {Platform.OS === 'ios' && (
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={handleCancelDate}
+                  >
+                    <Text style={styles.cancelButtonText}>Hủy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.datePickerButton, styles.confirmButton]}
+                    onPress={handleConfirmDate}
+                  >
+                    <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -88,8 +369,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 16,
+    paddingVertical: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
@@ -144,6 +424,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '500',
   },
+  textInput: {
+    fontSize: 16,
+    color: '#2D3436',
+  },
   input: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -151,5 +435,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#E9ECEF',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bloodTypeList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  bloodTypeItem: {
+    width: '25%',
+    padding: 4,
+  },
+  bloodTypeItemSelected: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 8,
+  },
+  bloodTypeItemText: {
+    fontSize: 16,
+    color: '#2D3436',
+    textAlign: 'center',
+    padding: 12,
+  },
+  bloodTypeItemTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3436',
+  },
+  datePickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+  },
+  datePickerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#E9ECEF',
+  },
+  confirmButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  cancelButtonText: {
+    color: '#2D3436',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 }); 
