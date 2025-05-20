@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -7,17 +7,33 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Image,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
+import { useLocation } from "../../contexts/LocationContext";
+import facilityAPI from "../../apis/facilityAPI";
 
 const { width, height } = Dimensions.get("window");
 
 export default function NearbyScreen({ navigation }) {
-  const [location, setLocation] = useState(null);
+  const { location } = useLocation();
   const [errorMsg, setErrorMsg] = useState(null);
-  const [selectedFilter, setSelectedFilter] = useState("all"); // 'all', 'donors', 'requests'
+  const [selectedFilter, setSelectedFilter] = useState("facilities"); // 'facilities', 'donors', 'requests'
+  const [facilities, setFacilities] = useState([]);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!location) return;
+    const fetchFacilities = async () => {
+      if (location) {
+        const response = await facilityAPI.HandleFacility();
+        setFacilities(response.data.result);
+      }
+    };
+    fetchFacilities();
+  }, [location]);
 
   // Mock data for donors and requests
   const mockData = {
@@ -69,67 +85,105 @@ export default function NearbyScreen({ navigation }) {
     ],
   };
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setErrorMsg("Permission to access location was denied");
-        return;
-      }
+  const renderMarkers = (facility) => {
+    if (!facility?.location?.coordinates) return null;
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-    })();
-  }, []);
-
-  const renderMarkers = () => {
-    const markers = [];
-    if (selectedFilter === "all" || selectedFilter === "donors") {
-      mockData?.donors.forEach((donor) => {
-        markers.push(
-          <Marker
-            key={`donor-${donor.id}`}
-            coordinate={donor.coordinate}
-            pinColor="#4CAF50"
-          >
-            <Callout>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{donor.name}</Text>
-                <Text style={styles.calloutBloodType}>
-                  Nhóm máu: {donor.bloodType}
-                </Text>
-                <Text style={styles.calloutDistance}>{donor.distance}</Text>
-              </View>
-            </Callout>
-          </Marker>
-        );
-      });
+    if (selectedFilter === "donors") {
+      // mockData?.donors.forEach((donor) => {
+      //   markers.push(
+      //     <Marker
+      //       key={`donor-${donor.id}`}
+      //       coordinate={donor.coordinate}
+      //       pinColor="#4CAF50"
+      //     >
+      //       <Callout>
+      //         <View style={styles.callout}>
+      //           <Text style={styles.calloutTitle}>{donor.name}</Text>
+      //           <Text style={styles.calloutBloodType}>
+      //             Nhóm máu: {donor.bloodType}
+      //           </Text>
+      //           <Text style={styles.calloutDistance}>{donor.distance}</Text>
+      //         </View>
+      //       </Callout>
+      //     </Marker>
+      //   );
+      // });
     }
 
-    if (selectedFilter === "all" || selectedFilter === "requests") {
-      mockData.requests.forEach((request) => {
-        markers.push(
-          <Marker
-            key={`request-${request.id}`}
-            coordinate={request.coordinate}
-            pinColor="#FF6B6B"
-          >
-            <Callout>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{request.hospital}</Text>
-                <Text style={styles.calloutBloodType}>
-                  Cần máu: {request.bloodType}
-                </Text>
-                <Text style={styles.calloutUrgency}>{request.urgency}</Text>
-                <Text style={styles.calloutDistance}>{request.distance}</Text>
+    if (selectedFilter === "facilities") {
+      return (
+        <Marker
+          key={facility?._id}
+          coordinate={{
+            latitude: facility?.location?.coordinates[1],
+            longitude: facility?.location?.coordinates[0],
+          }}
+          tracksViewChanges={false}
+        >
+          <View style={styles.markerContainer}>
+            <Image
+              source={require('../../assets/images/marker.png')}
+              style={styles.markerImage}
+            />
+          </View>
+          <Callout>
+            <View style={styles.callout}>
+              <View style={styles.calloutHeader}>
+                <Text style={styles.calloutTitle}>{facility.name}</Text>
+                <View style={styles.ratingContainer}>
+                  <MaterialIcons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>
+                    {facility.avgRating.toFixed(1)} ({facility.totalFeedback})
+                  </Text>
+                </View>
               </View>
-            </Callout>
-          </Marker>
-        );
-      });
-    }
 
-    return markers;
+              <View style={styles.calloutInfo}>
+                <View style={styles.infoRow}>
+                  <MaterialIcons name="location-on" size={14} color="#636E72" />
+                  <Text style={styles.calloutAddress} numberOfLines={2}>
+                    {facility.address}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <MaterialIcons name="phone" size={14} color="#636E72" />
+                  <Text style={styles.calloutContact}>
+                    {facility.contactPhone}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <MaterialIcons name="email" size={14} color="#636E72" />
+                  <Text style={styles.calloutContact}>
+                    {facility.contactEmail}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <MaterialIcons name="access-time" size={14} color="#636E72" />
+                  <Text style={styles.calloutSchedule}>
+                    {facility.schedules[0]?.openTime} -{" "}
+                    {facility.schedules[0]?.closeTime}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.calloutButton}
+                onPress={() =>
+                  navigation.navigate("FacilityDetail", {
+                    facilityId: facility?._id,
+                  })
+                }
+              >
+                <Text style={styles.calloutButtonText}>Xem chi tiết</Text>
+              </TouchableOpacity>
+            </View>
+          </Callout>
+        </Marker>
+      );
+    }
   };
 
   return (
@@ -155,17 +209,17 @@ export default function NearbyScreen({ navigation }) {
         <TouchableOpacity
           style={[
             styles.filterOption,
-            selectedFilter === "all" && styles.filterOptionSelected,
+            selectedFilter === "facilities" && styles.filterOptionSelected,
           ]}
-          onPress={() => setSelectedFilter("all")}
+          onPress={() => setSelectedFilter("facilities")}
         >
           <Text
             style={[
               styles.filterText,
-              selectedFilter === "all" && styles.filterTextSelected,
+              selectedFilter === "facilities" && styles.filterTextSelected,
             ]}
           >
-            Tất cả
+            Cơ sở y tế
           </Text>
         </TouchableOpacity>
 
@@ -207,19 +261,21 @@ export default function NearbyScreen({ navigation }) {
       {/* Map */}
       {location ? (
         <MapView
+          key={facilities?.length}
+          ref={mapRef}
           style={styles.map}
           provider={MapView.PROVIDER_GOOGLE}
           initialRegion={{
-            latitude: location?.coords?.latitude,
-            longitude: location?.coords?.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
           }}
           mapType="standard"
           showsUserLocation
           showsMyLocationButton
         >
-          {renderMarkers()}
+          {facilities?.map(renderMarkers)}
         </MapView>
       ) : (
         <View style={styles.loadingContainer}>
@@ -228,6 +284,24 @@ export default function NearbyScreen({ navigation }) {
           </Text>
         </View>
       )}
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={() => {
+          if (location && mapRef.current) {
+            mapRef.current.animateToRegion(
+              {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
+              },
+              500
+            );
+          }
+        }}
+      >
+        <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -301,28 +375,103 @@ const styles = StyleSheet.create({
     color: "#636E72",
   },
   callout: {
-    padding: 8,
-    minWidth: 150,
+    padding: 12,
+    minWidth: 250,
+    maxWidth: 300,
+  },
+  calloutHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
   calloutTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#2D3436",
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
   },
-  calloutBloodType: {
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF9E6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingText: {
     fontSize: 12,
+    color: "#2D3436",
+    marginLeft: 4,
+  },
+  calloutInfo: {
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  calloutAddress: {
+    fontSize: 13,
     color: "#636E72",
-    marginBottom: 2,
+    marginLeft: 6,
+    flex: 1,
   },
-  calloutUrgency: {
-    fontSize: 12,
-    color: "#FF6B6B",
-    fontWeight: "bold",
-    marginBottom: 2,
+  calloutContact: {
+    fontSize: 13,
+    color: "#636E72",
+    marginLeft: 6,
   },
-  calloutDistance: {
-    fontSize: 12,
-    color: "#95A5A6",
+  calloutSchedule: {
+    fontSize: 13,
+    color: "#636E72",
+    marginLeft: 6,
+  },
+  calloutButton: {
+    backgroundColor: "#FF6B6B",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  calloutButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  markerContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FF6B6B",
+  },
+  markerImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FF6B6B",
+  },
+  locationButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 40,
+    backgroundColor: "#FF6B6B",
+    padding: 15,
+    borderRadius: 50,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

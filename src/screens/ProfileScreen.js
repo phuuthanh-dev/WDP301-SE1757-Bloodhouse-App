@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -16,23 +16,33 @@ import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner-native";
 import { authSelector } from "../redux/reducers/authReducer";
 import { useSelector } from "react-redux";
+import userAPI from "../apis/userAPI";
 
 export default function ProfileScreen({ navigation }) {
   const { logout } = useAuth();
-  const { user } = useSelector(authSelector);
+  // const { user } = useSelector(authSelector);
   const [isAvailableToDonate, setIsAvailableToDonate] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [userInfo, setUserInfo] = useState(null);
 
-  const userInfo = {
-    name: "Phùng Hữu Thành",
-    bloodType: "A+",
-    email: "phuuthanh2002@gmail.com",
-    phone: "0909090909",
-    lastDonation: "15/01/2024",
-    totalDonations: 5,
-    avatar:
-      "https://scontent.fdad3-3.fna.fbcdn.net/v/t39.30808-6/470178082_1248838163045665_1238041745852048418_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=-Bg09IyBXNkQ7kNvwEH2oSI&_nc_oc=Admv-jvwuxmYdG-HS-u0Dy8TWzyc9fwzXCPdTG80F8iuDzcPZw_HhzMDFcrZBMENTTTlJIpV0f4kN4u1ZsMlq_Gl&_nc_zt=23&_nc_ht=scontent.fdad3-3.fna&_nc_gid=qDQNB1CkhGryLz_8HH9rBA&oh=00_AfKbZqwg4v-MpDsLjR9xaWTqA_jo5IlF9173JEwCZtJz-g&oe=682B97B7",
-  };
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const response = await userAPI.HandleUser("/me");
+      setUserInfo(response.data);
+    };
+    fetchUserInfo();
+  }, []);
+
+  // const userInfo = {
+  //   name: "Phùng Hữu Thành",
+  //   bloodType: "A+",
+  //   email: "phuuthanh2002@gmail.com",
+  //   phone: "0909090909",
+  //   lastDonation: "15/01/2024",
+  //   totalDonations: 5,
+  //   avatar:
+  //     "https://scontent.fdad3-3.fna.fbcdn.net/v/t39.30808-6/470178082_1248838163045665_1238041745852048418_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=-Bg09IyBXNkQ7kNvwEH2oSI&_nc_oc=Admv-jvwuxmYdG-HS-u0Dy8TWzyc9fwzXCPdTG80F8iuDzcPZw_HhzMDFcrZBMENTTTlJIpV0f4kN4u1ZsMlq_Gl&_nc_zt=23&_nc_ht=scontent.fdad3-3.fna&_nc_gid=qDQNB1CkhGryLz_8HH9rBA&oh=00_AfKbZqwg4v-MpDsLjR9xaWTqA_jo5IlF9173JEwCZtJz-g&oe=682B97B7",
+  // };
 
   const menuItems = [
     {
@@ -96,12 +106,24 @@ export default function ProfileScreen({ navigation }) {
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.profileInfo}>
-            <Image source={{ uri: userInfo.avatar }} style={styles.avatar} />
+            <Image source={{ uri: userInfo?.avatar }} style={styles.avatar} />
             <View style={styles.nameContainer}>
-              <Text style={styles.name}>{userInfo.name}</Text>
-              <View style={styles.bloodTypeContainer}>
-                <Text style={styles.bloodType}>{userInfo.bloodType}</Text>
-              </View>
+              <Text style={styles.name}>{userInfo?.fullName}</Text>
+              {userInfo?.bloodGroup ? (
+                <View style={styles.bloodTypeContainer}>
+                  <Text style={styles.bloodType}>{userInfo?.bloodGroup}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.updateProfileButton}
+                  onPress={() => navigation.navigate("EditProfile")}
+                >
+                  <Text style={styles.updateProfileText}>
+                    Vui lòng cập nhật hồ sơ
+                  </Text>
+                  <MaterialIcons name="arrow-forward" size={16} color="#FFF" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -112,12 +134,12 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => navigation.navigate("DonationHistory")}
         >
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userInfo.totalDonations}</Text>
+            <Text style={styles.statNumber}>{userInfo?.totalDonations || 0}</Text>
             <Text style={styles.statLabel}>Lần hiến máu</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userInfo.lastDonation}</Text>
+            <Text style={styles.statNumber}>{userInfo?.lastDonation || 'Chưa có'}</Text>
             <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
           </View>
         </TouchableOpacity>
@@ -131,7 +153,7 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.settingText}>Sẵn sàng hiến máu</Text>
             </View>
             <Switch
-              value={isAvailableToDonate}
+              value={userInfo?.isAvailable}
               onValueChange={setIsAvailableToDonate}
               trackColor={{ false: "#E9ECEF", true: "#FF6B6B" }}
               thumbColor="#FFF"
@@ -312,5 +334,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#FF6B6B",
     fontWeight: "bold",
+  },
+  updateProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  updateProfileText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 4,
   },
 });

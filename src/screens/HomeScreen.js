@@ -14,50 +14,62 @@ import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import contentAPI from "../apis/contentAPI";
 import { formatDateTime } from "../utils/formatHelpers";
+import bloodGroupAPI from "../apis/bloodGroup";
+import { useLocation } from "../contexts/LocationContext";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
-  const [location, setLocation] = useState(null);
+  const { location } = useLocation();
   const [bloodGroup, setBloodGroup] = useState(null);
   const [address, setAddress] = useState("Đang tải vị trí...");
   const [blogPosts, setBlogPosts] = useState([]);
+  const [bloodGroupPositive, setBloodGroupPositive] = useState([]);
 
   useEffect(() => {
-    getLocation();
     fetchBlogPosts();
+    fetchBloodGroupPositive();
   }, []);
+
+  useEffect(() => {
+    const updateCurrentLocation = async () => {
+      if (location) {
+        const address = await getAddressFromCoords(
+          location.latitude,
+          location.longitude
+        );
+        setAddress(address);
+      }
+    };
+    updateCurrentLocation();
+  }, [location]);
+
+  const getAddressFromCoords = async (latitude, longitude) => {
+    try {
+      const addresses = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      
+      if (addresses.length > 0) {
+        const addr = addresses[0];
+        return `${addr.street}, ${addr.region}, ${addr.country}`;
+      } else {
+        return "Không tìm thấy địa chỉ";
+      }
+    } catch (error) {
+      console.error("Lỗi khi chuyển đổi tọa độ:", error);
+      return "Lỗi khi lấy địa chỉ";
+    }
+  };
 
   const fetchBlogPosts = async () => {
     const response = await contentAPI.HandleContent();
     setBlogPosts(response.data);
   };
 
-  const getLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setAddress("Không thể lấy vị trí");
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-
-      // Get address from coordinates
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (address) {
-        const locationString = `${address.street || ""}, ${
-          address.district || ""
-        }, ${address.city || ""}`;
-        setAddress(locationString);
-      }
-    } catch (error) {
-      setAddress("Không thể lấy vị trí");
-    }
+  const fetchBloodGroupPositive = async () => {
+    const response = await bloodGroupAPI.HandleBloodGroup("/positive");
+    setBloodGroupPositive(response.data);
   };
 
   const onRefresh = React.useCallback(() => {
@@ -68,73 +80,34 @@ export default function HomeScreen({ navigation }) {
     }, 2000);
   }, []);
 
-  // Mock data for blood type information
-  const bloodTypeInfo = [
-    {
-      type: "A+",
-      canGiveTo: ["A+", "AB+"],
-      canReceiveFrom: ["A+", "A-", "O+", "O-"],
-      percentage: "29.1%",
-    },
-    {
-      type: "O+",
-      canGiveTo: ["O+", "A+", "B+", "AB+"],
-      canReceiveFrom: ["O+", "O-"],
-      percentage: "37.4%",
-    },
-    {
-      type: "B+",
-      canGiveTo: ["B+", "AB+"],
-      canReceiveFrom: ["B+", "B-", "O+", "O-"],
-      percentage: "29.1%",
-    },
-    {
-      type: "AB+",
-      canGiveTo: ["AB+", "AB-"],
-      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-"],
-      percentage: "0.4%",
-    },
-    // Add more blood types...
-  ];
-
   const renderBloodTypeCard = (info) => (
     <TouchableOpacity
-      key={info.type}
+      key={info._id}
       style={styles.bloodTypeCard}
       onPress={() => navigation.navigate("BloodTypeDetail", { info })}
     >
       <View style={styles.bloodTypeHeader}>
         <View style={styles.bloodTypeContainer}>
-          <Text style={styles.bloodType}>{info.type}</Text>
+          <Text style={styles.bloodType}>{info.name}</Text>
           <View style={styles.percentageContainer}>
-            <Text style={styles.percentage}>{info.percentage}</Text>
+            <Text style={styles.percentage}>{info.populationRate}%</Text>
             <Text style={styles.percentageLabel}>dân số</Text>
           </View>
         </View>
       </View>
       <View style={styles.divider} />
-      <View style={styles.compatibilityInfo}>
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityLabel}>Có thể cho</Text>
-          <View style={styles.bloodTypeList}>
-            {info.canGiveTo.map((type) => (
-              <View key={`give-${type}`} style={styles.smallBloodType}>
-                <Text style={styles.smallBloodTypeText}>{type}</Text>
-              </View>
-            ))}
+      <View style={styles.characteristicsContainer}>
+        {info.characteristics?.map((characteristic, index) => (
+          <View key={index} style={styles.characteristicItem}>
+            <MaterialIcons
+              name="check-circle"
+              size={16}
+              color="#FF6B6B"
+              style={styles.characteristicIcon}
+            />
+            <Text style={styles.characteristicText}>{characteristic}</Text>
           </View>
-        </View>
-        <View style={styles.verticalDivider} />
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityLabel}>Có thể nhận</Text>
-          <View style={styles.bloodTypeList}>
-            {info.canReceiveFrom.map((type) => (
-              <View key={`receive-${type}`} style={styles.smallBloodType}>
-                <Text style={styles.smallBloodTypeText}>{type}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        ))}
       </View>
     </TouchableOpacity>
   );
@@ -246,7 +219,7 @@ export default function HomeScreen({ navigation }) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 4 }}
           >
-            {bloodTypeInfo.map(renderBloodTypeCard)}
+            {bloodGroupPositive.map(renderBloodTypeCard)}
           </ScrollView>
         </View>
 
@@ -376,42 +349,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
     marginVertical: 12,
   },
-  verticalDivider: {
-    width: 1,
-    backgroundColor: "#E2E8F0",
-    marginHorizontal: 12,
-    alignSelf: "stretch",
+  characteristicsContainer: {
+    paddingVertical: 8,
   },
-  compatibilityInfo: {
+  characteristicItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  compatibilitySection: {
-    flex: 1,
-  },
-  compatibilityLabel: {
-    fontSize: 14,
-    color: "#64748B",
+    alignItems: "center",
     marginBottom: 8,
-    fontWeight: "500",
   },
-  bloodTypeList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+  characteristicIcon: {
+    marginRight: 8,
   },
-  smallBloodType: {
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  smallBloodTypeText: {
-    fontSize: 13,
-    color: "#334155",
-    fontWeight: "600",
+  characteristicText: {
+    fontSize: 14,
+    color: "#2D3436",
+    flex: 1,
   },
   blogCard: {
     backgroundColor: "#FFFFFF",
@@ -488,17 +440,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   categoryContainer: {
-    backgroundColor: '#FFE8E8',
+    backgroundColor: "#FFE8E8",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 12,
   },
   categoryText: {
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  
 });
