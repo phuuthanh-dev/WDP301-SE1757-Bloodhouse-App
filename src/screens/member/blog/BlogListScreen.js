@@ -109,7 +109,6 @@ export default function BlogListScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.header}>

@@ -13,7 +13,6 @@ export default function AppRouters() {
   const { getItem: getToken } = useAsyncStorage("token");
   const { getItem: getUserData } = useAsyncStorage("userData");
   const dispatch = useDispatch();
-  console.log("auth", auth.user);
 
   useEffect(() => {
     handleGetData();

@@ -9,24 +9,27 @@ import { Toaster } from "sonner-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { FacilityProvider } from './src/contexts/FacilityContext';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar backgroundColor="#FF6B6B" barStyle="dark-content" />
-      <Provider store={store}>
-        <SafeAreaProvider style={styles.container}>
-          <Toaster />
-          <LocationProvider>
-            <NotificationProvider>
-              <NavigationContainer>
-                <AppRouters />
-              </NavigationContainer>
-            </NotificationProvider>
-          </LocationProvider>
-        </SafeAreaProvider>
-      </Provider>
-    </GestureHandlerRootView>
+    <FacilityProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar backgroundColor="#FF6B6B" barStyle="dark-content" />
+        <Provider store={store}>
+          <SafeAreaProvider style={styles.container}>
+            <Toaster />
+            <LocationProvider>
+              <NotificationProvider>
+                <NavigationContainer>
+                  <AppRouters />
+                </NavigationContainer>
+              </NotificationProvider>
+            </LocationProvider>
+          </SafeAreaProvider>
+        </Provider>
+      </GestureHandlerRootView>
+    </FacilityProvider>
   );
 }
 

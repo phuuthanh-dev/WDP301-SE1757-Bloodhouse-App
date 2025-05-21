@@ -117,7 +117,6 @@ export default function BloodTypeListScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>

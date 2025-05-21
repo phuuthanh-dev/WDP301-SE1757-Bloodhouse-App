@@ -78,11 +78,7 @@ export default function GiftManagementScreen({ navigation }) {
       Alert.alert('Thông báo', 'Quà tặng đã hết hàng!');
       return;
     }
-    navigation.navigate('Scanner', { 
-      mode: 'gift',
-      giftId: gift.id,
-      giftName: gift.name,
-    });
+    navigation.navigate('GiftDistributionForm', { gift });
   };
 
   const renderGiftCard = (gift) => (

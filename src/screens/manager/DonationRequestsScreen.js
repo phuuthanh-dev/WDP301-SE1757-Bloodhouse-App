@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -10,6 +10,10 @@ import {
   TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
+import { useFacility } from "@/contexts/FacilityContext";
+import { getStatusName } from "@/constants/donationStatus";
+import { formatDateTime } from "@/utils/formatHelpers";
 
 const donationRequests = [
   {
@@ -60,12 +64,28 @@ const getStatusColor = (status) => {
 };
 
 export default function DonationRequestsScreen({ navigation }) {
+  const { facilityId } = useFacility();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("Tất Cả");
+  const [donationRequests, setDonationRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const fetchDonationRequests = async () => {
+      const response =
+        await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+          `?limit=10&page=1&facilityId=${facilityId}`
+        );
+      setDonationRequests(response.data);
+      setLoading(false);
+    };
+    fetchDonationRequests();
+  }, []);
 
   const renderRequestCard = (request) => (
     <TouchableOpacity
-      key={request.id}
+      key={request._id}
       style={styles.card}
       onPress={() => {
         // Navigate to request details
@@ -73,10 +93,10 @@ export default function DonationRequestsScreen({ navigation }) {
     >
       <View style={styles.cardHeader}>
         <View style={styles.donorInfo}>
-          <Text style={styles.donorName}>{request.donorName}</Text>
+          <Text style={styles.donorName}>{request.userId.fullName}</Text>
           <View style={styles.bloodTypeContainer}>
             <MaterialIcons name="opacity" size={16} color="#FF6B6B" />
-            <Text style={styles.bloodType}>{request.bloodType}</Text>
+            <Text style={styles.bloodType}>{request.bloodGroupId.name}</Text>
           </View>
         </View>
         <View
@@ -91,7 +111,7 @@ export default function DonationRequestsScreen({ navigation }) {
               { color: getStatusColor(request.status) },
             ]}
           >
-            {request.status}
+            {getStatusName(request.status)}
           </Text>
         </View>
       </View>
@@ -100,19 +120,21 @@ export default function DonationRequestsScreen({ navigation }) {
         <View style={styles.infoRow}>
           <MaterialIcons name="event" size={16} color="#636E72" />
           <Text style={styles.infoText}>
-            {request.date} • {request.time}
+            {formatDateTime(request.preferredDate)}
           </Text>
         </View>
 
         <View style={styles.infoRow}>
           <MaterialIcons name="location-on" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{request.location}</Text>
+          <Text style={styles.infoText}>{request.facilityId.name}</Text>
         </View>
 
-        <View style={styles.infoRow}>
-          <MaterialIcons name="note" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{request.notes}</Text>
-        </View>
+        {request.notes && (
+          <View style={styles.infoRow}>
+            <MaterialIcons name="note" size={16} color="#636E72" />
+            <Text style={styles.infoText}>{request.notes}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.cardActions}>

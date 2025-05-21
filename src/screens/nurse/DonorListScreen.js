@@ -10,9 +10,9 @@ import {
   SafeAreaView,
   Platform,
 } from "react-native";
-import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // Mock data for testing
 const MOCK_DONORS = [
@@ -54,7 +54,6 @@ export default function DonorListScreen() {
   const fetchDonors = async () => {
     try {
       // Simulating API call with mock data
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Fake loading delay
       setDonors(MOCK_DONORS);
     } catch (error) {
       console.error("Error fetching donors:", error);
@@ -105,7 +104,7 @@ export default function DonorListScreen() {
         </View>
       </View>
       <TouchableOpacity style={styles.scanButton} onPress={() => handleScanDonor(item.id)}>
-        <MaterialCommunityIcons name="qr-code-scanner" size={22} color="#FFF" />
+        <MaterialCommunityIcons name="qrcode-scan" size={22} color="#FFF" />
         <Text style={styles.scanText}>Quét mã</Text>
       </TouchableOpacity>
     </TouchableOpacity>
@@ -134,7 +133,7 @@ export default function DonorListScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="blood-bag" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons name="qrcode-scan" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
               Không có người hiến máu nào chưa check-in
             </Text>
@@ -160,15 +159,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#FFFFFF",
   },
   headerBadge: {
+    width: 40,
+    height: 40,
     backgroundColor: "#FFFFFF",
-    borderRadius: 15,
+    borderRadius: 50,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerCount: {
     color: "#FF6B6B",

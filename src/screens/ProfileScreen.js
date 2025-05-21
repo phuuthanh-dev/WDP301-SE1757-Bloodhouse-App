@@ -13,15 +13,18 @@ import {
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
+import { useFacility } from "@/contexts/FacilityContext";
 import userAPI from "@/apis/userAPI";
 import { toast } from "sonner-native";
+import { USER_ROLE, STAFF_ROLES, getRoleName } from "@/constants/userRole";
 
 export default function ProfileScreen({ navigation }) {
   const { logout } = useAuth();
-  // const { user } = useSelector(authSelector);
+  const { clearFacilityData, position } = useFacility();
   const [isAvailableToDonate, setIsAvailableToDonate] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+  const isStaff = STAFF_ROLES.includes(position);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -30,6 +33,7 @@ export default function ProfileScreen({ navigation }) {
     };
     fetchUserInfo();
   }, []);
+
 
   // const userInfo = {
   //   name: "Phùng Hữu Thành",
@@ -43,30 +47,31 @@ export default function ProfileScreen({ navigation }) {
   // };
 
   const menuItems = [
-    {
+    // Only show donation history for donors
+    ...(!isStaff ? [{
       icon: "history",
       title: "Lịch sử hiến máu",
       onPress: () => navigation.navigate("DonationHistory"),
-    },
+    }] : []),
     {
       icon: "person",
       title: "Thông tin cá nhân",
-      onPress: () => navigation.navigate("EditProfile"),
+      onPress: () => navigation.navigate("EditProfileScreen"),
     },
     {
       icon: "security",
       title: "Bảo mật",
-      onPress: () => navigation.navigate("Security"),
+      onPress: () => navigation.navigate("SecurityScreen"),
     },
     {
       icon: "help",
       title: "Trợ giúp & Hỗ trợ",
-      onPress: () => navigation.navigate("Help"),
+      onPress: () => navigation.navigate("HelpScreen"),
     },
     {
       icon: "info",
       title: "Về chúng tôi",
-      onPress: () => navigation.navigate("About"),
+      onPress: () => navigation.navigate("AboutScreen"),
     },
   ];
   
@@ -84,6 +89,9 @@ export default function ProfileScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (isStaff) {
+                await clearFacilityData(); // Clear facility data for staff
+              }
               await logout();
               toast.success('Đăng xuất thành công');
               // Navigation will be handled automatically by AppRouters
@@ -107,56 +115,64 @@ export default function ProfileScreen({ navigation }) {
             <Image source={{ uri: userInfo?.avatar }} style={styles.avatar} />
             <View style={styles.nameContainer}>
               <Text style={styles.name}>{userInfo?.fullName}</Text>
-              {userInfo?.bloodGroup ? (
-                <View style={styles.bloodTypeContainer}>
-                  <Text style={styles.bloodType}>{userInfo?.bloodGroup}</Text>
-                </View>
-              ) : (
-                <TouchableOpacity 
-                  style={styles.updateProfileButton}
-                  onPress={() => navigation.navigate("EditProfile")}
-                >
-                  <Text style={styles.updateProfileText}>
-                    Vui lòng cập nhật hồ sơ
-                  </Text>
-                  <MaterialIcons name="arrow-forward" size={16} color="#FFF" />
-                </TouchableOpacity>
-              )}
+              <View style={styles.roleContainer}>
+                {isStaff ? (
+                  <Text style={styles.roleText}>{getRoleName(position)}</Text>
+                ) : userInfo?.bloodGroup ? (
+                  <View style={styles.bloodTypeContainer}>
+                    <Text style={styles.bloodType}>{userInfo?.bloodGroup}</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.updateProfileButton}
+                    onPress={() => navigation.navigate("EditProfileScreen")}
+                  >
+                    <Text style={styles.updateProfileText}>
+                      Vui lòng cập nhật hồ sơ
+                    </Text>
+                    <MaterialIcons name="arrow-forward" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Stats Section */}
-        <TouchableOpacity 
-          style={styles.statsContainer}
-          onPress={() => navigation.navigate("DonationHistory")}
-        >
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userInfo?.totalDonations || 0}</Text>
-            <Text style={styles.statLabel}>Lần hiến máu</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userInfo?.lastDonation || 'Chưa có'}</Text>
-            <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
-          </View>
-        </TouchableOpacity>
+        {/* Stats Section - Only show for donors */}
+        {!isStaff && (
+          <TouchableOpacity 
+            style={styles.statsContainer}
+            onPress={() => navigation.navigate("DonationHistory")}
+          >
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userInfo?.totalDonations || 0}</Text>
+              <Text style={styles.statLabel}>Lần hiến máu</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{userInfo?.lastDonation || 'Chưa có'}</Text>
+              <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
-        {/* Settings Section */}
+        {/* Settings Section - Only show availability for donors */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cài đặt</Text>
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <MaterialIcons name="favorite" size={24} color="#FF6B6B" />
-              <Text style={styles.settingText}>Sẵn sàng hiến máu</Text>
+          {!isStaff && (
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="favorite" size={24} color="#FF6B6B" />
+                <Text style={styles.settingText}>Sẵn sàng hiến máu</Text>
+              </View>
+              <Switch
+                value={userInfo?.isAvailable}
+                onValueChange={setIsAvailableToDonate}
+                trackColor={{ false: "#E9ECEF", true: "#FF6B6B" }}
+                thumbColor="#FFF"
+              />
             </View>
-            <Switch
-              value={userInfo?.isAvailable}
-              onValueChange={setIsAvailableToDonate}
-              trackColor={{ false: "#E9ECEF", true: "#FF6B6B" }}
-              thumbColor="#FFF"
-            />
-          </View>
+          )}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <MaterialIcons name="notifications" size={24} color="#FF6B6B" />
@@ -347,5 +363,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginRight: 4,
+  },
+  roleContainer: {
+    marginTop: 8,
+  },
+  roleText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
 });

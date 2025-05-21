@@ -115,7 +115,6 @@ export default function EmergencyRequestScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.headerNav}>

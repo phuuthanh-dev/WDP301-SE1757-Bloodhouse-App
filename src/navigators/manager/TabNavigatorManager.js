@@ -18,6 +18,7 @@ const TabNavigatorManager = () => {
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
+          borderTopColor: '#E9ECEF',
           elevation: 10,
           height: 60,
           paddingBottom: 10,
