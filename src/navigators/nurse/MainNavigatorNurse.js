@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import TabNavigatorNurse from "./TabNavigatorNurse";
+import GiftDistributionFormScreen from "@/screens/nurse/GiftDistributionFormScreen";
 
 const MainNavigatorNurse = () => {
   const Stack = createNativeStackNavigator();
@@ -14,6 +15,7 @@ const MainNavigatorNurse = () => {
       }}
     >
       <Stack.Screen name="TabNavigator" component={TabNavigatorNurse} />
+      <Stack.Screen name="GiftDistributionForm" component={GiftDistributionFormScreen} />
     </Stack.Navigator>
   );
 };
