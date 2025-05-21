@@ -54,7 +54,7 @@ export default function AboutScreen({ navigation }) {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Image
-            source={require('../../../assets/icon.png')}
+            source={require('@/assets/images/icon.png')}
             style={styles.appIcon}
           />
           <Text style={styles.appName}>Bloodhouse</Text>
