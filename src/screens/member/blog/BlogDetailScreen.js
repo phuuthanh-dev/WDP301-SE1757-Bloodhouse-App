@@ -49,7 +49,6 @@ export default function BlogDetailScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Featured Image with Gradient Overlay */}
         <View style={styles.imageContainer}>

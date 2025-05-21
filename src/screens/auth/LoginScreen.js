@@ -14,9 +14,12 @@ import { MaterialIcons } from "@expo/vector-icons";
 import authenticationAPI from "@/apis/authAPI";
 import { toast } from "sonner-native";
 import { useAuth } from "@/hooks/useAuth";
+import { useFacility } from '@/contexts/FacilityContext';
+import { USER_ROLE, STAFF_ROLES } from '@/constants/userRole';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
+  const { updateFacilityData } = useFacility();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +38,18 @@ export default function LoginScreen({ navigation }) {
         "post"
       );
       if (response.status === 200) {
-        await login(response.data.tokens.accessToken, response.data.user);
+        const userData = response.data.user;
+        
+        // If user is staff (manager, doctor, nurse), store facility data
+        if (STAFF_ROLES.includes(userData.position)) {
+          await updateFacilityData({
+            facilityId: userData.facilityId,
+            position: userData.position,
+            facilityName: userData.facilityName,
+          });
+        }
+        
+        await login(response.data.tokens.accessToken, userData);
         toast.success("Đăng nhập thành công");
         // Navigation is handled automatically by AppRouters
       } else {

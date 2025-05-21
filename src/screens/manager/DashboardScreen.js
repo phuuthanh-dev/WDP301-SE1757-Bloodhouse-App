@@ -9,7 +9,9 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import { useSelector } from 'react-redux';
+import { authSelector } from '@/redux/reducers/authReducer';
+import { useFacility } from '@/contexts/FacilityContext';
 const dashboardCards = [
   {
     id: '1',
@@ -66,6 +68,8 @@ const dashboardCards = [
 ];
 
 export default function DashboardScreen({ navigation }) {
+  const { user } = useSelector(authSelector);
+  const { facilityName } = useFacility();
   const renderDashboardCard = (card) => (
     <TouchableOpacity
       key={card.id}
@@ -107,8 +111,9 @@ export default function DashboardScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.greeting}>Xin Chào</Text>
+          <Text style={styles.greeting}>Xin Chào, {user?.fullName}</Text>
           <Text style={styles.headerTitle}>Quản Lý Ngân Hàng Máu</Text>
+          <Text style={styles.headerTitle}>{facilityName}</Text>
         </View>
         <TouchableOpacity style={styles.profileButton}>
           <MaterialIcons name="account-circle" size={32} color="#FFFFFF" />

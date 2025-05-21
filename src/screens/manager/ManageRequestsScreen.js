@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,9 +8,18 @@ import {
   ScrollView,
   Platform,
   TextInput,
-  Dimensions,
+  Image,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
+import { useFacility } from "@/contexts/FacilityContext";
+import { formatDateTime } from "@/utils/formatHelpers";
+import { getStatusName } from "@/constants/donationStatus";
+import DonationRequestCard from "@/components/DonationRequestCard";
+import EmergencyRequestCard from "@/components/EmergencyRequestCard";
+import { toast } from "sonner-native";
 
 // Sample data - replace with actual API calls
 const donationRequests = [
@@ -67,160 +76,199 @@ const emergencyRequests = [
 
 const getStatusColor = (status) => {
   switch (status) {
-    case "Chờ Duyệt":
+    case "pending":
       return "#FFA502";
-    case "Đã Duyệt":
+    case "approved":
       return "#2ED573";
-    case "Khẩn Cấp":
+    case "cancelled":
       return "#FF4757";
-    case "Đang Xử Lý":
+    case "processing":
       return "#1E90FF";
     default:
       return "#95A5A6";
   }
 };
 
-const DonationRequestCard = ({ request }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={styles.headerLeft}>
-        <Text style={styles.name}>{request.donorName}</Text>
-        <View style={styles.bloodTypeContainer}>
-          <MaterialIcons name="water-drop" size={16} color="#FF6B6B" />
-          <Text style={styles.bloodType}>{request.bloodType}</Text>
-        </View>
-      </View>
-      <View
-        style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(request.status) + "20" },
-        ]}
-      >
-        <Text
-          style={[styles.statusText, { color: getStatusColor(request.status) }]}
-        >
-          {request.status}
-        </Text>
-      </View>
-    </View>
+// const EmergencyRequestCard = ({ request, handleProcess, handleComplete }) => (
+//   <View style={styles.card}>
+//     <View style={styles.cardHeader}>
+//       <View style={styles.headerLeft}>
+//         <Text style={styles.name}>{request.hospitalName}</Text>
+//         <View style={styles.bloodTypeContainer}>
+//           <MaterialIcons name="water-drop" size={16} color="#FF6B6B" />
+//           <Text style={styles.bloodType}>
+//             {request.bloodType} ({request.units} units)
+//           </Text>
+//         </View>
+//       </View>
+//       <View
+//         style={[
+//           styles.statusBadge,
+//           { backgroundColor: getStatusColor(request.status) + "20" },
+//         ]}
+//       >
+//         <Text
+//           style={[styles.statusText, { color: getStatusColor(request.status) }]}
+//         >
+//           {request.status}
+//         </Text>
+//       </View>
+//     </View>
 
-    <View style={styles.cardContent}>
-      <View style={styles.infoRow}>
-        <MaterialIcons name="event" size={16} color="#636E72" />
-        <Text style={styles.infoText}>
-          {request.date} at {request.time}
-        </Text>
-      </View>
+//     <View style={styles.cardContent}>
+//       <View style={styles.infoRow}>
+//         <MaterialIcons name="error" size={16} color="#636E72" />
+//         <Text style={styles.infoText}>{request.reason}</Text>
+//       </View>
 
-      <View style={styles.infoRow}>
-        <MaterialIcons name="location-on" size={16} color="#636E72" />
-        <Text style={styles.infoText}>{request.location}</Text>
-      </View>
+//       <View style={styles.infoRow}>
+//         <MaterialIcons name="event" size={16} color="#636E72" />
+//         <Text style={styles.infoText}>Required by: {request.requiredBy}</Text>
+//       </View>
 
-      <View style={styles.infoRow}>
-        <MaterialIcons name="phone" size={16} color="#636E72" />
-        <Text style={styles.infoText}>{request.phone}</Text>
-      </View>
+//       <View style={styles.infoRow}>
+//         <MaterialIcons name="person" size={16} color="#636E72" />
+//         <Text style={styles.infoText}>{request.contact}</Text>
+//       </View>
 
-      <View style={styles.infoRow}>
-        <MaterialIcons name="history" size={16} color="#636E72" />
-        <Text style={styles.infoText}>
-          Last donation: {request.lastDonation}
-        </Text>
-      </View>
-    </View>
+//       <View style={styles.infoRow}>
+//         <MaterialIcons name="phone" size={16} color="#636E72" />
+//         <Text style={styles.infoText}>{request.phone}</Text>
+//       </View>
+//     </View>
 
-    <View style={styles.cardActions}>
-      <TouchableOpacity
-        style={[styles.actionButton, styles.approveButton]}
-        onPress={() => {}}
-      >
-        <MaterialIcons name="check" size={16} color="#2ED573" />
-        <Text style={[styles.actionText, { color: "#2ED573" }]}>Approve</Text>
-      </TouchableOpacity>
+//     <View style={styles.cardActions}>
+//       <TouchableOpacity
+//         style={[styles.actionButton, styles.processButton]}
+//         onPress={() => {}}
+//       >
+//         <MaterialIcons name="play-arrow" size={16} color="#1E90FF" />
+//         <Text style={[styles.actionText, { color: "#1E90FF" }]}>Process</Text>
+//       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.actionButton, styles.rejectButton]}
-        onPress={() => {}}
-      >
-        <MaterialIcons name="close" size={16} color="#FF4757" />
-        <Text style={[styles.actionText, { color: "#FF4757" }]}>Reject</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
-const EmergencyRequestCard = ({ request }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={styles.headerLeft}>
-        <Text style={styles.name}>{request.hospitalName}</Text>
-        <View style={styles.bloodTypeContainer}>
-          <MaterialIcons name="water-drop" size={16} color="#FF6B6B" />
-          <Text style={styles.bloodType}>
-            {request.bloodType} ({request.units} units)
-          </Text>
-        </View>
-      </View>
-      <View
-        style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(request.status) + "20" },
-        ]}
-      >
-        <Text
-          style={[styles.statusText, { color: getStatusColor(request.status) }]}
-        >
-          {request.status}
-        </Text>
-      </View>
-    </View>
-
-    <View style={styles.cardContent}>
-      <View style={styles.infoRow}>
-        <MaterialIcons name="error" size={16} color="#636E72" />
-        <Text style={styles.infoText}>{request.reason}</Text>
-      </View>
-
-      <View style={styles.infoRow}>
-        <MaterialIcons name="event" size={16} color="#636E72" />
-        <Text style={styles.infoText}>Required by: {request.requiredBy}</Text>
-      </View>
-
-      <View style={styles.infoRow}>
-        <MaterialIcons name="person" size={16} color="#636E72" />
-        <Text style={styles.infoText}>{request.contact}</Text>
-      </View>
-
-      <View style={styles.infoRow}>
-        <MaterialIcons name="phone" size={16} color="#636E72" />
-        <Text style={styles.infoText}>{request.phone}</Text>
-      </View>
-    </View>
-
-    <View style={styles.cardActions}>
-      <TouchableOpacity
-        style={[styles.actionButton, styles.processButton]}
-        onPress={() => {}}
-      >
-        <MaterialIcons name="play-arrow" size={16} color="#1E90FF" />
-        <Text style={[styles.actionText, { color: "#1E90FF" }]}>Process</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.actionButton, styles.completeButton]}
-        onPress={() => {}}
-      >
-        <MaterialIcons name="check-circle" size={16} color="#2ED573" />
-        <Text style={[styles.actionText, { color: "#2ED573" }]}>Complete</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+//       <TouchableOpacity
+//         style={[styles.actionButton, styles.completeButton]}
+//         onPress={() => {}}
+//       >
+//         <MaterialIcons name="check-circle" size={16} color="#2ED573" />
+//         <Text style={[styles.actionText, { color: "#2ED573" }]}>Complete</Text>
+//       </TouchableOpacity>
+//     </View>
+//   </View>
+// );
 
 export default function ManageRequestsScreen() {
+  const { facilityId } = useFacility();
   const [activeTab, setActiveTab] = useState("donation");
   const [searchQuery, setSearchQuery] = useState("");
+  const [donationRequests, setDonationRequests] = useState([]);
+  // const [emergencyRequests, setEmergencyRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // const fetchEmergencyRequests = async () => {
+    //   const response =
+    //     await bloodDonationRegistrationAPI.getEmergencyRequests();
+    //   setEmergencyRequests(data);
+    // };
+
+    fetchDonationRequests();
+    // fetchEmergencyRequests();
+  }, []);
+
+  const fetchDonationRequests = async () => {
+    setLoading(true);
+    const response =
+      await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+        `?status=pending_approval&limit=10&page=1&facilityId=${facilityId}`
+      );
+    setDonationRequests(response.data);
+    setLoading(false);
+  };
+
+  const handleApprove = async (requestId) => {
+    Alert.alert(
+      "Xác nhận duyệt",
+      "Bạn có chắc chắn muốn duyệt yêu cầu hiến máu này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Duyệt",
+          style: "default",
+          onPress: async () => {
+            try {
+              const response =
+                await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+                  `/${requestId}`,
+                  {
+                    status: "registered",
+                  },
+                  "put"
+                );
+              if (response.status === 200) {
+                toast.success("Duyệt yêu cầu thành công");
+                setDonationRequests(
+                  donationRequests.filter((request) => request._id !== request._id)
+                );
+              }
+            } catch (error) {
+              toast.error("Duyệt yêu cầu thất bại");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleReject = async (requestId) => {
+    Alert.alert(
+      "Xác nhận từ chối",
+      "Bạn có chắc chắn muốn từ chối yêu cầu hiến máu này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Từ chối",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response =
+                await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+                  `/${requestId}`,
+                  {
+                    status: "rejected_registration",
+                  },
+                  "put"
+                );
+              if (response.status === 200) {
+                toast.success("Từ chối yêu cầu thành công");
+                setDonationRequests(
+                  donationRequests.filter((request) => request._id !== request._id)
+                );
+              }
+            } catch (error) {
+              toast.error("Từ chối yêu cầu thất bại");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleProcess = () => {
+    console.log("Process");
+  };
+
+  const handleComplete = () => {
+    console.log("Complete");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -296,13 +344,31 @@ export default function ManageRequestsScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              fetchDonationRequests();
+            }}
+          />
+        }
       >
         {activeTab === "donation"
           ? donationRequests.map((request) => (
-              <DonationRequestCard key={request.id} request={request} />
+              <DonationRequestCard
+                key={request._id}
+                request={request}
+                handleApprove={handleApprove}
+                handleReject={handleReject}
+              />
             ))
           : emergencyRequests.map((request) => (
-              <EmergencyRequestCard key={request.id} request={request} />
+              <EmergencyRequestCard
+                key={request.id}
+                request={request}
+                handleProcess={handleProcess}
+                handleComplete={handleComplete}
+              />
             ))}
       </ScrollView>
     </SafeAreaView>
@@ -406,6 +472,19 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E9ECEF",
   },
   headerLeft: {
+    flex: 1,
+  },
+  avatarNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  nameBloodContainer: {
     flex: 1,
   },
   name: {

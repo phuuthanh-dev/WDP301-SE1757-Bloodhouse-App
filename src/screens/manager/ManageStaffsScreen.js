@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -8,8 +8,12 @@ import {
   ScrollView,
   Platform,
   TextInput,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import facilityStaffAPI from "@/apis/facilityStaffAPI";
+import { useFacility } from "@/contexts/FacilityContext";
+import { getRoleName } from "@/constants/userRole";
 
 const staffMembers = [
   {
@@ -71,88 +75,102 @@ const getRoleIcon = (role) => {
 };
 
 export default function ManageStaffsScreen({ navigation }) {
+  const { facilityId } = useFacility();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("Tất Cả");
+  const [staffs, setStaffs] = useState([]);
 
-  const renderStaffCard = (staff) => (
-    <TouchableOpacity
-      key={staff.id}
-      style={styles.card}
-      onPress={() => {
-        // Navigate to staff details
-      }}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.staffInfo}>
-          <Text style={styles.staffName}>{staff.name}</Text>
-          <View style={styles.roleContainer}>
-            <MaterialIcons
-              name={getRoleIcon(staff.role)}
-              size={16}
-              color="#FF6B6B"
+  useEffect(() => {
+    const fetchStaffs = async () => {
+      if (!facilityId) {
+        return;
+      }
+
+      const position = filter === "Tất Cả" ? "" : filter;
+
+      try {
+        const response = await facilityStaffAPI.HandleFacilityStaff(
+          `/facility/${facilityId}?position=${position}`
+        );
+        setStaffs(response.data.result);
+      } catch (error) {
+        console.error("Error fetching staffs:", error);
+        // Handle error appropriately
+      }
+    };
+
+    fetchStaffs();
+  }, [facilityId, filter]);
+
+  const renderStaffCard = (staff) => {
+    if (staff.position === "MANAGER") {
+      return null;
+    }
+    return (
+      <TouchableOpacity
+        key={staff._id}
+        style={styles.card}
+        onPress={() => {
+          // Navigate to staff details
+        }}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.staffInfo}>
+            <Text style={styles.staffName}>{staff?.userId.fullName}</Text>
+            <View style={styles.roleContainer}>
+              <MaterialIcons
+                name={getRoleIcon(staff.position)}
+                size={16}
+                color="#FF6B6B"
+              />
+              <Text style={styles.roleText}>
+                {getRoleName(staff?.position)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.staffAvatar}>
+            <Image
+              source={{ uri: staff?.userId?.avatar }}
+              style={styles.avatar}
             />
-            <Text style={styles.roleText}>{staff.role}</Text>
           </View>
         </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(staff.status) + "20" },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getStatusColor(staff.status) }]}
+
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <MaterialIcons name="business" size={16} color="#636E72" />
+            <Text style={styles.infoText}>{staff?.facilityId?.name}</Text>
+          </View>
+
+          {staff?.userId?.email && (
+            <View style={styles.infoRow}>
+              <MaterialIcons name="email" size={16} color="#636E72" />
+              <Text style={styles.infoText}>{staff?.userId?.email}</Text>
+            </View>
+          )}
+
+          {staff?.userId?.phone && (
+            <View style={styles.infoRow}>
+              <MaterialIcons name="phone" size={16} color="#636E72" />
+              <Text style={styles.infoText}>{staff?.userId?.phone}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => {}}
           >
-            {staff.status}
-          </Text>
+            <MaterialIcons name="edit" size={16} color="#1E90FF" />
+            <Text style={[styles.actionText, { color: "#1E90FF" }]}>
+              Chỉnh Sửa
+            </Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <MaterialIcons name="business" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{staff.department}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialIcons name="schedule" size={16} color="#636E72" />
-          <Text style={styles.infoText}>Ca {staff.shift}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialIcons name="email" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{staff.email}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialIcons name="phone" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{staff.phone}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
-          onPress={() => {}}
-        >
-          <MaterialIcons name="edit" size={16} color="#1E90FF" />
-          <Text style={[styles.actionText, { color: "#1E90FF" }]}>
-            Chỉnh Sửa
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.scheduleButton]}
-          onPress={() => {}}
-        >
-          <MaterialIcons name="event" size={16} color="#FF6B6B" />
-          <Text style={[styles.actionText, { color: "#FF6B6B" }]}>
-            Lịch Làm
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -194,7 +212,7 @@ export default function ManageStaffsScreen({ navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterContent}
         >
-          {["Tất Cả", "Bác Sĩ", "Kỹ Thuật Viên", "Y Tá"].map((item) => (
+          {["Tất Cả", "DOCTOR", "NURSE"].map((item) => (
             <TouchableOpacity
               key={item}
               style={[
@@ -209,7 +227,7 @@ export default function ManageStaffsScreen({ navigation }) {
                   filter === item && styles.filterChipTextActive,
                 ]}
               >
-                {item}
+                {getRoleName(item)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -221,7 +239,7 @@ export default function ManageStaffsScreen({ navigation }) {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {staffMembers.map(renderStaffCard)}
+        {staffs?.map(renderStaffCard)}
       </ScrollView>
     </SafeAreaView>
   );
@@ -341,6 +359,17 @@ const styles = StyleSheet.create({
   roleContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  staffAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F1F2F6",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   roleText: {
     marginLeft: 4,

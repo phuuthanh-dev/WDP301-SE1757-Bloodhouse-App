@@ -27,7 +27,7 @@ const MainNavigatorMember = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigatorMember} />
+      <Stack.Screen name="TabNavigatorMember" component={TabNavigatorMember} />
       <Stack.Screen name="FacilityDetail" component={FacilityDetailScreen} />
       <Stack.Screen name="Donation" component={DonationScreen} />
       <Stack.Screen name="EmergencyRequest" component={EmergencyRequestScreen} />
@@ -36,10 +36,10 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="BloodTypeList" component={BloodTypeListScreen} />
       <Stack.Screen name="BlogDetail" component={BlogDetailScreen} />
       <Stack.Screen name="BlogList" component={BlogListScreen} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="Security" component={SecurityScreen} />
-      <Stack.Screen name="Help" component={HelpScreen} />
-      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
+      <Stack.Screen name="SecurityScreen" component={SecurityScreen} />
+      <Stack.Screen name="HelpScreen" component={HelpScreen} />
+      <Stack.Screen name="AboutScreen" component={AboutScreen} />
       <Stack.Screen name="Nearby" component={NearbyScreen} />
       <Stack.Screen name="DonationHistory" component={DonationHistoryScreen} />
     </Stack.Navigator>

@@ -18,7 +18,8 @@ export default function TabNavigatorNurse() {
         tabBarInactiveTintColor: '#95A5A6',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderTopColor: '#E9ECEF',
           elevation: 10,
           height: 60,
           paddingBottom: 10,

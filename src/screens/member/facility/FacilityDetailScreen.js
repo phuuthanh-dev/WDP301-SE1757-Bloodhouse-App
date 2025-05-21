@@ -109,7 +109,6 @@ export default function FacilityDetailcreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.headerNav}>
@@ -259,7 +258,7 @@ export default function FacilityDetailcreen({ route, navigation }) {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
-            onPress={() => navigation.navigate("Donation", { facility })}
+            onPress={() => navigation.navigate("Donation", { facilityId })}
           >
             <Text style={styles.buttonText}>Đăng ký hiến máu</Text>
           </TouchableOpacity>
