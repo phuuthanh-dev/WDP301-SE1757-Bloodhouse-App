@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import MainNavigator from "@/navigators/MainNavigator";
 import AuthNavigator from "@/navigators/AuthNavigator";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import { addAuth, authSelector } from "@/redux/reducers/authReducer";
@@ -7,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import MainNavigatorMember from "./member/MainNavigatorMember";
 import MainNavigatorManager from "./manager/MainNavigatorManager";
 import MainNavigatorDoctor from "./doctor/MainNavigatorDoctor";
+import MainNavigatorNurse from "./nurse/MainNavigatorNurse";
 
 export default function AppRouters() {
   const auth = useSelector(authSelector);
@@ -33,6 +33,7 @@ export default function AppRouters() {
 
   if (!auth.token) return <AuthNavigator />;
   if (auth.user.role === "MEMBER") return <MainNavigatorMember />;
+  if (auth.user.role === "NURSE") return <MainNavigatorNurse />;
   if (auth.user.role === "MANAGER") return <MainNavigatorManager />;
   if (auth.user.role === "DOCTOR") return <MainNavigatorDoctor />
 

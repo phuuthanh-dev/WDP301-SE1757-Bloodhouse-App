@@ -11,9 +11,8 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from "react-native-maps";
-import * as Location from "expo-location";
-import { useLocation } from "../../contexts/LocationContext";
-import facilityAPI from "../../apis/facilityAPI";
+import { useLocation } from "@/contexts/LocationContext";
+import facilityAPI from "@/apis/facilityAPI";
 
 const { width, height } = Dimensions.get("window");
 
@@ -122,7 +121,7 @@ export default function NearbyScreen({ navigation }) {
         >
           <View style={styles.markerContainer}>
             <Image
-              source={require('../../assets/images/marker.png')}
+              source={require('@/assets/images/marker.png')}
               style={styles.markerImage}
             />
           </View>

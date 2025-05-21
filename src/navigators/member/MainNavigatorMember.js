@@ -1,19 +1,19 @@
-import React from "react";
+ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DonationScreen from "@/screens/member/donation/DonationScreen";
 import BloodTypeDetailScreen from "@/screens/member/bloodType/BloodTypeDetailScreen";
 import BloodTypeListScreen from "@/screens/member/bloodType/BloodTypeListScreen";
 import BlogDetailScreen from "@/screens/member/blog/BlogDetailScreen";
 import BlogListScreen from "@/screens/member/blog/BlogListScreen";
-import EditProfileScreen from "@/screens/profile/EditProfileScreen";
-import SecurityScreen from "@/screens/profile/SecurityScreen";
-import HelpScreen from "@/screens/profile/HelpScreen";
-import AboutScreen from "@/screens/profile/AboutScreen";
-import NearbyScreen from "@/screens/map/NearbyScreen";
+import SecurityScreen from "@/screens/member/profile/SecurityScreen";
+import HelpScreen from "@/screens/member/profile/HelpScreen";
+import AboutScreen from "@/screens/member/profile/AboutScreen";
+import NearbyScreen from "@/screens/member/map/NearbyScreen";
 import DonationHistoryScreen from "@/screens/member/profile/DonationHistoryScreen";
 import EmergencyStatusScreen from "@/screens/member/emergency/EmergencyStatusScreen";
 import EmergencyRequestScreen from "@/screens/member/emergency/EmergencyRequestScreen";
 import FacilityDetailScreen from "@/screens/member/facility/FacilityDetailScreen";
+import EditProfileScreen from "@/screens/member/profile/EditProfileScreen";
 import TabNavigatorMember from "./TabNavigatorMember";
 
 const MainNavigatorMember = () => {
