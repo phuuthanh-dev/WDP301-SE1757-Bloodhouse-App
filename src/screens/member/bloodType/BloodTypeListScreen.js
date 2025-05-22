@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodGroupAPI from "@/apis/bloodGroup";
@@ -116,7 +117,7 @@ export default function BloodTypeListScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
 
       {/* Header */}
       <View style={styles.header}>
@@ -136,7 +137,7 @@ export default function BloodTypeListScreen({ navigation }) {
       >
         {bloodGroupList?.map(renderBloodTypeCard)}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -144,14 +145,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
     backgroundColor: "#FF6B6B",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: 16,
+    paddingVertical: 16,
     paddingHorizontal: 16,
   },
   backButton: {

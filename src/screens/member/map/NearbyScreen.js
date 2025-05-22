@@ -125,7 +125,13 @@ export default function NearbyScreen({ navigation }) {
               style={styles.markerImage}
             />
           </View>
-          <Callout>
+          <Callout
+            onPress={() => {
+              navigation.navigate("FacilityDetail", {
+                facilityId: facility?._id,
+              });
+            }}
+          >
             <View style={styles.callout}>
               <View style={styles.calloutHeader}>
                 <Text style={styles.calloutTitle}>{facility.name}</Text>
@@ -168,16 +174,9 @@ export default function NearbyScreen({ navigation }) {
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={styles.calloutButton}
-                onPress={() =>
-                  navigation.navigate("FacilityDetail", {
-                    facilityId: facility?._id,
-                  })
-                }
-              >
+              <View style={styles.calloutButton}>
                 <Text style={styles.calloutButtonText}>Xem chi tiết</Text>
-              </TouchableOpacity>
+              </View>
             </View>
           </Callout>
         </Marker>

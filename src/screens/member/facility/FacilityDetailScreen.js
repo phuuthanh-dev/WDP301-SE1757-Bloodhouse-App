@@ -256,12 +256,23 @@ export default function FacilityDetailcreen({ route, navigation }) {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={() => navigation.navigate("Donation", { facilityId })}
-          >
-            <Text style={styles.buttonText}>Đăng ký hiến máu</Text>
-          </TouchableOpacity>
+          <View style={styles.mainButtons}>
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton, styles.donateButton]}
+              onPress={() => navigation.navigate("Donation", { facilityId })}
+            >
+              <MaterialIcons name="favorite" size={24} color="#FFFFFF" />
+              <Text style={styles.buttonText}>Đăng ký hiến máu</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton, styles.receiveButton]}
+              onPress={() => navigation.navigate("ReceiveRequest", { facilityId })}
+            >
+              <MaterialIcons name="local-hospital" size={24} color="#FFFFFF" />
+              <Text style={styles.buttonText}>Đăng ký nhận máu</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.secondaryButtons}>
             <TouchableOpacity
@@ -532,20 +543,32 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
+  mainButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   button: {
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
   },
   primaryButton: {
+    flex: 0.48,
+  },
+  donateButton: {
     backgroundColor: "#FF6B6B",
-    marginBottom: 12,
+  },
+  receiveButton: {
+    backgroundColor: "#4CAF50",
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
   },
   secondaryButtons: {
     flexDirection: "row",
