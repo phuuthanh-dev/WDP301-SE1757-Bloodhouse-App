@@ -8,44 +8,15 @@ import {
   ScrollView,
   Platform,
   TextInput,
-  Image,
   RefreshControl,
   Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { useFacility } from "@/contexts/FacilityContext";
-import { formatDateTime } from "@/utils/formatHelpers";
-import { getStatusName } from "@/constants/donationStatus";
 import DonationRequestCard from "@/components/DonationRequestCard";
 import EmergencyRequestCard from "@/components/EmergencyRequestCard";
 import { toast } from "sonner-native";
-
-// Sample data - replace with actual API calls
-const donationRequests = [
-  {
-    id: "1",
-    donorName: "Nguyễn Văn A",
-    bloodType: "A+",
-    status: "Chờ Duyệt",
-    date: "25/03/2024",
-    time: "09:30",
-    location: "Trung Tâm Chính",
-    phone: "0123456789",
-    lastDonation: "15/12/2023",
-  },
-  {
-    id: "2",
-    donorName: "Trần Thị B",
-    bloodType: "O-",
-    status: "Đã Duyệt",
-    date: "26/03/2024",
-    time: "14:00",
-    location: "Chi Nhánh Nam",
-    phone: "0987654321",
-    lastDonation: "20/01/2024",
-  },
-];
 
 const emergencyRequests = [
   {
@@ -73,21 +44,6 @@ const emergencyRequests = [
     reason: "Cấp Cứu",
   },
 ];
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "pending":
-      return "#FFA502";
-    case "approved":
-      return "#2ED573";
-    case "cancelled":
-      return "#FF4757";
-    case "processing":
-      return "#1E90FF";
-    default:
-      return "#95A5A6";
-  }
-};
 
 // const EmergencyRequestCard = ({ request, handleProcess, handleComplete }) => (
 //   <View style={styles.card}>

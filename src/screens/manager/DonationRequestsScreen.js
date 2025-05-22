@@ -8,11 +8,18 @@ import {
   ScrollView,
   Platform,
   TextInput,
+  Image,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { useFacility } from "@/contexts/FacilityContext";
-import { getStatusName } from "@/constants/donationStatus";
+import {
+  DONATION_STATUS,
+  DONATION_STATUS_NAME_LABELS,
+  getStatusColor,
+  getStatusName,
+} from "@/constants/donationStatus";
 import { formatDateTime } from "@/utils/formatHelpers";
 
 const donationRequests = [
@@ -48,40 +55,58 @@ const donationRequests = [
   },
 ];
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Chờ Duyệt":
-      return "#FFA502";
-    case "Đã Duyệt":
-      return "#2ED573";
-    case "Hoàn Thành":
-      return "#1E90FF";
-    case "Đã Hủy":
-      return "#FF4757";
-    default:
-      return "#95A5A6";
-  }
-};
-
 export default function DonationRequestsScreen({ navigation }) {
   const { facilityId } = useFacility();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState("Tất Cả");
+  const [filter, setFilter] = useState("all");
   const [donationRequests, setDonationRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    const fetchDonationRequests = async () => {
-      const response =
-        await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
-          `?limit=10&page=1&facilityId=${facilityId}`
-        );
-      setDonationRequests(response.data);
-      setLoading(false);
-    };
     fetchDonationRequests();
-  }, []);
+  }, [filter]);
+
+  const fetchDonationRequests = async () => {
+    setLoading(true);
+    const status = filter === "all" ? "" : filter;
+    const response =
+      await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+        `?limit=10&page=1&facilityId=${facilityId}&status=${status}`
+      );
+    setDonationRequests(response.data);
+    setLoading(false);
+  };
+
+  const renderActionButton = (request) => {
+    switch (request.status) {
+      case DONATION_STATUS.PENDING_APPROVAL:
+        return (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.approveButton]}
+              onPress={() => {}}
+            >
+              <MaterialIcons name="check" size={16} color="#2ED573" />
+              <Text style={[styles.actionText, { color: "#2ED573" }]}>
+                Duyệt
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => {}}
+            >
+              <MaterialIcons name="close" size={16} color="#FF4757" />
+              <Text style={[styles.actionText, { color: "#FF4757" }]}>
+                Từ Chối
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
 
   const renderRequestCard = (request) => (
     <TouchableOpacity
@@ -92,11 +117,21 @@ export default function DonationRequestsScreen({ navigation }) {
       }}
     >
       <View style={styles.cardHeader}>
-        <View style={styles.donorInfo}>
-          <Text style={styles.donorName}>{request.userId.fullName}</Text>
-          <View style={styles.bloodTypeContainer}>
-            <MaterialIcons name="opacity" size={16} color="#FF6B6B" />
-            <Text style={styles.bloodType}>{request.bloodGroupId.name}</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarNameContainer}>
+            <Image
+              source={{ uri: request.userId.avatar }}
+              style={styles.avatar}
+            />
+            <View style={styles.donorInfo}>
+              <Text style={styles.donorName}>{request.userId.fullName}</Text>
+              <View style={styles.bloodTypeContainer}>
+                <MaterialIcons name="opacity" size={16} color="#FF6B6B" />
+                <Text style={styles.bloodType}>
+                  {request.bloodGroupId.name}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
         <View
@@ -137,23 +172,7 @@ export default function DonationRequestsScreen({ navigation }) {
         )}
       </View>
 
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.approveButton]}
-          onPress={() => {}}
-        >
-          <MaterialIcons name="check" size={16} color="#2ED573" />
-          <Text style={[styles.actionText, { color: "#2ED573" }]}>Duyệt</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => {}}
-        >
-          <MaterialIcons name="close" size={16} color="#FF4757" />
-          <Text style={[styles.actionText, { color: "#FF4757" }]}>Từ Chối</Text>
-        </TouchableOpacity>
-      </View>
+      {renderActionButton(request)}
     </TouchableOpacity>
   );
 
@@ -193,27 +212,25 @@ export default function DonationRequestsScreen({ navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterContent}
         >
-          {["Tất Cả", "Chờ Duyệt", "Đã Duyệt", "Hoàn Thành", "Đã Hủy"].map(
-            (item) => (
-              <TouchableOpacity
-                key={item}
+          {DONATION_STATUS_NAME_LABELS.map((item) => (
+            <TouchableOpacity
+              key={item.value}
+              style={[
+                styles.filterChip,
+                filter === item.value && styles.filterChipActive,
+              ]}
+              onPress={() => setFilter(item.value)}
+            >
+              <Text
                 style={[
-                  styles.filterChip,
-                  filter === item && styles.filterChipActive,
+                  styles.filterChipText,
+                  filter === item.value && styles.filterChipTextActive,
                 ]}
-                onPress={() => setFilter(item)}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    filter === item && styles.filterChipTextActive,
-                  ]}
-                >
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
@@ -221,6 +238,9 @@ export default function DonationRequestsScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchDonationRequests} />
+        }
       >
         {donationRequests.map(renderRequestCard)}
       </ScrollView>
@@ -322,6 +342,19 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E9ECEF",
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  avatarNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   donorInfo: {
     flex: 1,
