@@ -12,6 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { formatDateTime } from "@/utils/formatHelpers";
+import { getStatusColor, getStatusName } from "@/constants/donationStatus";
 export default function DonationHistoryScreen({ navigation }) {
   const [donationRegistration, setDonationRegistration] = useState([]);
 
@@ -19,7 +20,9 @@ export default function DonationHistoryScreen({ navigation }) {
     const fetchDonationHistory = async () => {
       try {
         const response =
-          await bloodDonationRegistrationAPI.HandleBloodDonationRegistration("/user");
+          await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+            "/user"
+          );
         setDonationRegistration(response.data);
       } catch (error) {
         console.error("Error fetching donation history:", error);
@@ -59,32 +62,6 @@ export default function DonationHistoryScreen({ navigation }) {
   //   },
   // ];
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "#4CAF50";
-      case "pending":
-        return "#FFB300";
-      case "cancelled":
-        return "#FF6B6B";
-      default:
-        return "#95A5A6";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "completed":
-        return "Đã hoàn thành";
-      case "pending":
-        return "Đang chờ";
-      case "cancelled":
-        return "Đã hủy";
-      default:
-        return status;
-    }
-  };
-
   const renderDonationCard = (donationRegistration) => (
     console.log(donationRegistration),
     (
@@ -117,7 +94,7 @@ export default function DonationHistoryScreen({ navigation }) {
                 { color: getStatusColor(donationRegistration.status) },
               ]}
             >
-              {getStatusText(donationRegistration.status)}
+              {getStatusName(donationRegistration.status)}
             </Text>
           </View>
         </View>
@@ -202,7 +179,6 @@ export default function DonationHistoryScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

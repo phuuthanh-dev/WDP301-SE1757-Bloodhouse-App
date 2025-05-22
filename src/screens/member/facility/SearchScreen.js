@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import facilityAPI from "@/apis/facilityAPI";
@@ -59,19 +60,23 @@ export default function SearchScreen({ navigation }) {
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [sortBy, setSortBy] = useState("distance"); // 'distance' or 'rating'
   const [facilities, setFacilities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFacilities = async () => {
-      try {
-        const response = await facilityAPI.HandleFacility();
-        setFacilities(response.data.result);
-      } catch (error) {
-        console.error("Error fetching facilities:", error);
-      }
-    };
     fetchFacilities();
   }, []);
 
+  const fetchFacilities = async () => {
+    try {
+      setLoading(true);
+      const response = await facilityAPI.HandleFacility();
+      setFacilities(response.data.result);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching facilities:", error);
+    }
+  };
+  
   const filteredCenters = mockCenters
     .filter((center) => {
       const matchesSearch =
@@ -225,6 +230,9 @@ export default function SearchScreen({ navigation }) {
       <ScrollView
         style={styles.resultsList}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchFacilities} />
+        }
       >
         {facilities.map(renderCenter)}
       </ScrollView>

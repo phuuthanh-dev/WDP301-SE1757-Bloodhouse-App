@@ -2,6 +2,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import userAPI from "@/apis/userAPI";
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -13,7 +14,7 @@ Notifications.setNotificationHandler({
 });
 
 export class NotificationService {
-  static async setupNotifications() {
+  static async setupNotifications(userId) {
     let permissionGranted = false;
 
     if (Platform.OS === "android") {
@@ -43,14 +44,18 @@ export class NotificationService {
           const token = await Notifications.getExpoPushTokenAsync({
             projectId: Constants.expoConfig.extra.eas.projectId,
           });
-          console.log("Expo Push Token:", token);
-          return { granted: true, token: token.data };
+          const response = await userAPI.HandleUser("/update-expo-token", {
+            expoPushToken: token.data,
+          }, "post");
+          if (response.status === 200) {
+            return { granted: true, token: token.data };
+          } else {
+            return { granted: false, token: null };
+          }
         } catch (error) {
-          console.error("Error getting push token:", error);
           return { granted: true, token: null };
         }
       } else {
-        console.log("Must use physical device for Push Notifications");
         return { granted: true, token: null };
       }
     }

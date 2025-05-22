@@ -7,23 +7,8 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { getStatusName } from "@/constants/donationStatus";
+import { getStatusColor, getStatusName } from "@/constants/donationStatus";
 import { formatDateTime } from "@/utils/formatHelpers";
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "pending":
-      return "#FFA502";
-    case "approved":
-      return "#2ED573";
-    case "cancelled":
-      return "#FF4757";
-    case "processing":
-      return "#1E90FF";
-    default:
-      return "#95A5A6";
-  }
-};
 
 export default function DonationRequestCard({
   request,

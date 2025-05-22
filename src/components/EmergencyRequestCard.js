@@ -7,21 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "pending":
-      return "#FFA502";
-    case "approved":
-      return "#2ED573";
-    case "cancelled":
-      return "#FF4757";
-    case "processing":
-      return "#1E90FF";
-    default:
-      return "#95A5A6";
-  }
-};
+import { getStatusColor } from "@/constants/donationStatus";
 
 export default function EmergencyRequestCard({
   request,
