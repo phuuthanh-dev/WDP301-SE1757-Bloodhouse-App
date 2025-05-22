@@ -46,7 +46,7 @@ export class NotificationService {
           });
           const response = await userAPI.HandleUser("/update-expo-token", {
             expoPushToken: token.data,
-          }, "post");
+          }, "patch");
           if (response.status === 200) {
             return { granted: true, token: token.data };
           } else {

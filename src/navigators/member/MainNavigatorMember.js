@@ -11,10 +11,11 @@ import AboutScreen from "@/screens/member/profile/AboutScreen";
 import NearbyScreen from "@/screens/member/map/NearbyScreen";
 import DonationHistoryScreen from "@/screens/member/profile/DonationHistoryScreen";
 import EmergencyStatusScreen from "@/screens/member/emergency/EmergencyStatusScreen";
-import EmergencyRequestScreen from "@/screens/member/emergency/EmergencyRequestScreen";
+import EmergencyRequestScreen from "@/screens/member/emergency/ReceiveRequestScreen";
 import FacilityDetailScreen from "@/screens/member/facility/FacilityDetailScreen";
 import EditProfileScreen from "@/screens/member/profile/EditProfileScreen";
 import TabNavigatorMember from "./TabNavigatorMember";
+import ReceiveRequestScreen from "@/screens/member/emergency/ReceiveRequestScreen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -30,7 +31,7 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="TabNavigatorMember" component={TabNavigatorMember} />
       <Stack.Screen name="FacilityDetail" component={FacilityDetailScreen} />
       <Stack.Screen name="Donation" component={DonationScreen} />
-      <Stack.Screen name="EmergencyRequest" component={EmergencyRequestScreen} />
+      <Stack.Screen name="ReceiveRequest" component={ReceiveRequestScreen} />
       <Stack.Screen name="EmergencyStatus" component={EmergencyStatusScreen} />
       <Stack.Screen name="BloodTypeDetail" component={BloodTypeDetailScreen} />
       <Stack.Screen name="BloodTypeList" component={BloodTypeListScreen} />

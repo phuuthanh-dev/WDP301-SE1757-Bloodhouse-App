@@ -138,7 +138,7 @@ export default function ManageRequestsScreen() {
       await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
         `?status=pending_approval&limit=10&page=1&facilityId=${facilityId}`
       );
-    setDonationRequests(response.data);
+    setDonationRequests(response.data.data);
     setLoading(false);
   };
 
