@@ -189,10 +189,10 @@ export default function HomeScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate("EmergencyRequest")}
+            onPress={() => navigation.navigate("ReceiveRequest")}
           >
-            <MaterialIcons name="emergency" size={24} color="#FF6B6B" />
-            <Text style={styles.actionText}>Yêu cầu khẩn cấp</Text>
+            <MaterialIcons name="local-hospital" size={24} color="#FF6B6B" />
+            <Text style={styles.actionText}>Yêu cầu nhận máu</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

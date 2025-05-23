@@ -18,10 +18,11 @@ import bloodGroupAPI from "@/apis/bloodGroup";
 import { toast } from "sonner-native";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { Provider as PaperProvider } from "react-native-paper";
+import facilityAPI from "@/apis/facilityAPI";
 
 export default function DonationScreen({ navigation, route }) {
   const { user } = useSelector(authSelector);
-  const { facilityId } = route.params;
+  const { facilityId: routeFacilityId } = route.params || {};
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("08:00");
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
@@ -32,14 +33,38 @@ export default function DonationScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState("");
   const [bloodGroups, setBloodGroups] = useState([]);
+  const [facilities, setFacilities] = useState([]);
+  const [facilityId, setFacilityId] = useState(routeFacilityId || "");
+  const [showFacilityDropdown, setShowFacilityDropdown] = useState(false);
 
   useEffect(() => {
-    const getBloodGroup = async () => {
-      const response = await bloodGroupAPI.HandleBloodGroup();
-      setBloodGroups(response.data);
+    const fetchData = async () => {
+      try {
+        const [bloodGroupResponse, facilityResponse] = await Promise.all([
+          bloodGroupAPI.HandleBloodGroup(),
+          !routeFacilityId
+            ? facilityAPI.HandleFacility()
+            : Promise.resolve(null),
+        ]);
+
+        setBloodGroups(bloodGroupResponse.data);
+
+        if (facilityResponse) {
+          setFacilities(
+            facilityResponse.data.result.map((facility) => ({
+              label: `${facility.name}`,
+              value: facility._id,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      }
     };
-    getBloodGroup();
-  }, []);
+
+    fetchData();
+  }, [routeFacilityId]);
 
   const quantities = [
     { label: "250ml", value: "250" },
@@ -55,23 +80,26 @@ export default function DonationScreen({ navigation, route }) {
   });
 
   const handleSubmit = async () => {
+    if (!facilityId) {
+      toast.error("Vui lòng chọn cơ sở y tế");
+      return;
+    }
     if (!selectedDate) {
-      alert("Vui lòng chọn ngày");
+      toast.error("Vui lòng chọn ngày");
       return;
     }
     if (!selectedTime) {
-      alert("Vui lòng chọn giờ");
+      toast.error("Vui lòng chọn giờ");
       return;
     }
     if (!bloodGroupId) {
-      alert("Vui lòng chọn nhóm máu");
+      toast.error("Vui lòng chọn nhóm máu");
       return;
     }
     // Combine date and time into preferredDate
     const preferredDate = new Date(selectedDate + "T" + selectedTime + ":00");
 
     // Handle donation registration
-
     setLoading(true);
     try {
       const response =
@@ -92,15 +120,12 @@ export default function DonationScreen({ navigation, route }) {
         toast.success("Đăng ký hiến máu thành công");
         navigation.reset({
           index: 1,
-          routes: [
-            { name: "TabNavigatorMember" },
-            { name: "DonationHistory" },
-          ],
+          routes: [{ name: "TabNavigatorMember" }, { name: "DonationHistory" }],
         });
-        
       }
     } catch (error) {
-      console.log(error);
+      console.error("Error submitting donation:", error);
+      toast.error("Đăng ký thất bại. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -112,9 +137,35 @@ export default function DonationScreen({ navigation, route }) {
         <PaperProvider>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Đăng ký hiến máu</Text>
-            <Text style={styles.subtitle}>Chọn thời gian phù hợp với bạn</Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.title}>Đăng ký hiến máu</Text>
+              <Text style={styles.subtitle}>Chọn thời gian phù hợp với bạn</Text>
+            </View>
           </View>
+
+          {/* Facility Selection - Only show if facilityId is not provided in route */}
+          {!routeFacilityId && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Chọn cơ sở y tế</Text>
+              <DropDown
+                label="Chọn cơ sở"
+                mode="outlined"
+                visible={showFacilityDropdown}
+                showDropDown={() => setShowFacilityDropdown(true)}
+                onDismiss={() => setShowFacilityDropdown(false)}
+                value={facilityId}
+                setValue={setFacilityId}
+                list={facilities}
+                activeColor="#FF6B6B"
+              />
+            </View>
+          )}
 
           {/* Calendar */}
           <View style={styles.calendarContainer}>
@@ -260,14 +311,26 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
-    padding: 20,
     backgroundColor: "#FF6B6B",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "flex-start",
+    marginLeft: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#FFF",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,

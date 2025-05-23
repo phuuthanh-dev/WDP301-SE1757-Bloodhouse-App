@@ -8,6 +8,8 @@ import {
   Platform,
   StatusBar,
   Share,
+  RefreshControl,
+  SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
@@ -15,22 +17,26 @@ import { formatDateTime } from "@/utils/formatHelpers";
 import { getStatusColor, getStatusName } from "@/constants/donationStatus";
 export default function DonationHistoryScreen({ navigation }) {
   const [donationRegistration, setDonationRegistration] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchDonationHistory = async () => {
-      try {
-        const response =
-          await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
-            "/user"
-          );
-        setDonationRegistration(response.data);
-      } catch (error) {
-        console.error("Error fetching donation history:", error);
-      }
-    };
     fetchDonationHistory();
   }, []);
 
+  const fetchDonationHistory = async () => {
+    try {
+      setLoading(true);
+      const response =
+        await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+          "/user"
+        );
+      setDonationRegistration(response.data.data);
+    } catch (error) {
+      console.error("Error fetching donation history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   // Mock data for donation history
   // const donationHistory = [
   //   {
@@ -63,7 +69,6 @@ export default function DonationHistoryScreen({ navigation }) {
   // ];
 
   const renderDonationCard = (donationRegistration) => (
-    console.log(donationRegistration),
     (
       <TouchableOpacity
         key={donationRegistration._id}
@@ -178,7 +183,7 @@ export default function DonationHistoryScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -199,7 +204,7 @@ export default function DonationHistoryScreen({ navigation }) {
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {donationRegistration.reduce(
+            {donationRegistration?.reduce(
               (total, donation) => total + donation.expectedQuantity,
               0
             )}
@@ -209,7 +214,7 @@ export default function DonationHistoryScreen({ navigation }) {
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {donationRegistration.reduce(
+            {donationRegistration?.reduce(
               (total, donation) =>
                 donation.status === "completed" ? total + 1 : total,
               0
@@ -222,10 +227,13 @@ export default function DonationHistoryScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchDonationHistory} />
+        }
       >
         {donationRegistration.map(renderDonationCard)}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -233,14 +241,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
     backgroundColor: "#FF6B6B",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: 16,
+    paddingVertical: 16,
     paddingHorizontal: 16,
   },
   backButton: {
