@@ -2,6 +2,8 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import TabNavigatorNurse from "./TabNavigatorNurse";
 import GiftDistributionFormScreen from "@/screens/nurse/GiftDistributionFormScreen";
+import HealthCheckCreateFromDonorScreen from "@/screens/nurse/healthCheck/HealthCheckCreateFromDonorScreen";
+import HealthCheckDetailScreen from "@/screens/nurse/healthCheck/HealthCheckDetailScreen";
 
 const MainNavigatorNurse = () => {
   const Stack = createNativeStackNavigator();
@@ -16,6 +18,8 @@ const MainNavigatorNurse = () => {
     >
       <Stack.Screen name="TabNavigator" component={TabNavigatorNurse} />
       <Stack.Screen name="GiftDistributionForm" component={GiftDistributionFormScreen} />
+      <Stack.Screen name="HealthCheckCreateFromDonor" component={HealthCheckCreateFromDonorScreen} />
+      <Stack.Screen name="HealthCheckDetail" component={HealthCheckDetailScreen} />
     </Stack.Navigator>
   );
 };
