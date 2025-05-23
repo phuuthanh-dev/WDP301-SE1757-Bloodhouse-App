@@ -267,7 +267,7 @@ export default function FacilityDetailcreen({ route, navigation }) {
 
             <TouchableOpacity
               style={[styles.button, styles.primaryButton, styles.receiveButton]}
-              onPress={() => navigation.navigate("ReceiveRequest", { facilityId })}
+              onPress={() => navigation.navigate("ReceiveRequest", { facility })}
             >
               <MaterialIcons name="local-hospital" size={24} color="#FFFFFF" />
               <Text style={styles.buttonText}>Đăng ký nhận máu</Text>

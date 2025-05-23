@@ -15,7 +15,6 @@ const axiosClient = axios.create({
   baseURL: BASE_URL,
   paramsSerializer: (params) => queryString.stringify(params),
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
   },
 });

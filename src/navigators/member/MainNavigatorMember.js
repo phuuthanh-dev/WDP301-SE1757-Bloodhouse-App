@@ -10,12 +10,11 @@ import HelpScreen from "@/screens/member/profile/HelpScreen";
 import AboutScreen from "@/screens/member/profile/AboutScreen";
 import NearbyScreen from "@/screens/member/map/NearbyScreen";
 import DonationHistoryScreen from "@/screens/member/profile/DonationHistoryScreen";
-import EmergencyStatusScreen from "@/screens/member/emergency/EmergencyStatusScreen";
-import EmergencyRequestScreen from "@/screens/member/emergency/ReceiveRequestScreen";
+import EmergencyStatusScreen from "@/screens/member/bloodReceiveRequest/EmergencyStatusScreen";
 import FacilityDetailScreen from "@/screens/member/facility/FacilityDetailScreen";
 import EditProfileScreen from "@/screens/member/profile/EditProfileScreen";
 import TabNavigatorMember from "./TabNavigatorMember";
-import ReceiveRequestScreen from "@/screens/member/emergency/ReceiveRequestScreen";
+import ReceiveRequestScreen from "@/screens/member/bloodReceiveRequest/ReceiveRequestScreen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
