@@ -20,14 +20,27 @@ const doctors = [
   { id: '3', name: 'BS. Phạm Văn D', avatar: 'https://i.pravatar.cc/150?img=5', todayCount: 7 },
 ];
 
-const HealthCheckCreateFromDonorScreen = ({ navigation }) => {
+const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
   const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]?.id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState('');
+  
+  // Get registrationId from route params if coming from CheckIn screen
+  const registrationId = route?.params?.registrationId;
 
   const handleCreate = async () => {
     setIsSubmitting(true);
-    // TODO: Call API to create health check, gửi kèm note
+    // TODO: Call API to create health check, gửi kèm note và registrationId
+    const healthCheckData = {
+      registrationId,
+      doctorId: selectedDoctor,
+      note,
+      nurseId: 'current_nurse_id', // Get from auth context
+      createdAt: new Date().toISOString(),
+    };
+    
+    console.log('Creating health check with data:', healthCheckData);
+    
     setTimeout(() => {
       setIsSubmitting(false);
       Alert.alert('Thành công', 'Đã tạo phiếu khám sức khoẻ!', [
@@ -56,6 +69,12 @@ const HealthCheckCreateFromDonorScreen = ({ navigation }) => {
         {/* Thông tin bệnh nhân */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thông tin bệnh nhân</Text>
+          {registrationId && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Mã đăng ký:</Text>
+              <Text style={[styles.infoValue, { color: '#FF6B6B', fontWeight: 'bold' }]}>{registrationId}</Text>
+            </View>
+          )}
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Họ tên:</Text><Text style={styles.infoValue}>{patientInfo.name}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Ngày sinh:</Text><Text style={styles.infoValue}>{patientInfo.dob}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Giới tính:</Text><Text style={styles.infoValue}>{patientInfo.gender}</Text></View>

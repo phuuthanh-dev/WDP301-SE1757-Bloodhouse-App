@@ -20,7 +20,7 @@ import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 
-// MOCK_HEALTH_CHECKS: Dữ liệu mẫu cho các phiếu khám sức khỏe
+// MOCK_DONATIONS: Dữ liệu mẫu cho các lần hiến máu
 const today = new Date();
 function getDateStr(offset) {
   const d = new Date(today);
@@ -28,12 +28,12 @@ function getDateStr(offset) {
   return d.toISOString().slice(0, 19) + 'Z';
 }
 
-const MOCK_HEALTH_CHECKS = [
-  // 2 ngày trước
+const MOCK_DONATIONS = [
   {
-    id: "HC001",
+    id: "DON001",
     registrationId: "REG123456",
-    patient: {
+    healthCheckId: "HC001",
+    donor: {
       name: "Nguyễn Văn A",
       avatar: "https://i.pravatar.cc/150?img=1",
       bloodType: "A+",
@@ -41,89 +41,29 @@ const MOCK_HEALTH_CHECKS = [
       dob: "01/01/1990",
       phone: "0901234567",
     },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
     nurse: {
       name: "Y tá Lê Thị C",
     },
-    checkDate: getDateStr(-2).replace('09:00:00', '08:30:00'),
-    isEligible: true,
-    status: "completed", // "pending", "in_progress", "completed"
-    bloodPressure: "120/80",
-    hemoglobin: 14.2,
-    weight: 62,
-    pulse: 75,
-    temperature: 36.7,
-    generalCondition: "Tốt",
-    notes: "Người hiến đủ điều kiện hiến máu",
+    startTime: getDateStr(0).replace('09:00:00', '10:00:00'),
+    endTime: getDateStr(0).replace('09:00:00', '10:30:00'),
+    status: "in_progress", // "pending", "in_progress", "completed", "adverse_event"
+    bloodVolume: 450, // ml
+    bloodBag: {
+      id: "BAG001",
+      type: "Whole Blood",
+    },
+    vitalSigns: {
+      bloodPressure: "120/80",
+      pulse: 75,
+      temperature: 36.5,
+    },
+    notes: "Quá trình hiến máu diễn ra bình thường",
   },
   {
-    id: "HC002",
-    registrationId: "REG123457",
-    patient: {
-      name: "Trần Thị B",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      bloodType: "O-",
-      gender: "Nữ",
-      dob: "15/05/1985",
-      phone: "0901234568",
-    },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    checkDate: getDateStr(-2).replace('09:00:00', '10:00:00'),
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "140/90",
-    hemoglobin: 11.5,
-    weight: 45,
-    pulse: 85,
-    temperature: 37.2,
-    generalCondition: "Huyết áp cao, thiếu máu nhẹ",
-    deferralReason: "Huyết áp cao, hemoglobin thấp",
-    notes: "Khuyến khích tái khám sau 3 tháng",
-  },
-  // 1 ngày trước
-  {
-    id: "HC003",
-    registrationId: "REG123458",
-    patient: {
-      name: "Lê Văn C",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      bloodType: "B+",
-      gender: "Nam",
-      dob: "20/12/1992",
-      phone: "0901234569",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    checkDate: getDateStr(-1).replace('09:00:00', '09:15:00'),
-    isEligible: true,
-    status: "in_progress",
-    bloodPressure: "118/75",
-    hemoglobin: 15.1,
-    weight: 70,
-    pulse: 72,
-    temperature: 36.5,
-    generalCondition: "Rất tốt",
-    notes: "Đang trong quá trình khám",
-  },
-  // Hôm nay
-  {
-    id: "HC004",
+    id: "DON002",
     registrationId: "REG123459",
-    patient: {
+    healthCheckId: "HC004",
+    donor: {
       name: "Phạm Thị D",
       avatar: "https://i.pravatar.cc/150?img=4",
       bloodType: "AB+",
@@ -131,82 +71,83 @@ const MOCK_HEALTH_CHECKS = [
       dob: "10/08/1988",
       phone: "0901234570",
     },
-    doctor: {
-      name: "BS. Lê Thị C",
-      avatar: "https://i.pravatar.cc/150?img=4",
-    },
     nurse: {
       name: "Y tá Nguyễn Thị E",
     },
-    checkDate: getDateStr(0).replace('09:00:00', '09:00:00'),
-    isEligible: true,
+    startTime: getDateStr(0).replace('09:00:00', '09:30:00'),
+    endTime: getDateStr(0).replace('09:00:00', '10:00:00'),
     status: "completed",
-    bloodPressure: "115/70",
-    hemoglobin: 13.8,
-    weight: 55,
-    pulse: 68,
-    temperature: 36.4,
-    generalCondition: "Tốt",
-    notes: "Đủ điều kiện hiến máu",
+    bloodVolume: 450,
+    bloodBag: {
+      id: "BAG002",
+      type: "Whole Blood",
+    },
+    vitalSigns: {
+      bloodPressure: "115/70",
+      pulse: 68,
+      temperature: 36.4,
+    },
+    notes: "Hoàn thành thành công",
   },
   {
-    id: "HC005",
-    registrationId: "REG123460",
-    patient: {
-      name: "Ngô Văn E",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      bloodType: "A-",
-      gender: "Nam",
-      dob: "25/03/1990",
-      phone: "0901234571",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
+    id: "DON003",
+    registrationId: "REG123461",
+    healthCheckId: "HC006",
+    donor: {
+      name: "Lê Văn C",
       avatar: "https://i.pravatar.cc/150?img=3",
+      bloodType: "B+",
+      gender: "Nam",
+      dob: "20/12/1992",
+      phone: "0901234569",
     },
     nurse: {
       name: "Y tá Lê Thị C",
     },
-    checkDate: getDateStr(0).replace('09:00:00', '10:30:00'),
-    isEligible: null,
-    status: "pending",
-    notes: "Chờ khám sức khỏe",
-  },
-  // 1 ngày sau
-  {
-    id: "HC006",
-    registrationId: "REG123461",
-    patient: {
-      name: "Võ Thị F",
-      avatar: "https://i.pravatar.cc/150?img=6",
-      bloodType: "O+",
-      gender: "Nữ",
-      dob: "12/11/1987",
-      phone: "0901234572",
+    startTime: getDateStr(-1).replace('09:00:00', '11:00:00'),
+    endTime: getDateStr(-1).replace('09:00:00', '11:35:00'),
+    status: "completed",
+    bloodVolume: 450,
+    bloodBag: {
+      id: "BAG003",
+      type: "Whole Blood",
     },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
+    vitalSigns: {
+      bloodPressure: "118/75",
+      pulse: 72,
+      temperature: 36.5,
+    },
+    notes: "Hoàn thành xuất sắc",
+  },
+  {
+    id: "DON004",
+    registrationId: "REG123462",
+    healthCheckId: "HC007",
+    donor: {
+      name: "Trần Văn E",
+      avatar: "https://i.pravatar.cc/150?img=7",
+      bloodType: "O-",
+      gender: "Nam",
+      dob: "05/07/1985",
+      phone: "0901234573",
     },
     nurse: {
       name: "Y tá Nguyễn Thị E",
     },
-    checkDate: getDateStr(1).replace('09:00:00', '08:45:00'),
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "150/95",
-    hemoglobin: 12.8,
-    weight: 48,
-    pulse: 90,
-    temperature: 36.8,
-    generalCondition: "Huyết áp cao",
-    deferralReason: "Huyết áp vượt ngưỡng cho phép",
-    notes: "Cần điều trị huyết áp trước khi hiến máu",
+    startTime: getDateStr(1).replace('09:00:00', '08:30:00'),
+    endTime: null,
+    status: "pending",
+    bloodVolume: null,
+    bloodBag: {
+      id: "BAG004",
+      type: "Whole Blood",
+    },
+    notes: "Chuẩn bị tiến hành hiến máu",
   },
 ];
 
-export default function HealthCheckList() {
-  const [healthChecks, setHealthChecks] = useState([]);
+export default function DonationListScreen() {
+  const [donations, setDonations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -215,41 +156,41 @@ export default function HealthCheckList() {
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
 
-  const fetchHealthChecks = async () => {
+  const fetchDonations = async () => {
     try {
       // Simulating API call with mock data
-      setHealthChecks(MOCK_HEALTH_CHECKS);
+      setDonations(MOCK_DONATIONS);
     } catch (error) {
-      console.error("Error fetching health checks:", error);
+      console.error("Error fetching donations:", error);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchHealthChecks();
+    await fetchDonations();
     setRefreshing(false);
   };
 
   useEffect(() => {
-    fetchHealthChecks();
+    fetchDonations();
   }, []);
 
-  // Lọc health checks theo ngày, trạng thái, tên
-  const filteredHealthChecks = healthChecks.filter((healthCheck) => {
-    const checkDate = new Date(healthCheck.checkDate);
+  // Lọc donations theo ngày, trạng thái, tên
+  const filteredDonations = donations.filter((donation) => {
+    const donationDate = new Date(donation.startTime);
     const matchDate =
-      checkDate.getFullYear() === selectedDate.getFullYear() &&
-      checkDate.getMonth() === selectedDate.getMonth() &&
-      checkDate.getDate() === selectedDate.getDate();
+      donationDate.getFullYear() === selectedDate.getFullYear() &&
+      donationDate.getMonth() === selectedDate.getMonth() &&
+      donationDate.getDate() === selectedDate.getDate();
     
     const matchStatus =
       statusFilter === 'Tất cả' ||
-      (statusFilter === 'Chờ khám' && healthCheck.status === 'pending') ||
-      (statusFilter === 'Đang khám' && healthCheck.status === 'in_progress') ||
-      (statusFilter === 'Đảm bảo sức khỏe' && healthCheck.status === 'completed' && healthCheck.isEligible === true) ||
-      (statusFilter === 'Không đảm bảo' && healthCheck.status === 'completed' && healthCheck.isEligible === false);
+      (statusFilter === 'Chờ hiến' && donation.status === 'pending') ||
+      (statusFilter === 'Đang hiến' && donation.status === 'in_progress') ||
+      (statusFilter === 'Hoàn thành' && donation.status === 'completed') ||
+      (statusFilter === 'Sự cố' && donation.status === 'adverse_event');
     
-    const matchName = healthCheck.patient.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchName = donation.donor.name.toLowerCase().includes(searchText.toLowerCase());
     return matchDate && matchStatus && matchName;
   });
 
@@ -268,50 +209,57 @@ export default function HealthCheckList() {
     setSelectedDate(next);
   };
 
-  const getStatusInfo = (healthCheck) => {
-    if (healthCheck.status === 'pending') {
-      return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
-    } else if (healthCheck.status === 'in_progress') {
-      return { label: 'Đang khám', color: '#FFA502', icon: 'medical-bag' };
-    } else if (healthCheck.status === 'completed' && healthCheck.isEligible === true) {
-      return { label: 'Đảm bảo sức khỏe', color: '#2ED573', icon: 'check-circle' };
-    } else if (healthCheck.status === 'completed' && healthCheck.isEligible === false) {
-      return { label: 'Không đảm bảo', color: '#FF4757', icon: 'close-circle' };
+  const getStatusInfo = (donation) => {
+    if (donation.status === 'pending') {
+      return { label: 'Chờ hiến', color: '#4A90E2', icon: 'clock-outline' };
+    } else if (donation.status === 'in_progress') {
+      return { label: 'Đang hiến', color: '#FFA502', icon: 'heart-pulse' };
+    } else if (donation.status === 'completed') {
+      return { label: 'Hoàn thành', color: '#2ED573', icon: 'check-circle' };
+    } else if (donation.status === 'adverse_event') {
+      return { label: 'Sự cố', color: '#FF4757', icon: 'alert-circle' };
     } else {
       return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
     }
   };
 
-  const renderHealthCheckItem = ({ item }) => {
+  const renderDonationItem = ({ item }) => {
     const statusInfo = getStatusInfo(item);
 
     return (
       <TouchableOpacity
-        style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckDetail', { healthCheckId: item.id })}
+        style={styles.donationCard}
+        onPress={() => {
+          // Navigate to donation detail
+          // navigation.navigate('DonationDetail', { donationId: item.id });
+        }}
       >
         <View style={styles.cardHeader}>
-          <View style={styles.patientInfo}>
+          <View style={styles.donorInfo}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: item.patient.avatar || "https://via.placeholder.com/50" }}
+                source={{ uri: item.donor.avatar || "https://via.placeholder.com/50" }}
                 style={styles.avatar}
               />
               <View style={styles.bloodTypeBadge}>
-                <Text style={styles.bloodTypeText}>{item.patient.bloodType}</Text>
+                <Text style={styles.bloodTypeText}>{item.donor.bloodType}</Text>
               </View>
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.patientName}>{item.patient.name}</Text>
+              <Text style={styles.donorName}>{item.donor.name}</Text>
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
                 <Text style={styles.details}>
-                  {formatDateTime(new Date(item.checkDate))}
+                  {formatDateTime(new Date(item.startTime))}
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="stethoscope" size={16} color="#636E72" />
-                <Text style={styles.details}>BS: {item.doctor.name}</Text>
+                <MaterialCommunityIcons name="medical-bag" size={16} color="#636E72" />
+                <Text style={styles.details}>YT: {item.nurse.name}</Text>
+              </View>
+              <View style={styles.detailsRow}>
+                <MaterialCommunityIcons name="test-tube" size={16} color="#636E72" />
+                <Text style={styles.details}>Túi: {item.bloodBag.id}</Text>
               </View>
             </View>
           </View>
@@ -321,37 +269,78 @@ export default function HealthCheckList() {
           </View>
         </View>
         
-        {/* Health Check Summary */}
-        {item.status === 'completed' && (
-          <View style={styles.healthSummary}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Huyết áp:</Text>
-              <Text style={styles.summaryValue}>{item.bloodPressure || '-'} mmHg</Text>
+        {/* Donation Progress */}
+        {item.status === 'in_progress' && (
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressTitle}>Tiến độ hiến máu</Text>
+              <Text style={styles.progressVolume}>{item.bloodVolume || 0} / 450 ml</Text>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Hemoglobin:</Text>
-              <Text style={styles.summaryValue}>{item.hemoglobin || '-'} g/dL</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${((item.bloodVolume || 0) / 450) * 100}%` }
+                ]} 
+              />
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Cân nặng:</Text>
-              <Text style={styles.summaryValue}>{item.weight || '-'} kg</Text>
+          </View>
+        )}
+
+        {/* Vital Signs */}
+        {(item.status === 'in_progress' || item.status === 'completed') && item.vitalSigns && (
+          <View style={styles.vitalSigns}>
+            <View style={styles.vitalItem}>
+              <Text style={styles.vitalLabel}>Huyết áp</Text>
+              <Text style={styles.vitalValue}>{item.vitalSigns.bloodPressure}</Text>
             </View>
-            {item.deferralReason && (
-              <View style={styles.deferralReason}>
-                <MaterialCommunityIcons name="alert-circle" size={16} color="#FF4757" />
-                <Text style={styles.deferralText}>{item.deferralReason}</Text>
-              </View>
-            )}
+            <View style={styles.vitalItem}>
+              <Text style={styles.vitalLabel}>Nhịp tim</Text>
+              <Text style={styles.vitalValue}>{item.vitalSigns.pulse} bpm</Text>
+            </View>
+            <View style={styles.vitalItem}>
+              <Text style={styles.vitalLabel}>Nhiệt độ</Text>
+              <Text style={styles.vitalValue}>{item.vitalSigns.temperature}°C</Text>
+            </View>
           </View>
         )}
         
         <View style={styles.cardFooter}>
           <TouchableOpacity 
-            style={styles.viewDetailBtn}
-            onPress={() => navigation.navigate('HealthCheckDetail', { healthCheckId: item.id })}
+            style={styles.actionBtn}
+            onPress={() => {
+              // Handle action based on status
+              if (item.status === 'pending') {
+                // Start donation - Navigate to create form to start donation
+                navigation.navigate('DonationCreateForm', { donationId: item.id, mode: 'start' });
+              } else if (item.status === 'in_progress') {
+                // Monitor/Update donation - Navigate to update form
+                navigation.navigate('DonationCreateForm', { donationId: item.id, mode: 'update' });
+              } else if (item.status === 'completed') {
+                // View donation details
+                navigation.navigate('DonationDetail', { donationId: item.id });
+              } else if (item.status === 'adverse_event') {
+                // View donation details with incident info
+                navigation.navigate('DonationDetail', { donationId: item.id });
+              }
+            }}
           >
-            <MaterialIcons name="visibility" size={18} color="#FF6B6B" />
-            <Text style={styles.viewDetailText}>Xem chi tiết</Text>
+            <MaterialIcons 
+              name={
+                item.status === 'pending' ? 'play-arrow' : 
+                item.status === 'in_progress' ? 'edit' : 
+                item.status === 'completed' ? 'visibility' : 
+                'info'
+              } 
+              size={18} 
+              color="#FF6B6B" 
+            />
+            <Text style={styles.actionText}>
+              {item.status === 'pending' ? 'Bắt đầu' : 
+               item.status === 'in_progress' ? 'Cập nhật thông tin' : 
+               item.status === 'completed' ? 'Xem chi tiết' : 
+               'Chi tiết'}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -361,16 +350,16 @@ export default function HealthCheckList() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh Sách Khám Sức Khỏe</Text>
+        <Text style={styles.headerTitle}>Danh Sách Hiến Máu</Text>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerCount}>{filteredHealthChecks.length}</Text>
+          <Text style={styles.headerCount}>{filteredDonations.length}</Text>
         </View>
       </View>
 
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {['Tất cả', 'Chờ khám', 'Đang khám', 'Đảm bảo sức khỏe', 'Không đảm bảo'].map((status) => (
+          {['Tất cả', 'Chờ hiến', 'Đang hiến', 'Hoàn thành', 'Sự cố'].map((status) => (
             <TouchableOpacity
               key={status}
               style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
@@ -385,7 +374,7 @@ export default function HealthCheckList() {
             <MaterialCommunityIcons name="magnify" size={20} color="#A0AEC0" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Tìm kiếm tên bệnh nhân..."
+              placeholder="Tìm kiếm tên người hiến..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
@@ -452,10 +441,10 @@ export default function HealthCheckList() {
         </TouchableOpacity>
       </View>
 
-      {/* Danh sách phiếu khám sức khỏe */}
+      {/* Danh sách hiến máu */}
       <FlatList
-        data={filteredHealthChecks}
-        renderItem={renderHealthCheckItem}
+        data={filteredDonations}
+        renderItem={renderDonationItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
@@ -468,9 +457,9 @@ export default function HealthCheckList() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="medical-bag" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons name="water" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              Không có phiếu khám sức khỏe nào trong ngày này
+              Không có lần hiến máu nào trong ngày này
             </Text>
           </View>
         }
@@ -665,7 +654,7 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
   },
-  healthCheckCard: {
+  donationCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
@@ -684,7 +673,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  patientInfo: {
+  donorInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
@@ -719,7 +708,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
   },
-  patientName: {
+  donorName: {
     fontSize: 17,
     fontWeight: "bold",
     color: "#2D3748",
@@ -749,47 +738,65 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
-  healthSummary: {
+  progressSection: {
     backgroundColor: "#F8F9FA",
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  summaryRow: {
+  progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: "#636E72",
-    fontWeight: "500",
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: "#2D3748",
-    fontWeight: "600",
-  },
-  deferralReason: {
-    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFEAEA",
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 6,
+    marginBottom: 8,
   },
-  deferralText: {
-    fontSize: 13,
-    color: "#FF4757",
-    fontWeight: "500",
-    marginLeft: 6,
-    flex: 1,
+  progressTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2D3748",
+  },
+  progressVolume: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#FF6B6B",
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#FF6B6B",
+    borderRadius: 4,
+  },
+  vitalSigns: {
+    flexDirection: "row",
+    backgroundColor: "#F8F9FA",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    justifyContent: "space-around",
+  },
+  vitalItem: {
+    alignItems: "center",
+  },
+  vitalLabel: {
+    fontSize: 12,
+    color: "#636E72",
+    marginBottom: 4,
+  },
+  vitalValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#2D3748",
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
-  viewDetailBtn: {
+  actionBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFEAEA",
@@ -797,7 +804,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  viewDetailText: {
+  actionText: {
     fontSize: 14,
     color: "#FF6B6B",
     fontWeight: "600",
