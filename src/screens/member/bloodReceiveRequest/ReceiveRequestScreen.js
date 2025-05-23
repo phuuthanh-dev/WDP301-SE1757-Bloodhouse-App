@@ -7,8 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Share,
-  StatusBar,
   Platform,
   Image,
   SafeAreaView,
@@ -23,40 +21,83 @@ import {
   Portal,
   Modal,
   TextInput as PaperInput,
-  PaperProvider,
+  Provider as PaperProvider,
 } from "react-native-paper";
-import { formatDate, formatDateTime } from "@/utils/formatHelpers";
+import DropDown from "react-native-paper-dropdown";
 import { Calendar } from "react-native-calendars";
+import bloodGroupAPI from "@/apis/bloodGroup";
+import bloodComponentAPI from "@/apis/bloodComponent";
+import facilityAPI from "@/apis/facilityAPI";
+import bloodRequestAPI from "@/apis/bloodRequestAPI";
 
-export default function ReceiveRequestScreen({ navigation }) {
+export default function ReceiveRequestScreen({ navigation, route }) {
+  const { facilityId: routeFacilityId } = route.params || {};
   const { user } = useSelector(authSelector);
+  const [groups, setGroups] = useState([]);
+  const [components, setComponents] = useState([]);
+  const [facilities, setFacilities] = useState([]);
+  const [showFacilityDropdown, setShowFacilityDropdown] = useState(false);
   const [formData, setFormData] = useState({
-    patientName: "",
-    bloodType: "",
-    bloodComponent: "",
-    units: "",
-    hospital: "",
-    contactName: user?.fullName || "",
-    contactPhone: user?.phone || "",
-    notes: "",
-    location: null,
+    patientName: user?.fullName || "",
+    patientPhone: user?.phone || "",
+    address: user?.address || "",
+    groupId: "",
+    componentId: "",
+    quantity: "",
+    note: "",
+    latitude: 0,
+    longitude: 0,
     isUrgent: false,
     medicalDocumentUrl: null,
-    preferredDate: new Date(),
-    preferredTime: new Date(),
+    facilityId: routeFacilityId || "",
   });
-
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("08:00");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [isConsent, setIsConsent] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-  const bloodComponents = [
-    { id: "WHOLE", label: "Máu toàn phần" },
-    { id: "RED_CELLS", label: "Hồng cầu" },
-    { id: "PLASMA", label: "Huyết tương" },
-    { id: "PLATELETS", label: "Tiểu cầu" },
+  const termsAndConditions = [
+    "1. Tôi xác nhận rằng tất cả thông tin cung cấp là chính xác và đầy đủ.",
+    "2. Tôi hiểu rằng việc cung cấp thông tin sai lệch có thể ảnh hưởng đến quá trình nhận máu.",
+    "3. Tôi đồng ý cho phép cơ sở y tế sử dụng thông tin cá nhân cho mục đích tìm kiếm người hiến máu phù hợp.",
+    "4. Tôi hiểu rằng việc nhận máu phụ thuộc vào tình trạng sẵn có của nhóm máu phù hợp.",
+    "5. Tôi đồng ý tuân thủ các quy định và hướng dẫn của cơ sở y tế trong quá trình nhận máu.",
+    "6. Tôi hiểu rằng có thể phát sinh các chi phí liên quan đến quá trình xét nghiệm và nhận máu.",
   ];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [bloodGroupResponse, bloodComponentResponse, facilityResponse] =
+          await Promise.all([
+            bloodGroupAPI.HandleBloodGroup(),
+            bloodComponentAPI.HandleBloodComponent(),
+            !routeFacilityId
+              ? facilityAPI.HandleFacility()
+              : Promise.resolve(null),
+          ]);
+
+        setGroups(bloodGroupResponse.data);
+        setComponents(bloodComponentResponse.data);
+
+        if (facilityResponse) {
+          setFacilities(
+            facilityResponse.data.result.map((facility) => ({
+              label: `${facility.name}`,
+              value: facility._id,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        Alert.alert("Lỗi", "Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      }
+    };
+    fetchData();
+  }, [routeFacilityId]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -104,41 +145,39 @@ export default function ReceiveRequestScreen({ navigation }) {
     }
   };
 
-  const handleLocationPermission = async () => {
+  const handleGetLocationPermission = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Quyền truy cập vị trí",
-          "Chúng tôi cần quyền truy cập vị trí để tìm người hiến máu gần bạn."
-        );
-        return;
+      const locations = await Location.geocodeAsync(formData.address);
+      if (locations && locations.length > 0) {
+        return locations[0];
       }
-
-      const location = await Location.getCurrentPositionAsync({});
-      setFormData((prev) => ({
-        ...prev,
-        location: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        },
-      }));
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể lấy vị trí của bạn.");
+      console.error("Error getting location:", error);
+      Alert.alert(
+        "Lỗi",
+        "Không thể lấy thông tin vị trí. Vui lòng thử lại sau."
+      );
+      return false;
     }
   };
 
   const validateForm = () => {
+    if (!isConsent) {
+      Alert.alert(
+        "Chưa đồng ý điều khoản",
+        "Vui lòng đọc và đồng ý với điều khoản trước khi gửi yêu cầu"
+      );
+      return false;
+    }
+
     const required = [
       "patientName",
-      "bloodType",
-      "bloodComponent",
-      "units",
-      "hospital",
-      "contactName",
-      "contactPhone",
-      "preferredDate",
-      "preferredTime",
+      "patientPhone",
+      "groupId",
+      "componentId",
+      "quantity",
+      "address",
+      "facilityId",
     ];
 
     const missing = required.filter((field) => !formData[field]);
@@ -150,11 +189,6 @@ export default function ReceiveRequestScreen({ navigation }) {
       return false;
     }
 
-    if (!formData.location) {
-      Alert.alert("Thiếu vị trí", "Vui lòng cho phép truy cập vị trí của bạn.");
-      return false;
-    }
-
     return true;
   };
 
@@ -163,39 +197,81 @@ export default function ReceiveRequestScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // TODO: Implement API call to submit emergency request
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-      Alert.alert(
-        "Thành công",
-        "Yêu cầu khẩn cấp của bạn đã được gửi. Chúng tôi sẽ thông báo ngay khi tìm được người hiến máu phù hợp.",
-        [
-          {
-            text: "OK",
-            onPress: () =>
-              navigation.navigate("EmergencyStatus", { requestId: "123" }),
-          },
-        ]
+      const location = await handleGetLocationPermission();
+
+      // Create form data for multipart/form-data
+      const formDataToSend = new FormData();
+
+      // Append all text fields
+      const requestData = {
+        ...formData,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        consent: isConsent,
+      };
+
+      formDataToSend.append(
+        "preferredDate",
+        selectedDate + "T" + selectedTime + ":00"
       );
+
+      // Append each field to FormData
+      Object.keys(requestData).forEach((key) => {
+        if (key !== "medicalDocumentUrl") {
+          formDataToSend.append(key, requestData[key]);
+        }
+      });
+
+      // Append file if exists
+      if (formData.medicalDocumentUrl) {
+        formDataToSend.append("medicalDocuments", {
+          uri: formData.medicalDocumentUrl,
+          name: `medical_document.jpg`,
+          type: `image/jpeg`,
+        });
+      }
+
+      const response = await bloodRequestAPI.HandleBloodRequest(
+        "",
+        formDataToSend,
+        "post"
+      );
+
+      if (response.status === 201) {
+        Alert.alert(
+          "Thành công",
+          "Yêu cầu nhận máu của bạn đã được gửi. Chúng tôi sẽ thông báo ngay khi có thông tin mới.",
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Lỗi", "Không thể gửi yêu cầu. Vui lòng thử lại sau.");
+      }
     } catch (error) {
+      console.error("Error submitting request:", error);
       Alert.alert("Lỗi", "Không thể gửi yêu cầu. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message:
-          "Yêu cầu hiến máu khẩn cấp!\nNhóm máu cần: " +
-          formData.bloodType +
-          "\nBệnh viện: " +
-          formData.hospital,
-        title: "Yêu cầu hiến máu khẩn cấp",
-      });
-    } catch (error) {
-      console.log(error.message);
-    }
+  // Add helper functions for time handling
+  const getHoursFromTimeString = (timeString) => {
+    return timeString.split(":")[0];
+  };
+
+  const getMinutesFromTimeString = (timeString) => {
+    return timeString.split(":")[1];
+  };
+
+  const formatTimeString = (hours, minutes) => {
+    const formattedHours = hours.toString().padStart(2, "0");
+    const formattedMinutes = minutes.toString().padStart(2, "0");
+    return `${formattedHours}:${formattedMinutes}`;
   };
 
   return (
@@ -220,46 +296,57 @@ export default function ReceiveRequestScreen({ navigation }) {
         </View>
 
         <ScrollView>
-
           <View style={styles.form}>
             {/* Patient Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Thông tin bệnh nhân</Text>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên bệnh nhân *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.patientName}
-                  onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, patientName: text }))
-                  }
-                  placeholder="Nhập tên bệnh nhân"
-                />
-              </View>
+              {/* Facility Selection - Only show if facilityId is not provided in route */}
+              {!routeFacilityId && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Chọn cơ sở y tế *</Text>
+                  <DropDown
+                    label="Chọn cơ sở"
+                    mode="outlined"
+                    visible={showFacilityDropdown}
+                    showDropDown={() => setShowFacilityDropdown(true)}
+                    onDismiss={() => setShowFacilityDropdown(false)}
+                    value={formData.facilityId}
+                    setValue={(value) =>
+                      setFormData((prev) => ({ ...prev, facilityId: value }))
+                    }
+                    list={facilities}
+                    activeColor="#FF6B6B"
+                  />
+                </View>
+              )}
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Nhóm máu cần *</Text>
                 <View style={styles.bloodTypeGrid}>
-                  {bloodTypes.map((type) => (
+                  {groups.map((group) => (
                     <TouchableOpacity
-                      key={type}
+                      key={group._id}
                       style={[
                         styles.bloodTypeButton,
-                        formData.bloodType === type && styles.selectedBloodType,
+                        formData.groupId === group._id &&
+                          styles.selectedBloodType,
                       ]}
                       onPress={() =>
-                        setFormData((prev) => ({ ...prev, bloodType: type }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          groupId: group._id,
+                        }))
                       }
                     >
                       <Text
                         style={[
                           styles.bloodTypeText,
-                          formData.bloodType === type &&
+                          formData.groupId === group._id &&
                             styles.selectedBloodTypeText,
                         ]}
                       >
-                        {type}
+                        {group.name}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -269,29 +356,29 @@ export default function ReceiveRequestScreen({ navigation }) {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Thành phần máu cần *</Text>
                 <View style={styles.bloodComponentGrid}>
-                  {bloodComponents.map((component) => (
+                  {components.map((component) => (
                     <TouchableOpacity
-                      key={component.id}
+                      key={component._id}
                       style={[
                         styles.bloodComponentButton,
-                        formData.bloodComponent === component.id &&
+                        formData.componentId === component._id &&
                           styles.selectedBloodComponent,
                       ]}
                       onPress={() =>
                         setFormData((prev) => ({
                           ...prev,
-                          bloodComponent: component.id,
+                          componentId: component._id,
                         }))
                       }
                     >
                       <Text
                         style={[
                           styles.bloodComponentText,
-                          formData.bloodComponent === component.id &&
+                          formData.componentId === component._id &&
                             styles.selectedBloodComponentText,
                         ]}
                       >
-                        {component.label}
+                        {component.name}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -302,24 +389,12 @@ export default function ReceiveRequestScreen({ navigation }) {
                 <Text style={styles.label}>Số đơn vị cần *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.units}
+                  value={formData.quantity}
                   onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, units: text }))
+                    setFormData((prev) => ({ ...prev, quantity: text }))
                   }
                   placeholder="Nhập số đơn vị máu cần"
                   keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Bệnh viện/Cơ sở y tế *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.hospital}
-                  onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, hospital: text }))
-                  }
-                  placeholder="Nhập tên bệnh viện"
                 />
               </View>
 
@@ -366,7 +441,7 @@ export default function ReceiveRequestScreen({ navigation }) {
                       color="#636E72"
                     />
                     <Text style={styles.dateTimeButtonText}>
-                      {formatDate(formData.preferredDate)}
+                      {selectedDate}
                     </Text>
                   </TouchableOpacity>
 
@@ -380,14 +455,14 @@ export default function ReceiveRequestScreen({ navigation }) {
                       color="#636E72"
                     />
                     <Text style={styles.dateTimeButtonText}>
-                      {formatDateTime(formData.preferredTime)}
+                      {selectedTime}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Giấy tờ y tế (không bắt buộc)</Text>
+                <Text style={styles.label}>Giấy tờ y tế</Text>
                 <View style={styles.documentContainer}>
                   {formData.medicalDocumentUrl ? (
                     <View style={styles.documentPreview}>
@@ -441,17 +516,17 @@ export default function ReceiveRequestScreen({ navigation }) {
 
             {/* Contact Information */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
+              <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên người liên hệ *</Text>
+                <Text style={styles.label}>Tên bệnh nhân *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.contactName}
+                  value={formData.patientName}
                   onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, contactName: text }))
+                    setFormData((prev) => ({ ...prev, patientName: text }))
                   }
-                  placeholder="Nhập tên người liên hệ"
+                  placeholder="Nhập tên bệnh nhân"
                 />
               </View>
 
@@ -459,12 +534,23 @@ export default function ReceiveRequestScreen({ navigation }) {
                 <Text style={styles.label}>Số điện thoại *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.contactPhone}
+                  value={formData.patientPhone}
                   onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, contactPhone: text }))
+                    setFormData((prev) => ({ ...prev, patientPhone: text }))
                   }
                   placeholder="Nhập số điện thoại"
-                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Địa chỉ *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.address}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, address: text }))
+                  }
+                  placeholder="Nhập địa chỉ"
                 />
               </View>
 
@@ -472,9 +558,9 @@ export default function ReceiveRequestScreen({ navigation }) {
                 <Text style={styles.label}>Ghi chú thêm</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  value={formData.notes}
+                  value={formData.note}
                   onChangeText={(text) =>
-                    setFormData((prev) => ({ ...prev, notes: text }))
+                    setFormData((prev) => ({ ...prev, note: text }))
                   }
                   placeholder="Nhập thông tin thêm nếu cần"
                   multiline
@@ -483,30 +569,42 @@ export default function ReceiveRequestScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Location */}
+            {/* Terms and Conditions Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Vị trí</Text>
-              <TouchableOpacity
-                style={styles.locationButton}
-                onPress={handleLocationPermission}
-              >
-                <MaterialIcons name="location-on" size={24} color="#FF6B6B" />
-                <Text style={styles.locationButtonText}>
-                  {formData.location
-                    ? "Đã lấy vị trí của bạn"
-                    : "Cho phép truy cập vị trí"}
-                </Text>
-              </TouchableOpacity>
+              <Text style={styles.sectionTitle}>Điều khoản và điều kiện</Text>
+              <View style={styles.termsContainer}>
+                <TouchableOpacity
+                  style={styles.viewTermsButton}
+                  onPress={() => setShowTerms(true)}
+                >
+                  <MaterialIcons name="description" size={24} color="#FF6B6B" />
+                  <Text style={styles.viewTermsText}>Xem điều khoản</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.consentButton}
+                  onPress={() => setIsConsent(!isConsent)}
+                >
+                  <MaterialIcons
+                    name={isConsent ? "check-box" : "check-box-outline-blank"}
+                    size={24}
+                    color={isConsent ? "#FF6B6B" : "#636E72"}
+                  />
+                  <Text style={styles.consentText}>
+                    Tôi đã đọc và đồng ý với các điều khoản
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Submit Button */}
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                loading && styles.submitButtonDisabled,
+                (!isConsent || loading) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={!isConsent || loading}
             >
               <Text style={styles.submitButtonText}>
                 {loading ? "Đang gửi yêu cầu..." : "Gửi yêu cầu"}
@@ -524,17 +622,13 @@ export default function ReceiveRequestScreen({ navigation }) {
           >
             <View style={styles.calendarContainer}>
               <Calendar
-                current={formData.preferredDate}
-                minDate={new Date().toISOString()}
+                minDate={new Date().toISOString().split("T")[0]}
                 onDayPress={(day) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    preferredDate: new Date(day.timestamp),
-                  }));
+                  setSelectedDate(day.dateString);
                   setShowDatePicker(false);
                 }}
                 markedDates={{
-                  [formData.preferredDate.toISOString().split("T")[0]]: {
+                  [selectedDate]: {
                     selected: true,
                     selectedColor: "#FF6B6B",
                   },
@@ -562,7 +656,7 @@ export default function ReceiveRequestScreen({ navigation }) {
                 <PaperInput
                   mode="outlined"
                   label="Giờ"
-                  value={formData.preferredTime.getHours().toString()}
+                  value={getHoursFromTimeString(selectedTime)}
                   keyboardType="number-pad"
                   style={styles.timeInput}
                   onChangeText={(text) => {
@@ -570,19 +664,17 @@ export default function ReceiveRequestScreen({ navigation }) {
                       Math.max(parseInt(text) || 0, 0),
                       23
                     );
-                    const newTime = new Date(formData.preferredTime);
-                    newTime.setHours(hours);
-                    setFormData((prev) => ({
-                      ...prev,
-                      preferredTime: newTime,
-                    }));
+                    const minutes = parseInt(
+                      getMinutesFromTimeString(selectedTime)
+                    );
+                    setSelectedTime(formatTimeString(hours, minutes));
                   }}
                 />
                 <Text style={styles.timeSeparator}>:</Text>
                 <PaperInput
                   mode="outlined"
                   label="Phút"
-                  value={formData.preferredTime.getMinutes().toString()}
+                  value={getMinutesFromTimeString(selectedTime)}
                   keyboardType="number-pad"
                   style={styles.timeInput}
                   onChangeText={(text) => {
@@ -590,12 +682,10 @@ export default function ReceiveRequestScreen({ navigation }) {
                       Math.max(parseInt(text) || 0, 0),
                       59
                     );
-                    const newTime = new Date(formData.preferredTime);
-                    newTime.setMinutes(minutes);
-                    setFormData((prev) => ({
-                      ...prev,
-                      preferredTime: newTime,
-                    }));
+                    const hours = parseInt(
+                      getHoursFromTimeString(selectedTime)
+                    );
+                    setSelectedTime(formatTimeString(hours, minutes));
                   }}
                 />
               </View>
@@ -605,6 +695,35 @@ export default function ReceiveRequestScreen({ navigation }) {
                 style={styles.timeConfirmButton}
               >
                 Xác nhận
+              </Button>
+            </View>
+          </Modal>
+        </Portal>
+
+        {/* Terms Modal */}
+        <Portal>
+          <Modal
+            visible={showTerms}
+            onDismiss={() => setShowTerms(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <View style={styles.termsModalContent}>
+              <Text style={styles.termsModalTitle}>
+                Điều khoản và điều kiện
+              </Text>
+              <ScrollView style={styles.termsScrollView}>
+                {termsAndConditions.map((term, index) => (
+                  <Text key={index} style={styles.termItem}>
+                    {term}
+                  </Text>
+                ))}
+              </ScrollView>
+              <Button
+                mode="contained"
+                onPress={() => setShowTerms(false)}
+                style={styles.termsConfirmButton}
+              >
+                Đã hiểu
               </Button>
             </View>
           </Modal>
@@ -886,5 +1005,63 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: "#FF6B6B",
+  },
+  termsContainer: {
+    marginTop: 8,
+    gap: 12,
+  },
+  viewTermsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  viewTermsText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#636E72",
+    flex: 1,
+  },
+  consentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  consentText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#636E72",
+    flex: 1,
+  },
+  termsModalContent: {
+    backgroundColor: "white",
+    margin: 20,
+    borderRadius: 12,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  termsModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2D3436",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  termsScrollView: {
+    maxHeight: 300,
+  },
+  termItem: {
+    marginBottom: 8,
+  },
+  termsConfirmButton: {
+    marginTop: 16,
+    backgroundColor: "#FF6B6B",
   },
 });

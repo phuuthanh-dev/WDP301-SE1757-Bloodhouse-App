@@ -73,7 +73,7 @@ export default function DonationRequestsScreen({ navigation }) {
       await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
         `?limit=10&page=1&facilityId=${facilityId}&status=${status}`
       );
-    setDonationRequests(response.data);
+    setDonationRequests(response.data.data);
     setLoading(false);
   };
 

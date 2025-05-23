@@ -7,6 +7,7 @@ import ProfileScreen from '@/screens/ProfileScreen';
 import ManageRequestsScreen from '@/screens/manager/ManageRequestsScreen';
 import ManageStaffsScreen from '@/screens/manager/ManageStaffsScreen';
 import DashboardScreen from '@/screens/manager/DashboardScreen';
+import ManageDistributionScreen from '@/screens/manager/ManageDistributionScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -42,6 +43,15 @@ const TabNavigatorManager = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="assignment" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Phân phối" 
+        component={ManageDistributionScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="local-shipping" size={size} color={color} />
           ),
         }}
       />

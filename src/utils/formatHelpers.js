@@ -15,6 +15,11 @@ const formatDate = (date) => {
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')}/${d.getFullYear()}`;
 };
 
+const formatTime = (time) => {
+  const d = new Date(time);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+};
+
 const formatDurationRoute = (minutes) => {
   if (minutes < 60) {
     return `${Math.round(minutes)} phút`;
@@ -25,4 +30,4 @@ const formatDurationRoute = (minutes) => {
 };
 
 
-export { formatPrice, formatDateTime, formatDate, formatDurationRoute };
+export { formatPrice, formatDateTime, formatDate, formatTime, formatDurationRoute };
