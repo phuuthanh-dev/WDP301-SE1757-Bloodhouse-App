@@ -193,11 +193,11 @@ export default function NearbyScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialIcons name="arrow-back" size={24} color="#2D3436" />
+          <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Tìm quanh đây</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <MaterialIcons name="filter-list" size={24} color="#2D3436" />
+          <MaterialIcons name="filter-list" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FF6B6B",
     borderBottomWidth: 1,
     borderBottomColor: "#E9ECEF",
   },
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#2D3436",
+    color: "#FFFFFF",
   },
   filterButton: {
     padding: 8,

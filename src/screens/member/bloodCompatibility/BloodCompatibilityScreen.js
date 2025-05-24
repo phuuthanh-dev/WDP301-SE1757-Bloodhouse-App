@@ -152,7 +152,7 @@ const bloodCompatibility = {
   },
 };
 
-export default function BloodCompatibilityScreen() {
+export default function BloodCompatibilityScreen({ navigation }) {
   const [selectedBloodType, setSelectedBloodType] = useState(null);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [bloodGroup, setBloodGroup] = useState(null);
@@ -190,7 +190,7 @@ export default function BloodCompatibilityScreen() {
               "&componentId=" +
               selectedComponent
           );
-          
+
           setBloodCompatibility(response.data);
         } catch (error) {
           console.error("Error fetching compatibility:", error);
@@ -255,10 +255,18 @@ export default function BloodCompatibilityScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Kiểm tra tương thích máu</Text>
-        <Text style={styles.subtitle}>
-          Chọn nhóm máu và thành phần để xem thông tin tương thích
-        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.title}>Kiểm tra tương thích máu</Text>
+          <Text style={styles.subtitle}>
+            Chọn nhóm máu và thành phần để xem thông tin tương thích
+          </Text>
+        </View>
       </View>
 
       {/* Component Selection */}
@@ -307,7 +315,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#FF6B6B",
-    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "flex-start",
+    marginLeft: 16,
   },
   title: {
     fontSize: 24,
