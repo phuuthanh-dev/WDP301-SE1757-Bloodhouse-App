@@ -19,6 +19,7 @@
     "@react-navigation/stack": "^7.3.2",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.9.0",
+    "date-fns": "^4.1.0",
     "expo": "~53.0.9",
     "expo-camera": "^16.1.6",
     "expo-clipboard": "^7.1.4",
