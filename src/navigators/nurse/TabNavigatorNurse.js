@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import DonorListScreen from '@/screens/nurse/DonorListScreen';
 import GiftManagementScreen from '@/screens/nurse/GiftManagementScreen';
-import ScannerScreen from '@/screens/nurse/ScannerScreen';
-import NotificationsScreen from '@/screens/nurse/NotificationsScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
+import HealthCheckList from '@/screens/nurse/healthCheck/HealthCheckList';
+import DonationListScreen from '@/screens/nurse/donation/donationListScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -37,9 +37,29 @@ export default function TabNavigatorNurse() {
         name="DonorList" 
         component={DonorListScreen}
         options={{
-          title: "Người Hiến",
+          title: "Check-in",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="people" size={size} color={color} />
+            <MaterialIcons name="qr-code-scanner" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="HealthCheckList" 
+        component={HealthCheckList}
+        options={{
+          title: "Khám sức khoẻ",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="medical-services" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Donations" 
+        component={DonationListScreen}
+        options={{
+          title: "Hiến máu",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="bloodtype" size={size} color={color} />
           ),
         }}
       />
@@ -50,26 +70,6 @@ export default function TabNavigatorNurse() {
           title: "Quà Tặng",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="card-giftcard" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name="Scanner" 
-        component={ScannerScreen}
-        options={{
-          title: "Quét Mã",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="qr-code-scanner" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name="Notifications" 
-        component={NotificationsScreen}
-        options={{
-          title: "Thông Báo",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="notifications" size={size} color={color} />
           ),
         }}
       />
