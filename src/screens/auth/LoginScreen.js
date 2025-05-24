@@ -52,11 +52,8 @@ export default function LoginScreen({ navigation }) {
         await login(response.data.tokens.accessToken, userData);
         toast.success("Đăng nhập thành công");
         // Navigation is handled automatically by AppRouters
-      } else {
-        toast.error(response.message || "Đăng nhập thất bại");
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast.error(error.message || "Có lỗi xảy ra khi đăng nhập");
     } finally {
       setIsLoading(false);

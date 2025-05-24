@@ -41,6 +41,19 @@ const dashboardCards = [
   },
   {
     id: '3',
+    title: 'Yêu Cầu Nhận Máu',
+    description: 'Xem và quản lý yêu cầu nhận máu đã đăng ký',
+    icon: 'request-page',
+    route: 'ReceiveRequestList',
+    stats: {
+      total: '124',
+      label: 'Yêu Cầu Chờ Duyệt',
+      critical: '15 người mới tháng này',
+    },
+    color: '#FF6B6B',
+  },
+  {
+    id: '4',
     title: 'Yêu Cầu Hiến Máu',
     description: 'Xử lý các cuộc hẹn hiến máu đến',
     icon: 'event',
@@ -53,7 +66,7 @@ const dashboardCards = [
     color: '#1E90FF',
   },
   {
-    id: '4',
+    id: '5',
     title: 'Yêu Cầu Khẩn Cấp',
     description: 'Quản lý nhu cầu máu khẩn cấp',
     icon: 'warning',

@@ -87,10 +87,15 @@ const NotificationsScreen = () => {
 
   if (notifications.length === 0) {
     return (
-      <View style={styles.centerContainer}>
-        <MaterialIcons name="notifications-none" size={48} color="#95A5A6" />
-        <Text style={styles.emptyText}>Chưa có thông báo nào</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Thông báo</Text>
+        </View>
+        <View style={styles.centerContainer}>
+          <MaterialIcons name="notifications-none" size={48} color="#95A5A6" />
+          <Text style={styles.emptyText}>Chưa có thông báo nào</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 

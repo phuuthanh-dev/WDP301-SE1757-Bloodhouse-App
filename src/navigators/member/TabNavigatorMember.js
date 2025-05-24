@@ -45,15 +45,6 @@ export default function TabNavigatorMember() {
         }}
       />
       <Tab.Screen 
-        name="Tương thích" 
-        component={BloodCompatibilityScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="bloodtype" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
         name="Tìm kiếm" 
         component={SearchScreen}
         options={{
