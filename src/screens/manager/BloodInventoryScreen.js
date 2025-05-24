@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -7,82 +7,156 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  RefreshControl,
+  Dimensions,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import bloodInventoryAPI from "@/apis/bloodInventoryAPI";
+import { useFacility } from "@/contexts/FacilityContext";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
-const bloodTypes = [
-  { type: "A+", quantity: 150, status: "Đủ" },
-  { type: "A-", quantity: 50, status: "Thấp" },
-  { type: "B+", quantity: 200, status: "Đủ" },
-  { type: "B-", quantity: 30, status: "Nguy Cấp" },
-  { type: "AB+", quantity: 80, status: "Đủ" },
-  { type: "AB-", quantity: 25, status: "Nguy Cấp" },
-  { type: "O+", quantity: 180, status: "Đủ" },
-  { type: "O-", quantity: 45, status: "Thấp" },
-];
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Nguy Cấp":
-      return "#FF4757";
-    case "Thấp":
-      return "#FFA502";
-    case "Đủ":
-      return "#2ED573";
-    default:
-      return "#95A5A6";
-  }
+const getStatusInfo = (quantity) => {
+  if (quantity <= 10) return { status: "Nguy Cấp", color: "#FF4757" };
+  if (quantity <= 30) return { status: "Thấp", color: "#FFA502" };
+  return { status: "Đủ", color: "#2ED573" };
 };
 
 export default function BloodInventoryScreen({ navigation }) {
+  const { facilityId } = useFacility();
   const [filter, setFilter] = useState("Tất Cả");
+  const [bloodInventory, setBloodInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState("quantity"); // quantity, component, group
 
-  const renderInventoryCard = (item) => (
-    <View key={item.type} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.bloodTypeContainer}>
-          <Text style={styles.bloodType}>{item.type}</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(item.status) + "20" },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusText,
-                { color: getStatusColor(item.status) },
-              ]}
-            >
-              {item.status}
-            </Text>
-          </View>
+  useEffect(() => {
+    if (facilityId) {
+      fetchBloodInventory();
+    }
+  }, [facilityId]);
+
+  const fetchBloodInventory = async () => {
+    try {
+      setLoading(true);
+      const response = await bloodInventoryAPI.HandleBloodInventory(
+        `/facility/${facilityId}`
+      );
+      setBloodInventory(response.data);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTotalUnits = () => {
+    return bloodInventory.reduce((sum, item) => sum + item.totalQuantity, 0);
+  };
+
+  const getCriticalCount = () => {
+    return bloodInventory.filter(item => item.totalQuantity <= 10).length;
+  };
+
+  const getLowCount = () => {
+    return bloodInventory.filter(item => item.totalQuantity > 10 && item.totalQuantity <= 30).length;
+  };
+
+  const getSortedInventory = () => {
+    let filtered = [...bloodInventory];
+    
+    if (filter !== "Tất Cả") {
+      filtered = filtered.filter(item => {
+        const { status } = getStatusInfo(item.totalQuantity);
+        return status === filter;
+      });
+    }
+
+    switch (sortBy) {
+      case "quantity":
+        return filtered.sort((a, b) => b.totalQuantity - a.totalQuantity);
+      case "component":
+        return filtered.sort((a, b) => a.componentId.name.localeCompare(b.componentId.name));
+      case "group":
+        return filtered.sort((a, b) => a.groupId.name.localeCompare(b.groupId.name));
+      default:
+        return filtered;
+    }
+  };
+
+  const renderSummaryCard = () => (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryTitle}>Tổng Quan Kho Máu</Text>
+      <View style={styles.summaryStats}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{getTotalUnits()}</Text>
+          <Text style={styles.summaryLabel}>Tổng Đơn Vị</Text>
         </View>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.quantityContainer}>
-          <Text style={styles.quantityValue}>{item.quantity}</Text>
-          <Text style={styles.quantityUnit}>đơn vị</Text>
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryValue, { color: "#FF4757" }]}>{getCriticalCount()}</Text>
+          <Text style={styles.summaryLabel}>Nguy Cấp</Text>
         </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Cập Nhật Cuối</Text>
-            <Text style={styles.statValue}>2 giờ trước</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Sắp Hết Hạn</Text>
-            <Text style={styles.statValue}>5 đơn vị</Text>
-          </View>
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryValue, { color: "#FFA502" }]}>{getLowCount()}</Text>
+          <Text style={styles.summaryLabel}>Thấp</Text>
         </View>
       </View>
     </View>
   );
 
+  const renderInventoryCard = (item) => {
+    const { status, color } = getStatusInfo(item.totalQuantity);
+    
+    return (
+      <View key={item._id} style={styles.card}>
+        <View style={[styles.cardHeader, { backgroundColor: color + '10' }]}>
+          <View style={styles.bloodInfo}>
+            <View style={styles.bloodTypeWrapper}>
+              <MaterialIcons name="water-drop" size={24} color={color} />
+              <View style={styles.bloodTextContainer}>
+                <Text style={styles.bloodComponent}>{item.componentId.name}</Text>
+                <Text style={styles.bloodGroup}>{item.groupId.name}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: color + "20", borderColor: color }]}>
+            <Text style={[styles.statusText, { color }]}>{status}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardContent}>
+          <View style={styles.quantitySection}>
+            <View style={[styles.quantityCircle, { borderColor: color }]}>
+              <Text style={[styles.quantityValue, { color }]}>{item.totalQuantity}</Text>
+              <Text style={styles.quantityUnit}>đơn vị</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="update" size={16} color="#95A5A6" />
+                <Text style={styles.infoLabel}>Cập nhật:</Text>
+                <Text style={styles.infoText}>
+                  {format(new Date(item.updatedAt), "dd/MM/yyyy HH:mm", { locale: vi })}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="event" size={16} color="#95A5A6" />
+                <Text style={styles.infoLabel}>Hết hạn:</Text>
+                <Text style={styles.infoText}>Còn 30 ngày</Text>
+              </View>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { width: `${Math.min((item.totalQuantity / 100) * 100, 100)}%`, backgroundColor: color }]} />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -91,12 +165,18 @@ export default function BloodInventoryScreen({ navigation }) {
           <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Kho Máu</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <MaterialIcons name="filter-list" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.sortButton}
+          onPress={() => {
+            const sorts = ["quantity", "component", "group"];
+            const currentIndex = sorts.indexOf(sortBy);
+            setSortBy(sorts[(currentIndex + 1) % sorts.length]);
+          }}
+        >
+          <MaterialIcons name="sort" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
-      {/* Filter Chips */}
       <View style={styles.filterContainer}>
         <ScrollView
           horizontal
@@ -125,12 +205,15 @@ export default function BloodInventoryScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* Inventory List */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchBloodInventory} />
+        }
       >
-        {bloodTypes.map(renderInventoryCard)}
+        {renderSummaryCard()}
+        {getSortedInventory().map(renderInventoryCard)}
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,20 +233,21 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
-  backButton: {
-    padding: 8,
-  },
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#FFFFFF",
   },
-  filterButton: {
+  backButton: {
+    padding: 8,
+  },
+  sortButton: {
     padding: 8,
   },
   filterContainer: {
     backgroundColor: "#FFFFFF",
     paddingVertical: 12,
+    elevation: 2,
   },
   filterContent: {
     paddingHorizontal: 16,
@@ -192,35 +276,81 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
-  card: {
+  summaryCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
   },
-  cardHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E9ECEF",
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2D3436",
+    marginBottom: 12,
   },
-  bloodTypeContainer: {
+  summaryStats: {
     flexDirection: "row",
     justifyContent: "space-between",
+  },
+  summaryItem: {
     alignItems: "center",
   },
-  bloodType: {
+  summaryValue: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#2D3436",
   },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#95A5A6",
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 25,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E9ECEF",
+  },
+  bloodInfo: {
+    flex: 1,
+  },
+  bloodTypeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bloodTextContainer: {
+    marginLeft: 12,
+  },
+  bloodComponent: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2D3436",
+  },
+  bloodGroup: {
+    fontSize: 14,
+    color: "#636E72",
+    marginTop: 2,
+  },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
+    borderWidth: 1,
   },
   statusText: {
     fontSize: 12,
@@ -228,39 +358,59 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 16,
-  },
-  quantityContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+  },
+  quantitySection: {
+    marginRight: 16,
+  },
+  quantityCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   quantityValue: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#FF6B6B",
   },
   quantityUnit: {
-    fontSize: 14,
+    fontSize: 10,
     color: "#95A5A6",
-    marginTop: 4,
+    marginTop: 2,
   },
-  statsContainer: {
+  infoSection: {
+    flex: 1,
+  },
+  infoRow: {
+    marginBottom: 12,
+  },
+  infoItem: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    borderTopWidth: 1,
-    borderTopColor: "#E9ECEF",
-    paddingTop: 16,
-  },
-  statItem: {
     alignItems: "center",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#95A5A6",
     marginBottom: 4,
   },
-  statValue: {
-    fontSize: 14,
-    color: "#2D3436",
-    fontWeight: "500",
+  infoLabel: {
+    fontSize: 12,
+    color: "#95A5A6",
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: "#636E72",
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#F1F2F6',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
   },
 });

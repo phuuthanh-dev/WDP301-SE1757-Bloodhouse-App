@@ -81,7 +81,7 @@ export default function DonationHistoryScreen({ navigation }) {
           <View style={styles.dateContainer}>
             <MaterialIcons name="event" size={20} color="#636E72" />
             <Text style={styles.date}>
-              {formatDateTime(donationRegistration.preferredDate)}
+              Giờ hiến máu: {formatDateTime(donationRegistration.preferredDate)}
             </Text>
           </View>
           <View

@@ -7,6 +7,7 @@ import HomeScreen from '@/screens/member/HomeScreen';
 import SearchScreen from '@/screens/member/facility/SearchScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import BloodCompatibilityScreen from '@/screens/member/bloodCompatibility/BloodCompatibilityScreen';
+import NotificationsScreen from '@/screens/member/notification/NotificationsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -58,6 +59,15 @@ export default function TabNavigatorMember() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="search" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Thông báo" 
+        component={NotificationsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="notifications" size={size} color={color} />
           ),
         }}
       />

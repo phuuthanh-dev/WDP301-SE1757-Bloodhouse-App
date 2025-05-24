@@ -173,12 +173,12 @@ export default function ManageRequestsScreen({ navigation }) {
                 toast.success("Duyệt yêu cầu thành công");
                 setReceiveRequests(
                   receiveRequests.filter(
-                    (request) => request._id !== request._id
+                    (request) => request._id !== requestId
                   )
                 );
                 setEmergencyRequests(
                   emergencyRequests.filter(
-                    (request) => request._id !== request._id
+                    (request) => request._id !== requestId
                   )
                 );
               }
