@@ -67,14 +67,19 @@ export default function DonationRequestsScreen({ navigation }) {
   }, [filter]);
 
   const fetchDonationRequests = async () => {
-    setLoading(true);
-    const status = filter === "all" ? "" : filter;
-    const response =
+    try {
+      setLoading(true);
+      const status = filter === "all" ? "" : filter;
+      const response =
       await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
         `?limit=10&page=1&facilityId=${facilityId}&status=${status}`
       );
-    setDonationRequests(response.data.data);
-    setLoading(false);
+      setDonationRequests(response.data.data);
+    } catch (error) {
+      console.error("Error fetching donation requests:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderActionButton = (request) => {

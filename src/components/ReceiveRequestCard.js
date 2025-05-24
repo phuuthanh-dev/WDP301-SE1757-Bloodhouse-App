@@ -64,18 +64,20 @@ export default function ReceiveRequestCard({
         </View>
 
         <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <MaterialIcons
-              name={request.isUrgent ? "error" : "info"}
-              size={16}
-              color={request.isUrgent ? "#FF6B6B" : "#636E72"}
-            />
-            <Text
-              style={[styles.infoText, request.isUrgent && styles.urgentText]}
-            >
-              {request.isUrgent ? "Khẩn cấp" : "Bình thường"}
-            </Text>
-          </View>
+          {request.isUrgent && (
+            <View style={styles.infoRow}>
+              <MaterialIcons
+                name={request.isUrgent ? "error" : "info"}
+                size={16}
+                color={request.isUrgent ? "#FF6B6B" : "#636E72"}
+              />
+              <Text
+                style={[styles.infoText, request.isUrgent && styles.urgentText]}
+              >
+                {request.isUrgent && "Khẩn cấp"}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.infoRow}>
             <MaterialIcons name="event" size={16} color="#636E72" />
@@ -370,8 +372,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,

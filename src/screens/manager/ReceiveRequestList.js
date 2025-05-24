@@ -143,7 +143,7 @@ export default function ReceiveRequestList({ navigation }) {
 
   const stats = {
     total: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
+    pending: requests.filter(r => r.status === 'pending_approval').length,
     completed: requests.filter(r => r.status === 'completed').length,
   };
 
@@ -175,10 +175,10 @@ export default function ReceiveRequestList({ navigation }) {
         />
         <FilterChip
           label="Chờ duyệt"
-          value="pending"
+          value="pending_approval"
           icon="pending"
-          isActive={activeFilter === 'pending'}
-          onPress={() => setActiveFilter('pending')}
+          isActive={activeFilter === 'pending_approval'}
+          onPress={() => setActiveFilter('pending_approval')}
         />
         <FilterChip
           label="Đã duyệt"
