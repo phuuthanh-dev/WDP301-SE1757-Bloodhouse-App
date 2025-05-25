@@ -14,36 +14,73 @@ import { vi } from "date-fns/locale";
 import notificationAPI from "@/apis/notification";
 
 const NotificationItem = ({ notification }) => {
-  const getIcon = (type) => {
+  const getNotificationStyle = (type) => {
     switch (type) {
       case "emergencyCampaign":
-        return "campaign";
+        return {
+          icon: "campaign",
+          color: "#FF5252", // Emergency red
+          bgColor: "rgba(255, 82, 82, 0.1)",
+        };
       case "reminder":
-        return "alarm";
+        return {
+          icon: "alarm",
+          color: "#2196F3", // Info blue
+          bgColor: "rgba(33, 150, 243, 0.1)",
+        };
       case "request":
-        return "notifications";
+        return {
+          icon: "notifications",
+          color: "#FF9800", // Warning orange
+          bgColor: "rgba(255, 152, 0, 0.1)",
+        };
       case "match":
-        return "favorite";
+        return {
+          icon: "favorite",
+          color: "#4CAF50", // Success green
+          bgColor: "rgba(76, 175, 80, 0.1)",
+        };
       case "status":
-        return "info";
+        return {
+          icon: "info",
+          color: "#9C27B0", // Purple for status
+          bgColor: "rgba(156, 39, 176, 0.1)",
+        };
       case "gift":
-        return "card-giftcard";
+        return {
+          icon: "card-giftcard",
+          color: "#FF6B6B", // Gift pink
+          bgColor: "rgba(255, 107, 107, 0.1)",
+        };
       default:
-        return "notifications";
+        return {
+          icon: "notifications",
+          color: "#607D8B", // Default blue grey
+          bgColor: "rgba(96, 125, 139, 0.1)",
+        };
     }
   };
 
+  const style = getNotificationStyle(notification.type);
+
   return (
-    <TouchableOpacity style={styles.notificationItem}>
-      <View style={styles.iconContainer}>
+    <TouchableOpacity 
+      style={[
+        styles.notificationItem,
+        { borderLeftWidth: 4, borderLeftColor: style.color }
+      ]}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: style.bgColor }]}>
         <MaterialIcons
-          name={getIcon(notification.type)}
+          name={style.icon}
           size={24}
-          color="#FF6B6B"
+          color={style.color}
         />
       </View>
       <View style={styles.contentContainer}>
-        <Text style={styles.notiTitle}>{notification.title}</Text>
+        <Text style={[styles.notiTitle, { color: style.color }]}>
+          {notification.title}
+        </Text>
         <Text style={styles.message}>{notification.message}</Text>
         <Text style={styles.time}>
           {format(new Date(notification.createAt), "HH:mm dd/MM/yyyy", {
@@ -77,14 +114,6 @@ const NotificationsScreen = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text>Đang tải...</Text>
-      </View>
-    );
-  }
-
   if (notifications.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -110,6 +139,8 @@ const NotificationsScreen = () => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => <NotificationItem notification={item} />}
         contentContainerStyle={styles.listContainer}
+        refreshing={loading}
+        onRefresh={fetchNotification}
       />
     </SafeAreaView>
   );
@@ -124,11 +155,19 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FF6B6B",
     padding: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   centerContainer: {
     flex: 1,
@@ -140,6 +179,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: "#95A5A6",
+    textAlign: "center",
   },
   listContainer: {
     padding: 16,
@@ -157,8 +197,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     marginRight: 16,
     justifyContent: "center",
+    alignItems: "center",
   },
   contentContainer: {
     flex: 1,
@@ -166,17 +210,18 @@ const styles = StyleSheet.create({
   notiTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#2D3436",
     marginBottom: 4,
   },
   message: {
     fontSize: 14,
-    color: "#636E72",
+    color: "#2D3436",
     marginBottom: 8,
+    lineHeight: 20,
   },
   time: {
     fontSize: 12,
     color: "#95A5A6",
+    fontStyle: "italic",
   },
 });
 

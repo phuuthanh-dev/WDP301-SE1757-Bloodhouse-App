@@ -24,6 +24,34 @@ export default function ReceiveRequestCard({
 }) {
   const [showApproveModal, setShowApproveModal] = useState(false);
 
+  const renderCampaignStatus = () => {
+    if (request.hasCampaign) {
+      return (
+        <View style={styles.infoRow}>
+          <MaterialIcons name="campaign" size={16} color="#1E90FF" />
+          <Text style={[styles.infoText, { color: "#1E90FF" }]}>
+            Đã tạo chiến dịch khẩn cấp
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  const renderFulfillStatus = () => {
+    if (request.isFullfill) {
+      return (
+        <View style={styles.infoRow}>
+          <MaterialIcons name="check-circle" size={16} color="#2ED573" />
+          <Text style={[styles.infoText, { color: "#2ED573" }]}>
+            Đã đủ số lượng yêu cầu
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
       <View style={styles.card}>
@@ -79,6 +107,9 @@ export default function ReceiveRequestCard({
             </View>
           )}
 
+          {renderCampaignStatus()}
+          {renderFulfillStatus()}
+
           <View style={styles.infoRow}>
             <MaterialIcons name="event" size={16} color="#636E72" />
             <Text style={styles.infoText}>
@@ -121,7 +152,7 @@ export default function ReceiveRequestCard({
             </Text>
           </TouchableOpacity>
 
-          {request.status === "pending_approval" && (
+          {request.status === "pending_approval" && !request.hasCampaign && (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.approveButton]}
@@ -145,7 +176,7 @@ export default function ReceiveRequestCard({
             </>
           )}
 
-          {request.status === "approved" && (
+          {request.status === "approved" && !request.hasCampaign && !request.isFullfill && (
             <TouchableOpacity
               style={[styles.button, styles.startButton]}
               onPress={() => onDistributionSuccess(request._id)}

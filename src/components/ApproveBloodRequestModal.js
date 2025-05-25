@@ -10,10 +10,12 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
-import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import { formatDateTime } from "@/utils/formatHelpers";
 import bloodInventoryAPI from "@/apis/bloodInventoryAPI";
 import { useFacility } from "@/contexts/FacilityContext";
+import emergencyCampaignAPI from "@/apis/emergencyCampaignAPI";
+import { useNavigation } from "@react-navigation/native";
+import CreateEmergencyCampaignModal from "./CreateEmergencyCampaignModal";
 
 export default function ApproveBloodRequestModal({
   visible,
@@ -22,11 +24,13 @@ export default function ApproveBloodRequestModal({
   onApproveSuccess,
 }) {
   const { facilityId } = useFacility();
+  const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [availableUnits, setAvailableUnits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -41,7 +45,7 @@ export default function ApproveBloodRequestModal({
         `/facility/${facilityId}/available?groupId=${request.groupId._id}&componentId=${request.componentId._id}`
       );
       if (response.status === 200) {
-        setAvailableUnits(response.data.totalQuantity);
+        setAvailableUnits(response.data.totalQuantity || 0);
       }
     } catch (error) {
       console.error("Error fetching available units:", error);
@@ -68,7 +72,12 @@ export default function ApproveBloodRequestModal({
           },
           {
             text: "Tạo chiến dịch",
-            onPress: handleCreateCampaign,
+            onPress: () => {
+              onClose();
+              setTimeout(() => {
+                setShowCreateCampaignModal(true);
+              }, 300);
+            },
           },
         ]
       );
@@ -77,36 +86,23 @@ export default function ApproveBloodRequestModal({
 
     onApproveSuccess(request._id, selectedDate);
     onClose();
-    // try {
-    //   onApproveSuccess(selectedDate);
-    //   // const response = await bloodRequestAPI.HandleBloodRequest(
-    //   //   `/${request._id}`,
-    //   //   {
-    //   //     status: "assigned",
-    //   //     preferredDate: selectedDate,
-    //   //   },
-    //   //   "put"
-    //   // );
-    //   onClose();
-
-    //   // if (response.status === 200) {
-    //   //   Alert.alert("Thành công", "Đã duyệt yêu cầu nhận máu thành công");
-    //   //   onApproveSuccess(selectedDate);
-    //   //   onClose();
-    //   // }
-    // } catch (error) {
-    //   Alert.alert("Lỗi", "Không thể duyệt yêu cầu. Vui lòng thử lại sau.");
-    // }
   };
 
-  const handleCreateCampaign = async () => {
+  const handleCreateCampaign = async (campaignData) => {
     try {
       setCreatingCampaign(true);
-      const response = await bloodRequestAPI.createEmergencyCampaign({
-        requestId: request._id,
-      });
+      const response = await emergencyCampaignAPI.HandleEmergencyCampaign(
+        "",
+        {
+          requestId: request._id,
+          deadline: campaignData.deadline,
+          note: campaignData.note,
+        },
+        "post"
+      );
 
-      if (response.status === 200) {
+      if (response.status === 201) {
+        setShowCreateCampaignModal(false);
         Alert.alert(
           "Tạo chiến dịch thành công",
           `Đã gửi thông báo đến ${response.data.notifiedDonors} người hiến máu phù hợp.`,
@@ -114,8 +110,7 @@ export default function ApproveBloodRequestModal({
             {
               text: "Đóng",
               onPress: () => {
-                onClose();
-                // Có thể thêm navigation đến màn hình quản lý chiến dịch ở đây
+                navigation.navigate("EmergencyCampaignScreen");
               },
             },
           ]
@@ -132,130 +127,134 @@ export default function ApproveBloodRequestModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Duyệt Yêu Cầu Nhận Máu</Text>
-            <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#636E72" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalBody}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Thông tin yêu cầu</Text>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Người yêu cầu:</Text>
-                <Text style={styles.value}>{request.userId.fullName}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Nhóm máu:</Text>
-                <Text style={styles.value}>{request.groupId.name}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Thành phần máu:</Text>
-                <Text style={styles.value}>{request.componentId.name}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Số lượng yêu cầu:</Text>
-                <Text style={styles.value}>{request.quantity} đơn vị</Text>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Chọn thời gian hẹn</Text>
-              <TouchableOpacity
-                style={styles.datePickerButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <MaterialIcons name="event" size={20} color="#FF6B6B" />
-                <Text style={styles.dateText}>
-                  {formatDateTime(selectedDate)}
-                </Text>
+    <>
+      <Modal
+        visible={visible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={onClose}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Duyệt Yêu Cầu Nhận Máu</Text>
+              <TouchableOpacity onPress={onClose}>
+                <MaterialIcons name="close" size={24} color="#636E72" />
               </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="datetime"
-                  is24Hour={true}
-                  display="default"
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
-                />
-              )}
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Kiểm tra tồn kho</Text>
-              {loading ? (
-                <Text style={styles.loadingText}>Đang kiểm tra tồn kho...</Text>
-              ) : (
-                <>
-                  <View style={styles.inventoryInfo}>
-                    <Text style={styles.label}>Số đơn vị khả dụng:</Text>
-                    <Text
-                      style={[
-                        styles.value,
-                        availableUnits < request.quantity && styles.warningText,
-                      ]}
-                    >
-                      {availableUnits} đơn vị
-                    </Text>
-                  </View>
-                  {availableUnits < request.quantity && (
-                    <View style={styles.warningContainer}>
-                      <Text style={styles.warningMessage}>
-                        ⚠️ Không đủ đơn vị máu để đáp ứng yêu cầu
-                      </Text>
-                      <Text style={styles.warningSubtext}>
-                        Bạn có thể tạo chiến dịch để tìm người hiến máu phù hợp
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Thông tin yêu cầu</Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Người yêu cầu:</Text>
+                  <Text style={styles.value}>{request.userId.fullName}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Nhóm máu:</Text>
+                  <Text style={styles.value}>{request.groupId.name}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Thành phần máu:</Text>
+                  <Text style={styles.value}>{request.componentId.name}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Số lượng yêu cầu:</Text>
+                  <Text style={styles.value}>{request.quantity} đơn vị</Text>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Chọn thời gian hẹn</Text>
+                <TouchableOpacity
+                  style={styles.datePickerButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <MaterialIcons name="event" size={20} color="#FF6B6B" />
+                  <Text style={styles.dateText}>
+                    {formatDateTime(selectedDate)}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="datetime"
+                    is24Hour={true}
+                    display="default"
+                    onChange={handleDateChange}
+                    minimumDate={new Date()}
+                  />
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Kiểm tra tồn kho</Text>
+                {loading ? (
+                  <Text style={styles.loadingText}>Đang kiểm tra tồn kho...</Text>
+                ) : (
+                  <>
+                    <View style={styles.inventoryInfo}>
+                      <Text style={styles.label}>Số đơn vị khả dụng:</Text>
+                      <Text
+                        style={[
+                          styles.value,
+                          availableUnits < request.quantity && styles.warningText,
+                        ]}
+                      >
+                        {availableUnits} đơn vị
                       </Text>
                     </View>
-                  )}
-                </>
-              )}
-            </View>
-          </ScrollView>
+                    {availableUnits < request.quantity && (
+                      <View style={styles.warningContainer}>
+                        <Text style={styles.warningMessage}>
+                          ⚠️ Không đủ đơn vị máu để đáp ứng yêu cầu
+                        </Text>
+                        <Text style={styles.warningSubtext}>
+                          Bạn có thể tạo chiến dịch để tìm người hiến máu phù hợp
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            </ScrollView>
 
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onClose}
-              disabled={creatingCampaign}
-            >
-              <Text style={styles.buttonText}>Hủy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.approveButton,
-                creatingCampaign && styles.disabledButton,
-              ]}
-              onPress={handleApprove}
-              disabled={creatingCampaign}
-            >
-              {creatingCampaign ? (
-                <Text style={[styles.buttonText, styles.approveButtonText]}>
-                  Đang tạo chiến dịch...
-                </Text>
-              ) : (
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={onClose}
+                disabled={creatingCampaign}
+              >
+                <Text style={styles.buttonText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.approveButton,
+                  creatingCampaign && styles.disabledButton,
+                ]}
+                onPress={handleApprove}
+                disabled={creatingCampaign}
+              >
                 <Text style={[styles.buttonText, styles.approveButtonText]}>
                   {availableUnits < request.quantity
                     ? "Tạo chiến dịch"
                     : "Duyệt yêu cầu"}
                 </Text>
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <CreateEmergencyCampaignModal
+        visible={showCreateCampaignModal}
+        onClose={() => setShowCreateCampaignModal(false)}
+        onSubmit={handleCreateCampaign}
+        loading={creatingCampaign}
+        request={request}
+      />
+    </>
   );
 }
 
