@@ -461,7 +461,7 @@ export default function DonationListScreen() {
             <Text style={styles.emptyText}>
               Không có lần hiến máu nào trong ngày này
             </Text>
-          </View>
+    </View>
         }
       />
     </SafeAreaView>

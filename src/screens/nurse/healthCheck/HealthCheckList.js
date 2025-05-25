@@ -472,7 +472,7 @@ export default function HealthCheckList() {
             <Text style={styles.emptyText}>
               Không có phiếu khám sức khỏe nào trong ngày này
             </Text>
-          </View>
+    </View>
         }
       />
     </SafeAreaView>
