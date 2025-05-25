@@ -15,122 +15,45 @@ import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { useFacility } from "@/contexts/FacilityContext";
 import DonationRequestCard from "@/components/DonationRequestCard";
-import EmergencyRequestCard from "@/components/EmergencyRequestCard";
 import { toast } from "sonner-native";
+import bloodRequestAPI from "@/apis/bloodRequestAPI";
+import ReceiveRequestCard from "@/components/ReceiveRequestCard";
+import { useSelector } from "react-redux";
+import { authSelector } from "@/redux/reducers/authReducer";
 
-const emergencyRequests = [
-  {
-    id: "1",
-    hospitalName: "Bệnh Viện Trung Ương",
-    bloodType: "B+",
-    units: 3,
-    status: "Khẩn Cấp",
-    requestDate: "24/03/2024",
-    requiredBy: "25/03/2024",
-    contact: "BS. Nguyễn Văn C",
-    phone: "0123456789",
-    reason: "Phẫu Thuật",
-  },
-  {
-    id: "2",
-    hospitalName: "Trung Tâm Y Tế",
-    bloodType: "AB-",
-    units: 2,
-    status: "Đang Xử Lý",
-    requestDate: "24/03/2024",
-    requiredBy: "26/03/2024",
-    contact: "BS. Lê Thị D",
-    phone: "0987654321",
-    reason: "Cấp Cứu",
-  },
-];
-
-// const EmergencyRequestCard = ({ request, handleProcess, handleComplete }) => (
-//   <View style={styles.card}>
-//     <View style={styles.cardHeader}>
-//       <View style={styles.headerLeft}>
-//         <Text style={styles.name}>{request.hospitalName}</Text>
-//         <View style={styles.bloodTypeContainer}>
-//           <MaterialIcons name="water-drop" size={16} color="#FF6B6B" />
-//           <Text style={styles.bloodType}>
-//             {request.bloodType} ({request.units} units)
-//           </Text>
-//         </View>
-//       </View>
-//       <View
-//         style={[
-//           styles.statusBadge,
-//           { backgroundColor: getStatusColor(request.status) + "20" },
-//         ]}
-//       >
-//         <Text
-//           style={[styles.statusText, { color: getStatusColor(request.status) }]}
-//         >
-//           {request.status}
-//         </Text>
-//       </View>
-//     </View>
-
-//     <View style={styles.cardContent}>
-//       <View style={styles.infoRow}>
-//         <MaterialIcons name="error" size={16} color="#636E72" />
-//         <Text style={styles.infoText}>{request.reason}</Text>
-//       </View>
-
-//       <View style={styles.infoRow}>
-//         <MaterialIcons name="event" size={16} color="#636E72" />
-//         <Text style={styles.infoText}>Required by: {request.requiredBy}</Text>
-//       </View>
-
-//       <View style={styles.infoRow}>
-//         <MaterialIcons name="person" size={16} color="#636E72" />
-//         <Text style={styles.infoText}>{request.contact}</Text>
-//       </View>
-
-//       <View style={styles.infoRow}>
-//         <MaterialIcons name="phone" size={16} color="#636E72" />
-//         <Text style={styles.infoText}>{request.phone}</Text>
-//       </View>
-//     </View>
-
-//     <View style={styles.cardActions}>
-//       <TouchableOpacity
-//         style={[styles.actionButton, styles.processButton]}
-//         onPress={() => {}}
-//       >
-//         <MaterialIcons name="play-arrow" size={16} color="#1E90FF" />
-//         <Text style={[styles.actionText, { color: "#1E90FF" }]}>Process</Text>
-//       </TouchableOpacity>
-
-//       <TouchableOpacity
-//         style={[styles.actionButton, styles.completeButton]}
-//         onPress={() => {}}
-//       >
-//         <MaterialIcons name="check-circle" size={16} color="#2ED573" />
-//         <Text style={[styles.actionText, { color: "#2ED573" }]}>Complete</Text>
-//       </TouchableOpacity>
-//     </View>
-//   </View>
-// );
-
-export default function ManageRequestsScreen() {
+export default function ManageRequestsScreen({ navigation }) {
   const { facilityId } = useFacility();
-  const [activeTab, setActiveTab] = useState("donation");
+  const { user } = useSelector(authSelector);
+  const [activeTab, setActiveTab] = useState("urgent");
   const [searchQuery, setSearchQuery] = useState("");
   const [donationRequests, setDonationRequests] = useState([]);
-  // const [emergencyRequests, setEmergencyRequests] = useState([]);
+  const [receiveRequests, setReceiveRequests] = useState([]);
+  const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // const fetchEmergencyRequests = async () => {
-    //   const response =
-    //     await bloodDonationRegistrationAPI.getEmergencyRequests();
-    //   setEmergencyRequests(data);
-    // };
-
     fetchDonationRequests();
-    // fetchEmergencyRequests();
+    fetchReceiveRequests();
+    fetchEmergencyRequests();
   }, []);
+
+  const fetchReceiveRequests = async () => {
+    setLoading(true);
+    const response = await bloodRequestAPI.HandleBloodRequest(
+      `/facility/${facilityId}?isUrgent=false&status=pending_approval`
+    );
+    setReceiveRequests(response.data.data);
+    setLoading(false);
+  };
+
+  const fetchEmergencyRequests = async () => {
+    setLoading(true);
+    const response = await bloodRequestAPI.HandleBloodRequest(
+      `/facility/${facilityId}?isUrgent=true&status=pending_approval`
+    );
+    setEmergencyRequests(response.data.data);
+    setLoading(false);
+  };
 
   const fetchDonationRequests = async () => {
     setLoading(true);
@@ -138,11 +61,11 @@ export default function ManageRequestsScreen() {
       await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
         `?status=pending_approval&limit=10&page=1&facilityId=${facilityId}`
       );
-    setDonationRequests(response.data);
+    setDonationRequests(response.data.data);
     setLoading(false);
   };
 
-  const handleApprove = async (requestId) => {
+  const handleApproveDonation = async (requestId) => {
     Alert.alert(
       "Xác nhận duyệt",
       "Bạn có chắc chắn muốn duyệt yêu cầu hiến máu này?",
@@ -167,7 +90,9 @@ export default function ManageRequestsScreen() {
               if (response.status === 200) {
                 toast.success("Duyệt yêu cầu thành công");
                 setDonationRequests(
-                  donationRequests.filter((request) => request._id !== request._id)
+                  donationRequests.filter(
+                    (request) => request._id !== request._id
+                  )
                 );
               }
             } catch (error) {
@@ -180,7 +105,7 @@ export default function ManageRequestsScreen() {
     );
   };
 
-  const handleReject = async (requestId) => {
+  const handleRejectDonation = async (requestId) => {
     Alert.alert(
       "Xác nhận từ chối",
       "Bạn có chắc chắn muốn từ chối yêu cầu hiến máu này?",
@@ -205,7 +130,9 @@ export default function ManageRequestsScreen() {
               if (response.status === 200) {
                 toast.success("Từ chối yêu cầu thành công");
                 setDonationRequests(
-                  donationRequests.filter((request) => request._id !== request._id)
+                  donationRequests.filter(
+                    (request) => request._id !== request._id
+                  )
                 );
               }
             } catch (error) {
@@ -218,12 +145,55 @@ export default function ManageRequestsScreen() {
     );
   };
 
-  const handleProcess = () => {
-    console.log("Process");
+  const handleApproveReceive = (requestId, scheduleDate) => {
+    Alert.alert(
+      "Xác nhận duyệt",
+      "Bạn có chắc chắn muốn duyệt yêu cầu nhận máu này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Duyệt",
+          style: "default",
+          onPress: async () => {
+            try {
+              const response =
+                await bloodRequestAPI.HandleBloodRequest(
+                  `/facility/${facilityId}/${requestId}/status`,
+                  {
+                    status: "approved",
+                    scheduleDate: scheduleDate,
+                    staffId: user._id,
+                  },
+                  "patch"
+                );
+              if (response.status === 200) {
+                toast.success("Duyệt yêu cầu thành công");
+                setReceiveRequests(
+                  receiveRequests.filter(
+                    (request) => request._id !== requestId
+                  )
+                );
+                setEmergencyRequests(
+                  emergencyRequests.filter(
+                    (request) => request._id !== requestId
+                  )
+                );
+              }
+            } catch (error) {
+              toast.error("Duyệt yêu cầu thất bại");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
-  const handleComplete = () => {
-    console.log("Complete");
+  const handleRejectReceive = () => {
+    console.log("Reject");
   };
 
   return (
@@ -249,51 +219,74 @@ export default function ManageRequestsScreen() {
         </View>
       </View>
 
-      {/* Tab Buttons */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "donation" && styles.activeTabButton,
-          ]}
-          onPress={() => setActiveTab("donation")}
-        >
-          <MaterialIcons
-            name="assignment"
-            size={20}
-            color={activeTab === "donation" ? "#FF6B6B" : "#95A5A6"}
-          />
-          <Text
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              activeTab === "donation" && styles.activeTabText,
+              styles.tabButton,
+              activeTab === "urgent" && styles.activeTabButton,
             ]}
+            onPress={() => setActiveTab("urgent")}
           >
-            Yêu Cầu Hiến Máu
-          </Text>
-        </TouchableOpacity>
+            <MaterialIcons
+              name="warning"
+              size={20}
+              color={activeTab === "urgent" ? "#FF6B6B" : "#95A5A6"}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "urgent" && styles.activeTabText,
+              ]}
+            >
+              Khẩn Cấp
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "emergency" && styles.activeTabButton,
-          ]}
-          onPress={() => setActiveTab("emergency")}
-        >
-          <MaterialIcons
-            name="warning"
-            size={20}
-            color={activeTab === "emergency" ? "#FF6B6B" : "#95A5A6"}
-          />
-          <Text
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              activeTab === "emergency" && styles.activeTabText,
+              styles.tabButton,
+              activeTab === "donation" && styles.activeTabButton,
             ]}
+            onPress={() => setActiveTab("donation")}
           >
-            Yêu Cầu Khẩn Cấp
-          </Text>
-        </TouchableOpacity>
+            <MaterialIcons
+              name="assignment"
+              size={20}
+              color={activeTab === "donation" ? "#FF6B6B" : "#95A5A6"}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "donation" && styles.activeTabText,
+              ]}
+            >
+              Yêu Cầu Hiến Máu
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "received" && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab("received")}
+          >
+            <MaterialIcons
+              name="assignment"
+              size={20}
+              color={activeTab === "received" ? "#FF6B6B" : "#95A5A6"}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "received" && styles.activeTabText,
+              ]}
+            >
+              Yêu Cầu Nhận Máu
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Request List */}
@@ -305,6 +298,8 @@ export default function ManageRequestsScreen() {
             refreshing={loading}
             onRefresh={() => {
               fetchDonationRequests();
+              fetchReceiveRequests();
+              fetchEmergencyRequests();
             }}
           />
         }
@@ -314,16 +309,31 @@ export default function ManageRequestsScreen() {
               <DonationRequestCard
                 key={request._id}
                 request={request}
-                handleApprove={handleApprove}
-                handleReject={handleReject}
+                handleApprove={handleApproveDonation}
+                handleReject={handleRejectDonation}
               />
             ))
-          : emergencyRequests.map((request) => (
-              <EmergencyRequestCard
-                key={request.id}
+          : activeTab === "urgent"
+          ? emergencyRequests.map((request) => (
+              <ReceiveRequestCard
+                key={request._id}
                 request={request}
-                handleProcess={handleProcess}
-                handleComplete={handleComplete}
+                handleReject={() => handleRejectReceive(request._id)}
+                onViewDetails={() =>
+                  navigation.navigate("ReceiveRequestDetailScreen", { request })
+                }
+                onApproveSuccess={handleApproveReceive}
+              />
+            ))
+          : receiveRequests.map((request) => (
+              <ReceiveRequestCard
+                key={request._id}
+                request={request}
+                handleReject={() => handleRejectReceive(request._id)}
+                onViewDetails={() =>
+                  navigation.navigate("ReceiveRequestDetailScreen", { request })
+                }
+                onApproveSuccess={() => handleApproveReceive(request._id)}
               />
             ))}
       </ScrollView>
@@ -380,16 +390,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E9ECEF",
+    gap: 12,
   },
   tabButton: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    marginHorizontal: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: "#F1F2F6",
+    minWidth: 140,
+    marginRight: 12,
   },
   activeTabButton: {
     backgroundColor: "#FF6B6B20",

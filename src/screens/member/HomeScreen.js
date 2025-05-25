@@ -49,7 +49,6 @@ export default function HomeScreen({ navigation }) {
         latitude,
         longitude,
       });
-      
       if (addresses.length > 0) {
         const addr = addresses[0];
         return `${addr.street}, ${addr.region}, ${addr.country}`;
@@ -174,34 +173,62 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate("Donation")}
-          >
-            <FontAwesome5
-              name="hand-holding-medical"
-              size={24}
-              color="#FF6B6B"
-            />
-            <Text style={styles.actionText}>Đăng ký hiến máu</Text>
-          </TouchableOpacity>
+        <View style={styles.quickActionsContainer}>
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("BloodCompatibility")}
+            >
+              <MaterialIcons name="compare-arrows" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Kiểm tra tương thích</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate("EmergencyRequest")}
-          >
-            <MaterialIcons name="emergency" size={24} color="#FF6B6B" />
-            <Text style={styles.actionText}>Yêu cầu khẩn cấp</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("Donation")}
+            >
+              <FontAwesome5
+                name="hand-holding-medical"
+                size={24}
+                color="#FF6B6B"
+              />
+              <Text style={styles.actionText}>Đăng ký hiến máu</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate("Nearby")}
-          >
-            <MaterialIcons name="near-me" size={24} color="#FF6B6B" />
-            <Text style={styles.actionText}>Tìm Gần đây</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("ReceiveRequest")}
+            >
+              <MaterialIcons name="local-hospital" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Yêu cầu nhận máu</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("Nearby")}
+            >
+              <MaterialIcons name="near-me" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Tìm vị trí gần đây</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("DonationHistory")}
+            >
+              <MaterialIcons name="campaign" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Chiến dịch khẩn cấp</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("DonationHistory")}
+            >
+              <MaterialIcons name="history" size={24} color="#FF6B6B" />
+              <Text style={styles.actionText}>Lịch sử yêu cầu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Blood Type Information Section */}
@@ -261,10 +288,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     opacity: 0.9,
   },
-  quickActions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 16,
+  quickActionsContainer: {
     backgroundColor: "#FFFFFF",
     marginTop: -10,
     marginHorizontal: 16,
@@ -275,8 +299,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  quickActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  quickActionsSecondRow: {
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
   actionButton: {
     alignItems: "center",
+    flex: 1,
   },
   actionText: {
     marginTop: 8,

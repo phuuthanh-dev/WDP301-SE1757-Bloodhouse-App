@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,8 +8,13 @@ import {
   ScrollView,
   Platform,
   TextInput,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import bloodRequestAPI from "@/apis/bloodRequestAPI";
+import { useFacility } from "@/contexts/FacilityContext";
+import ReceiveRequestCard from "@/components/ReceiveRequestCard";
+import { RECEIVE_BLOOD_STATUS_NAME_LABELS } from "@/constants/receiveBloodStatus";
 
 const emergencyRequests = [
   {
@@ -50,114 +55,150 @@ const emergencyRequests = [
   },
 ];
 
-const getUrgencyColor = (urgency) => {
-  switch (urgency) {
-    case "Nguy Cấp":
-      return "#FF4757";
-    case "Khẩn Cấp":
-      return "#FFA502";
-    case "Bình Thường":
-      return "#2ED573";
-    default:
-      return "#95A5A6";
-  }
-};
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Chờ Xử Lý":
-      return "#FFA502";
-    case "Đang Xử Lý":
-      return "#1E90FF";
-    case "Hoàn Thành":
-      return "#2ED573";
-    default:
-      return "#95A5A6";
-  }
-};
-
 export default function EmergencyRequestsScreen({ navigation }) {
+  const { facilityId } = useFacility();
+  const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState("Tất Cả");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
 
-  const renderEmergencyCard = (request) => (
-    <TouchableOpacity
-      key={request.id}
-      style={styles.card}
-      onPress={() => {
-        // Navigate to emergency details
-      }}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.urgencyBadge}>
-            <View
-              style={[
-                styles.urgencyDot,
-                { backgroundColor: getUrgencyColor(request.urgency) },
-              ]}
-            />
-            <Text style={styles.urgencyText}>{request.urgency}</Text>
-          </View>
-          <Text style={styles.requestTime}>{request.requestTime}</Text>
-        </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(request.status) + "20" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusText,
-              { color: getStatusColor(request.status) },
-            ]}
-          >
-            {request.status}
-          </Text>
-        </View>
-      </View>
+  useEffect(() => {
+    fetchEmergencyRequests();
+  }, [filter]);
 
-      <View style={styles.cardContent}>
-        <View style={styles.patientInfo}>
-          <Text style={styles.patientName}>{request.patientName}</Text>
-          <View style={styles.bloodTypeContainer}>
-            <MaterialIcons name="opacity" size={20} color="#FF6B6B" />
-            <Text style={styles.bloodType}>{request.bloodType}</Text>
-            <Text style={styles.unitsNeeded}>
-              • {request.unitsNeeded} đơn vị
-            </Text>
-          </View>
-        </View>
+  const fetchEmergencyRequests = async () => {
+    try {
+      setLoading(true);
+      const status = filter === "all" ? "" : filter;
+      const response = await bloodRequestAPI.HandleBloodRequest(
+        `/facility/${facilityId}?isUrgent=true&status=${status}`
+      );
+      setEmergencyRequests(response.data.data);
+    } catch (error) {
+      console.error("Error fetching emergency requests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <View style={styles.divider} />
+  // const renderEmergencyCard = (request) => (
+  //   <TouchableOpacity
+  //     key={request._id}
+  //     style={styles.card}
+  //     onPress={() => {
+  //       // Navigate to emergency details
+  //     }}
+  //   >
+  //     <View style={styles.cardHeader}>
+  //       <View style={styles.headerLeft}>
+  //         <View style={styles.urgencyBadge}>
+  //           <View
+  //             style={[
+  //               styles.urgencyDot,
+  //               { backgroundColor: getUrgencyColor(request.urgency) },
+  //             ]}
+  //           />
+  //           <Text style={styles.urgencyText}>{request.urgency}</Text>
+  //         </View>
+  //         <Text style={styles.requestTime}>{request.requestTime}</Text>
+  //       </View>
+  //       <View
+  //         style={[
+  //           styles.statusBadge,
+  //           { backgroundColor: getStatusColor(request.status) + "20" },
+  //         ]}
+  //       >
+  //         <Text
+  //           style={[
+  //             styles.statusText,
+  //             { color: getStatusColor(request.status) },
+  //           ]}
+  //         >
+  //           {request.status}
+  //         </Text>
+  //       </View>
+  //     </View>
 
-        <View style={styles.infoRow}>
-          <MaterialIcons name="local-hospital" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{request.hospital}</Text>
-        </View>
+  //     <View style={styles.cardContent}>
+  //       <View style={styles.patientInfo}>
+  //         <Text style={styles.patientName}>{request.userId.fullName}</Text>
+  //         <View style={styles.bloodTypeContainer}>
+  //           <MaterialIcons name="opacity" size={20} color="#FF6B6B" />
+  //           <Text style={styles.bloodType}>{request.userId.bloodId}</Text>
+  //           <Text style={styles.unitsNeeded}>
+  //             • {request.unitsNeeded} đơn vị
+  //           </Text>
+  //         </View>
+  //       </View>
 
-        <View style={styles.infoRow}>
-          <MaterialIcons name="person" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{request.contact}</Text>
-        </View>
+  //       <View style={styles.divider} />
 
-        <View style={styles.infoRow}>
-          <MaterialIcons name="phone" size={16} color="#636E72" />
-          <Text style={styles.infoText}>{request.phone}</Text>
-        </View>
-      </View>
+  //       <View style={styles.infoRow}>
+  //         <MaterialIcons name="local-hospital" size={16} color="#636E72" />
+  //         <Text style={styles.infoText}>{request.hospital}</Text>
+  //       </View>
 
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.primaryButton]}
-          onPress={() => {}}
-        >
-          <Text style={styles.actionButtonText}>Phản Hồi</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  //       <View style={styles.infoRow}>
+  //         <MaterialIcons name="person" size={16} color="#636E72" />
+  //         <Text style={styles.infoText}>{request.contact}</Text>
+  //       </View>
+
+  //       <View style={styles.infoRow}>
+  //         <MaterialIcons name="phone" size={16} color="#636E72" />
+  //         <Text style={styles.infoText}>{request.phone}</Text>
+  //       </View>
+  //     </View>
+
+  //     <View style={styles.cardActions}>
+  //       <TouchableOpacity
+  //         style={[styles.actionButton, styles.primaryButton]}
+  //         onPress={() => {}}
+  //       >
+  //         <Text style={styles.actionButtonText}>Phản Hồi</Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   </TouchableOpacity>
+  // );
+  const handleApproveReceive = (requestId, scheduleDate) => {
+    Alert.alert(
+      "Xác nhận duyệt",
+      "Bạn có chắc chắn muốn duyệt yêu cầu nhận máu này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Duyệt",
+          style: "default",
+          onPress: async () => {
+            try {
+              const response = await bloodRequestAPI.HandleBloodRequest(
+                `/facility/${facilityId}/${requestId}/status`,
+                {
+                  status: "approved",
+                  scheduleDate: scheduleDate,
+                  staffId: user._id,
+                },
+                "patch"
+              );
+              if (response.status === 200) {
+                toast.success("Duyệt yêu cầu thành công");
+                fetchEmergencyRequests();
+              }
+            } catch (error) {
+              toast.error("Duyệt yêu cầu thất bại");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleRejectReceive = () => {
+    console.log("Reject");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -195,22 +236,22 @@ export default function EmergencyRequestsScreen({ navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterContent}
         >
-          {["Tất Cả", "Nguy Cấp", "Khẩn Cấp", "Bình Thường"].map((item) => (
+          {RECEIVE_BLOOD_STATUS_NAME_LABELS.map((item) => (
             <TouchableOpacity
-              key={item}
+              key={item.value}
               style={[
                 styles.filterChip,
-                filter === item && styles.filterChipActive,
+                filter === item.value && styles.filterChipActive,
               ]}
-              onPress={() => setFilter(item)}
+              onPress={() => setFilter(item.value)}
             >
               <Text
                 style={[
                   styles.filterChipText,
-                  filter === item && styles.filterChipTextActive,
+                  filter === item.value && styles.filterChipTextActive,
                 ]}
               >
-                {item}
+                {item.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -221,8 +262,21 @@ export default function EmergencyRequestsScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchEmergencyRequests} />
+        }
       >
-        {emergencyRequests.map(renderEmergencyCard)}
+        {emergencyRequests.map((request) => (
+          <ReceiveRequestCard
+            key={request._id}
+            request={request}
+            handleReject={() => handleRejectReceive(request._id)}
+            onViewDetails={() =>
+              navigation.navigate("ReceiveRequestDetailScreen", { request })
+            }
+            onApproveSuccess={handleApproveReceive}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

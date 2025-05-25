@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -7,69 +7,107 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
-import { authSelector } from '@/redux/reducers/authReducer';
-import { useFacility } from '@/contexts/FacilityContext';
-const dashboardCards = [
-  {
-    id: '1',
-    title: 'Kho Máu',
-    description: 'Quản lý lượng máu và theo dõi tình trạng kho',
-    icon: 'opacity',
-    route: 'BloodInventory',
-    stats: {
-      total: '850',
-      label: 'Tổng Đơn Vị',
-      critical: '2 loại thấp',
-    },
-    color: '#FF6B6B',
-  },
-  {
-    id: '2',
-    title: 'Danh Sách Người Hiến',
-    description: 'Xem và quản lý người hiến máu đã đăng ký',
-    icon: 'people',
-    route: 'DonorList',
-    stats: {
-      total: '124',
-      label: 'Người Hiến Hoạt Động',
-      critical: '15 người mới tháng này',
-    },
-    color: '#2ED573',
-  },
-  {
-    id: '3',
-    title: 'Yêu Cầu Hiến Máu',
-    description: 'Xử lý các cuộc hẹn hiến máu đến',
-    icon: 'event',
-    route: 'DonationRequests',
-    stats: {
-      total: '28',
-      label: 'Yêu Cầu Chờ Duyệt',
-      critical: '8 cho hôm nay',
-    },
-    color: '#1E90FF',
-  },
-  {
-    id: '4',
-    title: 'Yêu Cầu Khẩn Cấp',
-    description: 'Quản lý nhu cầu máu khẩn cấp',
-    icon: 'warning',
-    route: 'EmergencyRequests',
-    stats: {
-      total: '5',
-      label: 'Trường Hợp Khẩn Cấp',
-      critical: '2 nguy cấp',
-    },
-    color: '#FF4757',
-  },
-];
+  RefreshControl,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import { authSelector } from "@/redux/reducers/authReducer";
+import { useFacility } from "@/contexts/FacilityContext";
+import facilityAPI from "@/apis/facilityAPI";
 
 export default function DashboardScreen({ navigation }) {
   const { user } = useSelector(authSelector);
-  const { facilityName } = useFacility();
+  const { facilityName, facilityId } = useFacility();
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const dashboardCards = [
+    {
+      id: "1",
+      title: "Kho Máu",
+      description: "Quản lý lượng máu và theo dõi tình trạng kho",
+      icon: "opacity",
+      route: "BloodInventory",
+      stats: {
+        total: loading ? "..." : stats.totalBloodInventory?.toString() || "0",
+        label: "Tổng Đơn Vị",
+      },
+      color: "#FF6B6B",
+    },
+    {
+      id: "2",
+      title: "Danh Sách Người Hiến",
+      description: "Xem và quản lý người hiến máu đã đăng ký",
+      icon: "people",
+      route: "DonorList",
+      stats: {
+        total: loading
+          ? "..."
+          : stats.totalDonationRequestPending?.toString() || "0",
+        label: "Yêu Cầu Chờ Duyệt",
+      },
+      color: "#2ED573",
+    },
+    {
+      id: "3",
+      title: "Yêu Cầu Nhận Máu",
+      description: "Xem và quản lý yêu cầu nhận máu đã đăng ký",
+      icon: "request-page",
+      route: "ReceiveRequestList",
+      stats: {
+        total: loading
+          ? "..."
+          : stats.totalReceiveRequestPending?.toString() || "0",
+        label: "Yêu Cầu Chờ Duyệt",
+      },
+      color: "#FF6B6B",
+    },
+    {
+      id: "4",
+      title: "Yêu Cầu Hiến Máu",
+      description: "Xử lý các cuộc hẹn hiến máu đến",
+      icon: "event",
+      route: "DonationRequests",
+      stats: {
+        total: loading
+          ? "..."
+          : stats.totalDonationRequestPending?.toString() || "0",
+        label: "Yêu Cầu Chờ Duyệt",
+      },
+      color: "#1E90FF",
+    },
+    {
+      id: "5",
+      title: "Yêu Cầu Khẩn Cấp",
+      description: "Quản lý nhu cầu máu khẩn cấp",
+      icon: "warning",
+      route: "EmergencyRequests",
+      stats: {
+        total: loading ? "..." : stats.totalEmergencyRequest?.toString() || "0",
+        label: "Trường Hợp Khẩn Cấp",
+      },
+      color: "#FF4757",
+    },
+  ];
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await facilityAPI.HandleFacility(`/${facilityId}/stats`);
+      if (response.status === 200) {
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderDashboardCard = (card) => (
     <TouchableOpacity
       key={card.id}
@@ -78,10 +116,7 @@ export default function DashboardScreen({ navigation }) {
     >
       <View style={styles.cardHeader}>
         <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: card.color + '20' },
-          ]}
+          style={[styles.iconContainer, { backgroundColor: card.color + "20" }]}
         >
           <MaterialIcons name={card.icon} size={24} color={card.color} />
         </View>
@@ -97,10 +132,7 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.cardFooter}>
-        <View style={styles.criticalInfo}>
-          <MaterialIcons name="info" size={16} color="#636E72" />
-          <Text style={styles.criticalText}>{card.stats.critical}</Text>
-        </View>
+        <View style={styles.criticalInfo}></View>
         <MaterialIcons name="arrow-forward" size={20} color={card.color} />
       </View>
     </TouchableOpacity>
@@ -144,6 +176,9 @@ export default function DashboardScreen({ navigation }) {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchStats} />
+        }
       >
         {dashboardCards.map(renderDashboardCard)}
       </ScrollView>
@@ -158,51 +193,51 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
     padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerContent: {
     flex: 1,
   },
   greeting: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.8,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginTop: 4,
   },
   profileButton: {
     padding: 8,
   },
   statsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   statsCard: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     marginHorizontal: 4,
   },
   statsValue: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginTop: 8,
   },
   statsDescription: {
     fontSize: 12,
-    color: '#636E72',
+    color: "#636E72",
     marginTop: 4,
   },
   content: {
@@ -212,40 +247,40 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginBottom: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   statsNumber: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
   },
   statsLabel: {
     fontSize: 12,
-    color: '#636E72',
+    color: "#636E72",
     marginTop: 2,
   },
   cardContent: {
@@ -253,30 +288,30 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 4,
   },
   cardDescription: {
     fontSize: 14,
-    color: '#636E72',
+    color: "#636E72",
     lineHeight: 20,
   },
   cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: "#E9ECEF",
   },
   criticalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   criticalText: {
     marginLeft: 6,
     fontSize: 12,
-    color: '#636E72',
+    color: "#636E72",
   },
-}); 
+});

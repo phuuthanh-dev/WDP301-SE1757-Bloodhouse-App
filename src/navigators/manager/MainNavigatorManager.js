@@ -5,6 +5,8 @@ import DonorListScreen from "@/screens/manager/DonorListScreen";
 import BloodInventoryScreen from "@/screens/manager/BloodInventoryScreen";
 import DonationRequestsScreen from "@/screens/manager/DonationRequestsScreen";
 import EmergencyRequestsScreen from "@/screens/manager/EmergencyRequestsScreen";
+import ReceiveRequestDetailScreen from "@/screens/manager/ReceiveRequestDetailScreen";
+import ReceiveRequestListScreen from "@/screens/manager/ReceiveRequestListScreen";
 
 const MainNavigatorManager = () => {
   const Stack = createNativeStackNavigator();
@@ -22,6 +24,8 @@ const MainNavigatorManager = () => {
       <Stack.Screen name="BloodInventory" component={BloodInventoryScreen} />
       <Stack.Screen name="DonationRequests" component={DonationRequestsScreen} />
       <Stack.Screen name="EmergencyRequests" component={EmergencyRequestsScreen} />
+      <Stack.Screen name="ReceiveRequestDetailScreen" component={ReceiveRequestDetailScreen} />
+      <Stack.Screen name="ReceiveRequestList" component={ReceiveRequestListScreen} />
     </Stack.Navigator>
   );
 };

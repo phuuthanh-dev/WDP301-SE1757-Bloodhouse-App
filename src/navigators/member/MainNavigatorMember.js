@@ -10,11 +10,14 @@ import HelpScreen from "@/screens/member/profile/HelpScreen";
 import AboutScreen from "@/screens/member/profile/AboutScreen";
 import NearbyScreen from "@/screens/member/map/NearbyScreen";
 import DonationHistoryScreen from "@/screens/member/profile/DonationHistoryScreen";
-import EmergencyStatusScreen from "@/screens/member/emergency/EmergencyStatusScreen";
-import EmergencyRequestScreen from "@/screens/member/emergency/EmergencyRequestScreen";
+import EmergencyStatusScreen from "@/screens/member/bloodReceiveRequest/EmergencyStatusScreen";
 import FacilityDetailScreen from "@/screens/member/facility/FacilityDetailScreen";
 import EditProfileScreen from "@/screens/member/profile/EditProfileScreen";
 import TabNavigatorMember from "./TabNavigatorMember";
+import ReceiveRequestScreen from "@/screens/member/bloodReceiveRequest/ReceiveRequestScreen";
+import BloodCompatibilityScreen from "@/screens/member/bloodCompatibility/BloodCompatibilityScreen";
+import ReceiveRequestDetailScreen from "@/screens/member/bloodReceiveRequest/ReceiveRequestDetailScreen";
+import VerifyLevel2Screen from "@/screens/member/profile/VerifyLevel2Screen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -30,7 +33,7 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="TabNavigatorMember" component={TabNavigatorMember} />
       <Stack.Screen name="FacilityDetail" component={FacilityDetailScreen} />
       <Stack.Screen name="Donation" component={DonationScreen} />
-      <Stack.Screen name="EmergencyRequest" component={EmergencyRequestScreen} />
+      <Stack.Screen name="ReceiveRequest" component={ReceiveRequestScreen} />
       <Stack.Screen name="EmergencyStatus" component={EmergencyStatusScreen} />
       <Stack.Screen name="BloodTypeDetail" component={BloodTypeDetailScreen} />
       <Stack.Screen name="BloodTypeList" component={BloodTypeListScreen} />
@@ -42,6 +45,9 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="AboutScreen" component={AboutScreen} />
       <Stack.Screen name="Nearby" component={NearbyScreen} />
       <Stack.Screen name="DonationHistory" component={DonationHistoryScreen} />
+      <Stack.Screen name="BloodCompatibility" component={BloodCompatibilityScreen} />
+      <Stack.Screen name="ReceiveRequestDetail" component={ReceiveRequestDetailScreen} />
+      <Stack.Screen name="VerifyLevel2Screen" component={VerifyLevel2Screen} />
     </Stack.Navigator>
   );
 };
