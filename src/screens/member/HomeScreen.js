@@ -79,6 +79,52 @@ export default function HomeScreen({ navigation }) {
     }, 2000);
   }, []);
 
+  const getActionButtonStyle = (type) => {
+    switch (type) {
+      case "compatibility":
+        return {
+          icon: "compare-arrows",
+          color: "#2196F3", // Medical blue for compatibility
+          bgColor: "rgba(33, 150, 243, 0.1)",
+        };
+      case "donation":
+        return {
+          icon: "favorite",
+          color: "#4CAF50", // Green for donation
+          bgColor: "rgba(76, 175, 80, 0.1)",
+        };
+      case "request":
+        return {
+          icon: "local-hospital",
+          color: "#FF5252", // Red for emergency/request
+          bgColor: "rgba(255, 82, 82, 0.1)",
+        };
+      case "nearby":
+        return {
+          icon: "near-me",
+          color: "#9C27B0", // Purple for location
+          bgColor: "rgba(156, 39, 176, 0.1)",
+        };
+      case "emergency":
+        return {
+          icon: "campaign",
+          color: "#FF9800", // Orange for emergency
+          bgColor: "rgba(255, 152, 0, 0.1)",
+        };
+      case "history":
+        return {
+          icon: "history",
+          color: "#607D8B", // Blue grey for history
+          bgColor: "rgba(96, 125, 139, 0.1)",
+        };
+      default:
+        return {
+          color: "#FF6B6B",
+          bgColor: "rgba(255, 107, 107, 0.1)",
+        };
+    }
+  };
+
   const renderBloodTypeCard = (info) => (
     <TouchableOpacity
       key={info._id}
@@ -176,57 +222,89 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.quickActionsContainer}>
           <View style={styles.quickActions}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("compatibility").bgColor }]}
               onPress={() => navigation.navigate("BloodCompatibility")}
             >
-              <MaterialIcons name="compare-arrows" size={24} color="#FF6B6B" />
-              <Text style={styles.actionText}>Kiểm tra tương thích</Text>
+              <MaterialIcons 
+                name="compare-arrows" 
+                size={24} 
+                color={getActionButtonStyle("compatibility").color} 
+              />
+              <Text style={[styles.actionText, { color: getActionButtonStyle("compatibility").color }]}>
+                Kiểm tra tương thích
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("donation").bgColor }]}
               onPress={() => navigation.navigate("Donation")}
             >
               <FontAwesome5
                 name="hand-holding-medical"
                 size={24}
-                color="#FF6B6B"
+                color={getActionButtonStyle("donation").color}
               />
-              <Text style={styles.actionText}>Đăng ký hiến máu</Text>
+              <Text style={[styles.actionText, { color: getActionButtonStyle("donation").color }]}>
+                Đăng ký hiến máu
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("request").bgColor }]}
               onPress={() => navigation.navigate("ReceiveRequest")}
             >
-              <MaterialIcons name="local-hospital" size={24} color="#FF6B6B" />
-              <Text style={styles.actionText}>Yêu cầu nhận máu</Text>
+              <MaterialIcons 
+                name="local-hospital" 
+                size={24} 
+                color={getActionButtonStyle("request").color} 
+              />
+              <Text style={[styles.actionText, { color: getActionButtonStyle("request").color }]}>
+                Yêu cầu nhận máu
+              </Text>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("nearby").bgColor }]}
               onPress={() => navigation.navigate("Nearby")}
             >
-              <MaterialIcons name="near-me" size={24} color="#FF6B6B" />
-              <Text style={styles.actionText}>Tìm vị trí gần đây</Text>
+              <MaterialIcons 
+                name="near-me" 
+                size={24} 
+                color={getActionButtonStyle("nearby").color} 
+              />
+              <Text style={[styles.actionText, { color: getActionButtonStyle("nearby").color }]}>
+                Tìm vị trí gần đây
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("DonationHistory")}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("emergency").bgColor }]}
+              onPress={() => navigation.navigate("EmergencyCampaignList")}
             >
-              <MaterialIcons name="campaign" size={24} color="#FF6B6B" />
-              <Text style={styles.actionText}>Chiến dịch khẩn cấp</Text>
+              <MaterialIcons 
+                name="campaign" 
+                size={24} 
+                color={getActionButtonStyle("emergency").color} 
+              />
+              <Text style={[styles.actionText, { color: getActionButtonStyle("emergency").color }]}>
+                Chiến dịch khẩn cấp
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("history").bgColor }]}
               onPress={() => navigation.navigate("DonationHistory")}
             >
-              <MaterialIcons name="history" size={24} color="#FF6B6B" />
-              <Text style={styles.actionText}>Lịch sử yêu cầu</Text>
+              <MaterialIcons 
+                name="history" 
+                size={24} 
+                color={getActionButtonStyle("history").color} 
+              />
+              <Text style={[styles.actionText, { color: getActionButtonStyle("history").color }]}>
+                Lịch sử yêu cầu
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -276,46 +354,66 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 40,
     alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   bannerTitle: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   bannerSubtitle: {
     fontSize: 16,
     color: "#FFFFFF",
     opacity: 0.9,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   quickActionsContainer: {
     backgroundColor: "#FFFFFF",
     marginTop: -10,
     marginHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#E3E8F0",
   },
   quickActions: {
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 16,
+    gap: 8,
   },
   quickActionsSecondRow: {
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: "#E3E8F0",
   },
   actionButton: {
     alignItems: "center",
     flex: 1,
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E3E8F0",
   },
   actionText: {
     marginTop: 8,
-    fontSize: 12,
-    color: "#2D3436",
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#1A237E",
     textAlign: "center",
   },
   section: {
@@ -328,29 +426,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#2D3436",
+    color: "#1A237E",
   },
   seeAll: {
-    color: "#FF6B6B",
+    color: "#2196F3",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   bloodTypeCard: {
     backgroundColor: "#FFFFFF",
-    padding: 16,
+    padding: 20,
     borderRadius: 16,
-    marginRight: 12,
+    marginRight: 16,
     width: 300,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    marginBottom: 8,
+    borderColor: "#E3E8F0",
   },
   bloodTypeHeader: {
     marginBottom: 12,
@@ -363,7 +460,7 @@ const styles = StyleSheet.create({
   bloodType: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#FF6B6B",
+    color: "#2196F3", // Medical blue for blood type
   },
   percentageContainer: {
     alignItems: "flex-end",
@@ -371,16 +468,16 @@ const styles = StyleSheet.create({
   percentage: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#2D3436",
+    color: "#1A237E",
   },
   percentageLabel: {
-    fontSize: 12,
-    color: "#95A5A6",
+    fontSize: 13,
+    color: "#5C6BC0",
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "#E3E8F0",
     marginVertical: 12,
   },
   characteristicsContainer: {
@@ -389,27 +486,31 @@ const styles = StyleSheet.create({
   characteristicItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+    backgroundColor: "#F8FAFC",
+    padding: 8,
+    borderRadius: 8,
   },
   characteristicIcon: {
     marginRight: 8,
   },
   characteristicText: {
     fontSize: 14,
-    color: "#2D3436",
+    color: "#1A237E",
     flex: 1,
+    fontWeight: "500",
   },
   blogCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginBottom: 20,
-    borderColor: "#E2E8F0",
+    borderColor: "#E3E8F0",
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 5,
     overflow: "hidden",
   },
   blogImage: {
@@ -466,7 +567,10 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: 8,
+    borderRadius: 8,
   },
   locationText: {
     fontSize: 14,
@@ -474,15 +578,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   categoryContainer: {
-    backgroundColor: "#FFE8E8",
+    backgroundColor: "rgba(33, 150, 243, 0.1)", // Light medical blue background
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
     alignSelf: "flex-start",
     marginBottom: 12,
   },
   categoryText: {
-    color: "#FF6B6B",
+    color: "#2196F3", // Medical blue text
     fontSize: 12,
     fontWeight: "600",
   },

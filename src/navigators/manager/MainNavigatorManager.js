@@ -7,6 +7,8 @@ import DonationRequestsScreen from "@/screens/manager/DonationRequestsScreen";
 import EmergencyRequestsScreen from "@/screens/manager/EmergencyRequestsScreen";
 import ReceiveRequestDetailScreen from "@/screens/manager/ReceiveRequestDetailScreen";
 import ReceiveRequestListScreen from "@/screens/manager/ReceiveRequestListScreen";
+import EmergencyCampaignScreen from "@/screens/manager/EmergencyCampaignScreen";
+import EmergencyCampaignDetailScreen from "@/screens/manager/EmergencyCampaignDetailScreen";
 
 const MainNavigatorManager = () => {
   const Stack = createNativeStackNavigator();
@@ -26,6 +28,8 @@ const MainNavigatorManager = () => {
       <Stack.Screen name="EmergencyRequests" component={EmergencyRequestsScreen} />
       <Stack.Screen name="ReceiveRequestDetailScreen" component={ReceiveRequestDetailScreen} />
       <Stack.Screen name="ReceiveRequestList" component={ReceiveRequestListScreen} />
+      <Stack.Screen name="EmergencyCampaignScreen" component={EmergencyCampaignScreen} />
+      <Stack.Screen name="EmergencyCampaignDetailScreen" component={EmergencyCampaignDetailScreen} />
     </Stack.Navigator>
   );
 };
