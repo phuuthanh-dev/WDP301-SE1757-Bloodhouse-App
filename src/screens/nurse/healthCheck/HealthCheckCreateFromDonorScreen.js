@@ -1,53 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, StyleSheet, Platform, Alert, Image, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-
-// Mock data
-const nurseInfo = {
-  name: 'Nguyễn Thị Y Tá',
-  facility: 'Bệnh viện Hữu Nghị Việt Đức',
-};
-const patientInfo = {
-  name: 'Nguyễn Văn A',
-  dob: '01/01/1990',
-  gender: 'Nam',
-  bloodType: 'A+',
-  phone: '0901234567',
-};
-const doctors = [
-  { id: '1', name: 'BS. Trần Văn B', avatar: 'https://i.pravatar.cc/150?img=3', todayCount: 5 },
-  { id: '2', name: 'BS. Lê Thị C', avatar: 'https://i.pravatar.cc/150?img=4', todayCount: 3 },
-  { id: '3', name: 'BS. Phạm Văn D', avatar: 'https://i.pravatar.cc/150?img=5', todayCount: 7 },
-];
+import healthCheckAPI from '@/apis/healthCheckAPI';
+import facilityStaffAPI from '@/apis/facilityStaffAPI';
+import bloodDonationRegistrationAPI from '@/apis/bloodDonationRegistration';
+import { useSelector } from 'react-redux';
+import { authSelector } from '@/redux/reducers/authReducer';
+import { useFacility } from '@/contexts/FacilityContext';
 
 const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]?.id || '');
+  const [selectedDoctor, setSelectedDoctor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState('');
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [registrationData, setRegistrationData] = useState(null);
+  const { user } = useSelector(authSelector);
+  const { facilityId, facilityName } = useFacility();
   
-  // Get registrationId from route params if coming from CheckIn screen
+  // Get registrationId from route params
   const registrationId = route?.params?.registrationId;
 
-  const handleCreate = async () => {
-    setIsSubmitting(true);
-    // TODO: Call API to create health check, gửi kèm note và registrationId
-    const healthCheckData = {
-      registrationId,
-      doctorId: selectedDoctor,
-      note,
-      nurseId: 'current_nurse_id', // Get from auth context
-      createdAt: new Date().toISOString(),
-    };
-    
-    console.log('Creating health check with data:', healthCheckData);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
-      Alert.alert('Thành công', 'Đã tạo phiếu khám sức khoẻ!', [
-        { text: 'OK', onPress: () => navigation?.goBack?.() },
-      ]);
-    }, 1000);
+  // Fetch doctors from facility staff API
+  const fetchDoctors = async () => {
+    try {
+      if (!facilityId) {
+        Alert.alert('Lỗi', 'Không tìm thấy thông tin cơ sở y tế');
+        return;
+      }
+
+      const response = await facilityStaffAPI.HandleFacilityStaff(
+        `/facility/${facilityId}?position=DOCTOR`,
+        null,
+        'get'
+      );
+
+      if (response.data && response.data.result) {
+        const doctorList = response.data.result.map(staff => ({
+          id: staff._id,
+          name: staff.userId?.fullName || 'N/A',
+          avatar: staff.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`,
+          email: staff.userId?.email || '',
+          phone: staff.userId?.phone || '',
+          position: staff.position,
+        }));
+        
+        setDoctors(doctorList);
+        if (doctorList.length > 0) {
+          setSelectedDoctor(doctorList[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      Alert.alert('Lỗi', 'Không thể tải danh sách bác sĩ');
+    }
   };
+
+  // Fetch registration data
+  const fetchRegistrationData = async () => {
+    try {
+      if (!registrationId) return;
+
+      const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+        `/${registrationId}`,
+        null,
+        'get'
+      );
+
+      if (response.data) {
+        setRegistrationData(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching registration data:', error);
+      const errorMessage = error.response?.data?.message || 'Không thể tải thông tin đăng ký';
+      Alert.alert('Lỗi', errorMessage);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchDoctors(),
+        fetchRegistrationData()
+      ]);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [registrationId, facilityId]);
+
+  const handleCreate = async () => {
+    if (!selectedDoctor) {
+      Alert.alert('Lỗi', 'Vui lòng chọn bác sĩ');
+      return;
+    }
+
+    if (!registrationId) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin đăng ký');
+      return;
+    }
+
+    if (!registrationData?.userId?._id) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin người hiến máu');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const healthCheckData = {
+        registrationId,
+        userId: registrationData.userId._id,
+        doctorId: selectedDoctor,
+        notes: note.trim() || undefined
+      };
+      
+      console.log('Creating health check with data:', healthCheckData);
+      
+      const response = await healthCheckAPI.HandleHealthCheck(
+        '',
+        healthCheckData,
+        'post'
+      );
+      
+      if (response.data) {
+        Alert.alert(
+          'Thành công', 
+          'Đã tạo phiếu khám sức khoẻ thành công!', 
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                // Navigate back to the tab that contains DonorList
+                navigation.goBack();
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error creating health check:', error);
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi tạo phiếu khám';
+      Alert.alert('Lỗi', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Get patient info from registration data
+  const getPatientInfo = () => {
+    if (!registrationData) {
+      return {
+        name: 'Đang tải...',
+        dob: 'Đang tải...',
+        gender: 'Đang tải...',
+        bloodType: 'Đang tải...',
+        phone: 'Đang tải...',
+      };
+    }
+
+    const userInfo = registrationData.userId;
+    return {
+      name: userInfo?.fullName || 'N/A',
+      dob: userInfo?.yob ? new Date(userInfo.yob).toLocaleDateString('vi-VN') : 'N/A',
+      gender: userInfo?.sex === 'male' ? 'Nam' : userInfo?.sex === 'female' ? 'Nữ' : 'N/A',
+      bloodType: registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type || 'N/A',
+      phone: userInfo?.phone || 'N/A',
+    };
+  };
+
+  // Get nurse info from auth context
+  const getNurseInfo = () => {
+    return {
+      name: user?.fullName || 'Y tá',
+      facility: facilityName || 'Cơ sở y tế',
+    };
+  };
+
+  const patientInfo = getPatientInfo();
+  const nurseInfo = getNurseInfo();
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack?.()}>
+              <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Đang tải...</Text>
+          </View>
+          <View style={styles.headerRight} />
+        </View>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text>Đang tải dữ liệu...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,11 +221,11 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Thông tin bệnh nhân */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin bệnh nhân</Text>
+          <Text style={styles.sectionTitle}>Thông tin người hiến máu</Text>
           {registrationId && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Mã đăng ký:</Text>
-              <Text style={[styles.infoValue, { color: '#FF6B6B', fontWeight: 'bold' }]}>{registrationId}</Text>
+              <Text style={[styles.infoValue, { color: '#FF6B6B', fontWeight: 'bold' }]}>{registrationData.code}</Text>
             </View>
           )}
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Họ tên:</Text><Text style={styles.infoValue}>{patientInfo.name}</Text></View>
@@ -81,46 +234,53 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Nhóm máu:</Text><Text style={styles.infoValue}>{patientInfo.bloodType}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>SĐT:</Text><Text style={styles.infoValue}>{patientInfo.phone}</Text></View>
         </View>
+        
         {/* Danh sách bác sĩ hỗ trợ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chọn bác sĩ hỗ trợ</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.doctorList}>
-            {doctors.map((doctor) => (
-              <TouchableOpacity
-                key={doctor.id}
-                style={[styles.doctorCard, selectedDoctor === doctor.id && styles.doctorCardSelected]}
-                onPress={() => setSelectedDoctor(doctor.id)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.doctorAvatarWrap}>
-                  <View style={[styles.doctorAvatarBorder, selectedDoctor === doctor.id && { borderColor: '#FF6B6B' }]}>
-                    <View style={styles.doctorAvatarShadow}>
-                      <View style={styles.doctorAvatarCircle}>
-                        <View style={styles.doctorAvatarInner}>
-                          <View style={{overflow: 'hidden', borderRadius: 32}}>
-                            <Image source={{ uri: doctor.avatar }} alt={doctor.name} style={{width: 64, height: 64, objectFit: 'cover'}} />
+          {doctors.length === 0 ? (
+            <View style={styles.emptyDoctors}>
+              <Text style={styles.emptyDoctorsText}>Không có bác sĩ nào trong cơ sở</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.doctorList}>
+              {doctors.map((doctor) => (
+                <TouchableOpacity
+                  key={doctor.id}
+                  style={[styles.doctorCard, selectedDoctor === doctor.id && styles.doctorCardSelected]}
+                  onPress={() => setSelectedDoctor(doctor.id)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.doctorAvatarWrap}>
+                    <View style={[styles.doctorAvatarBorder, selectedDoctor === doctor.id && { borderColor: '#FF6B6B' }]}>
+                      <View style={styles.doctorAvatarShadow}>
+                        <View style={styles.doctorAvatarCircle}>
+                          <View style={styles.doctorAvatarInner}>
+                            <View style={{overflow: 'hidden', borderRadius: 32}}>
+                              <Image source={{ uri: doctor.avatar }} alt={doctor.name} style={{width: 64, height: 64, objectFit: 'cover'}} />
+                            </View>
                           </View>
                         </View>
                       </View>
                     </View>
                   </View>
-                </View>
-                <Text style={styles.doctorNameCard} numberOfLines={1  }>{doctor.name}</Text>
-                <Text style={styles.doctorCount} numberOfLines={1}>SL hôm nay: <Text style={{color:'#FF6B6B', fontWeight:'bold'}}>{doctor.todayCount}</Text></Text>
-                {selectedDoctor === doctor.id && (
-                  <MaterialIcons name="check-circle" size={20} color="#FF6B6B" style={{ marginTop: 4 }} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                  <Text style={styles.doctorNameCard} numberOfLines={1}>{doctor.name}</Text>
+                  {selectedDoctor === doctor.id && (
+                    <MaterialIcons name="check-circle" size={20} color="#FF6B6B" style={{ marginTop: 4 }} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
+        
         {/* Ghi chú của y tá */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ghi chú của y tá (nếu có)</Text>
           <View style={styles.noteInputWrap}>
             <TextInput
               style={styles.noteInput}
-              placeholder="Nhập ghi chú cho bác sĩ hoặc bệnh nhân..."
+              placeholder="Nhập ghi chú cho bác sĩ hoặc người hiến máu..."
               value={note}
               onChangeText={setNote}
               multiline
@@ -130,15 +290,18 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
           </View>
         </View>
       </ScrollView>
+      
       {/* Button tạo */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (isSubmitting || doctors.length === 0) && styles.submitButtonDisabled]}
           onPress={handleCreate}
-          disabled={isSubmitting}
+          disabled={isSubmitting || doctors.length === 0}
         >
           <MaterialIcons name="check" size={24} color="#FFFFFF" />
-          <Text style={styles.submitButtonText}>{isSubmitting ? 'Đang tạo...' : 'Tạo'}</Text>
+          <Text style={styles.submitButtonText}>
+            {isSubmitting ? 'Đang tạo...' : doctors.length === 0 ? 'Không có bác sĩ' : 'Tạo phiếu khám'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -229,6 +392,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  emptyDoctors: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyDoctorsText: {
+    color: '#636E72',
+    fontSize: 14,
+    fontStyle: 'italic',
   },
   doctorList: {
     flexDirection: 'row',

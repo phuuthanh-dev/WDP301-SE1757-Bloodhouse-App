@@ -12,198 +12,16 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-
-// MOCK_HEALTH_CHECKS: Dữ liệu mẫu cho các phiếu khám sức khỏe
-const today = new Date();
-function getDateStr(offset) {
-  const d = new Date(today);
-  d.setDate(today.getDate() + offset);
-  return d.toISOString().slice(0, 19) + 'Z';
-}
-
-const MOCK_HEALTH_CHECKS = [
-  // 2 ngày trước
-  {
-    id: "HC001",
-    registrationId: "REG123456",
-    patient: {
-      name: "Nguyễn Văn A",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      bloodType: "A+",
-      gender: "Nam",
-      dob: "01/01/1990",
-      phone: "0901234567",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    checkDate: getDateStr(-2).replace('09:00:00', '08:30:00'),
-    isEligible: true,
-    status: "completed", // "pending", "in_progress", "completed"
-    bloodPressure: "120/80",
-    hemoglobin: 14.2,
-    weight: 62,
-    pulse: 75,
-    temperature: 36.7,
-    generalCondition: "Tốt",
-    notes: "Người hiến đủ điều kiện hiến máu",
-  },
-  {
-    id: "HC002",
-    registrationId: "REG123457",
-    patient: {
-      name: "Trần Thị B",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      bloodType: "O-",
-      gender: "Nữ",
-      dob: "15/05/1985",
-      phone: "0901234568",
-    },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    checkDate: getDateStr(-2).replace('09:00:00', '10:00:00'),
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "140/90",
-    hemoglobin: 11.5,
-    weight: 45,
-    pulse: 85,
-    temperature: 37.2,
-    generalCondition: "Huyết áp cao, thiếu máu nhẹ",
-    deferralReason: "Huyết áp cao, hemoglobin thấp",
-    notes: "Khuyến khích tái khám sau 3 tháng",
-  },
-  // 1 ngày trước
-  {
-    id: "HC003",
-    registrationId: "REG123458",
-    patient: {
-      name: "Lê Văn C",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      bloodType: "B+",
-      gender: "Nam",
-      dob: "20/12/1992",
-      phone: "0901234569",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    checkDate: getDateStr(-1).replace('09:00:00', '09:15:00'),
-    isEligible: true,
-    status: "in_progress",
-    bloodPressure: "118/75",
-    hemoglobin: 15.1,
-    weight: 70,
-    pulse: 72,
-    temperature: 36.5,
-    generalCondition: "Rất tốt",
-    notes: "Đang trong quá trình khám",
-  },
-  // Hôm nay
-  {
-    id: "HC004",
-    registrationId: "REG123459",
-    patient: {
-      name: "Phạm Thị D",
-      avatar: "https://i.pravatar.cc/150?img=4",
-      bloodType: "AB+",
-      gender: "Nữ",
-      dob: "10/08/1988",
-      phone: "0901234570",
-    },
-    doctor: {
-      name: "BS. Lê Thị C",
-      avatar: "https://i.pravatar.cc/150?img=4",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    checkDate: getDateStr(0).replace('09:00:00', '09:00:00'),
-    isEligible: true,
-    status: "completed",
-    bloodPressure: "115/70",
-    hemoglobin: 13.8,
-    weight: 55,
-    pulse: 68,
-    temperature: 36.4,
-    generalCondition: "Tốt",
-    notes: "Đủ điều kiện hiến máu",
-  },
-  {
-    id: "HC005",
-    registrationId: "REG123460",
-    patient: {
-      name: "Ngô Văn E",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      bloodType: "A-",
-      gender: "Nam",
-      dob: "25/03/1990",
-      phone: "0901234571",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    checkDate: getDateStr(0).replace('09:00:00', '10:30:00'),
-    isEligible: null,
-    status: "pending",
-    notes: "Chờ khám sức khỏe",
-  },
-  // 1 ngày sau
-  {
-    id: "HC006",
-    registrationId: "REG123461",
-    patient: {
-      name: "Võ Thị F",
-      avatar: "https://i.pravatar.cc/150?img=6",
-      bloodType: "O+",
-      gender: "Nữ",
-      dob: "12/11/1987",
-      phone: "0901234572",
-    },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    checkDate: getDateStr(1).replace('09:00:00', '08:45:00'),
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "150/95",
-    hemoglobin: 12.8,
-    weight: 48,
-    pulse: 90,
-    temperature: 36.8,
-    generalCondition: "Huyết áp cao",
-    deferralReason: "Huyết áp vượt ngưỡng cho phép",
-    notes: "Cần điều trị huyết áp trước khi hiến máu",
-  },
-];
+import healthCheckAPI from "@/apis/healthCheckAPI";
+import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
+import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
 
 export default function HealthCheckList() {
   const [healthChecks, setHealthChecks] = useState([]);
@@ -211,16 +29,97 @@ export default function HealthCheckList() {
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('Tất cả');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Định nghĩa các filter status cho trang này - 4 trạng thái
+  const FILTER_OPTIONS = [
+    { label: "Tất cả", value: "all" },
+    { label: "Đang chờ khám", value: DONATION_STATUS.IN_CONSULT },
+    { label: "Không đảm bảo", value: DONATION_STATUS.REJECTED },
+    { label: "Đảm bảo sức khỏe", value: DONATION_STATUS.WAITING_DONATION },
+  ];
 
   const fetchHealthChecks = async () => {
+    setLoading(true);
     try {
-      // Simulating API call with mock data
-      setHealthChecks(MOCK_HEALTH_CHECKS);
+      // Build query params for blood donation registrations
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+      });
+
+      // Thêm search term nếu có
+      if (searchText.trim()) {
+        params.append('search', searchText.trim());
+      }
+
+      // Nếu không phải "Tất cả", thêm status filter
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+        `/staff/assigned?${params.toString()}`
+      );
+      
+      if (response.data && response.data.data) {
+        // Filter theo các status cho phép của trang này
+        let filteredData = response.data.data;
+        if (statusFilter === 'all') {
+          filteredData = response.data.data.filter(registration => 
+            [DONATION_STATUS.IN_CONSULT, DONATION_STATUS.REJECTED, DONATION_STATUS.WAITING_DONATION].includes(registration.status)
+          );
+        }
+        
+        // Transform data để phù hợp với UI
+        const transformedData = filteredData.map(registration => ({
+          id: registration._id,
+          registrationId: registration._id,
+          patient: {
+            name: registration.userId?.fullName || "N/A",
+            avatar: registration.userId?.avatar || "https://via.placeholder.com/50",
+            bloodType: registration.bloodGroupId?.name || registration.bloodGroupId?.type || "N/A",
+            gender: registration.userId?.sex === 'male' ? 'Nam' : registration.userId?.sex === 'female' ? 'Nữ' : 'N/A',
+            dob: registration.userId?.yob ? new Date(registration.userId.yob).toLocaleDateString('vi-VN') : 'N/A',
+            phone: registration.userId?.phone || 'N/A',
+          },
+          doctor: {
+            name: registration.staffId?.userId?.fullName || "Chưa phân công",
+            avatar: registration.staffId?.userId?.avatar || "https://via.placeholder.com/50",
+          },
+          nurse: {
+            name: registration.staffId?.userId?.fullName || "N/A",
+          },
+          checkDate: registration.preferredDate,
+          isEligible: registration.status === DONATION_STATUS.WAITING_DONATION ? true : 
+                     registration.status === DONATION_STATUS.REJECTED ? false : null,
+          status: registration.status === DONATION_STATUS.IN_CONSULT ? "pending" :
+                  registration.status === DONATION_STATUS.REJECTED ? "completed" :
+                  registration.status === DONATION_STATUS.WAITING_DONATION ? "completed" : "pending",
+          registrationStatus: registration.status,
+          bloodPressure: null, // Sẽ có từ health check detail
+          hemoglobin: null,
+          weight: null,
+          pulse: null,
+          temperature: null,
+          generalCondition: registration.status === DONATION_STATUS.WAITING_DONATION ? "Đủ điều kiện hiến máu" :
+                           registration.status === DONATION_STATUS.REJECTED ? "Không đủ điều kiện" : "Đang chờ khám",
+          notes: registration.notes || "",
+          deferralReason: registration.status === DONATION_STATUS.REJECTED ? "Không đủ điều kiện hiến máu" : null,
+        }));
+        
+        setHealthChecks(transformedData);
+      } else {
+        setHealthChecks([]);
+      }
     } catch (error) {
       console.error("Error fetching health checks:", error);
+      setHealthChecks([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -232,9 +131,16 @@ export default function HealthCheckList() {
 
   useEffect(() => {
     fetchHealthChecks();
-  }, []);
+  }, [statusFilter, searchText]);
 
-  // Lọc health checks theo ngày, trạng thái, tên
+  // Refresh when screen is focused (when returning from detail screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchHealthChecks();
+    }, [])
+  );
+
+  // Lọc health checks theo ngày và tên
   const filteredHealthChecks = healthChecks.filter((healthCheck) => {
     const checkDate = new Date(healthCheck.checkDate);
     const matchDate =
@@ -242,15 +148,8 @@ export default function HealthCheckList() {
       checkDate.getMonth() === selectedDate.getMonth() &&
       checkDate.getDate() === selectedDate.getDate();
     
-    const matchStatus =
-      statusFilter === 'Tất cả' ||
-      (statusFilter === 'Chờ khám' && healthCheck.status === 'pending') ||
-      (statusFilter === 'Đang khám' && healthCheck.status === 'in_progress') ||
-      (statusFilter === 'Đảm bảo sức khỏe' && healthCheck.status === 'completed' && healthCheck.isEligible === true) ||
-      (statusFilter === 'Không đảm bảo' && healthCheck.status === 'completed' && healthCheck.isEligible === false);
-    
     const matchName = healthCheck.patient.name.toLowerCase().includes(searchText.toLowerCase());
-    return matchDate && matchStatus && matchName;
+    return matchDate && matchName;
   });
 
   // Chuyển tuần
@@ -269,14 +168,12 @@ export default function HealthCheckList() {
   };
 
   const getStatusInfo = (healthCheck) => {
-    if (healthCheck.status === 'pending') {
+    if (healthCheck.registrationStatus === DONATION_STATUS.IN_CONSULT) {
       return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
-    } else if (healthCheck.status === 'in_progress') {
-      return { label: 'Đang khám', color: '#FFA502', icon: 'medical-bag' };
-    } else if (healthCheck.status === 'completed' && healthCheck.isEligible === true) {
-      return { label: 'Đảm bảo sức khỏe', color: '#2ED573', icon: 'check-circle' };
-    } else if (healthCheck.status === 'completed' && healthCheck.isEligible === false) {
+    } else if (healthCheck.registrationStatus === DONATION_STATUS.REJECTED) {
       return { label: 'Không đảm bảo', color: '#FF4757', icon: 'close-circle' };
+    } else if (healthCheck.registrationStatus === DONATION_STATUS.WAITING_DONATION) {
+      return { label: 'Đảm bảo sức khỏe', color: '#2ED573', icon: 'check-circle' };
     } else {
       return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
     }
@@ -288,7 +185,7 @@ export default function HealthCheckList() {
     return (
       <TouchableOpacity
         style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckDetail', { healthCheckId: item.id })}
+        onPress={() => navigation.navigate('HealthCheckDetail', { registrationId: item.registrationId })}
       >
         <View style={styles.cardHeader}>
           <View style={styles.patientInfo}>
@@ -325,16 +222,8 @@ export default function HealthCheckList() {
         {item.status === 'completed' && (
           <View style={styles.healthSummary}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Huyết áp:</Text>
-              <Text style={styles.summaryValue}>{item.bloodPressure || '-'} mmHg</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Hemoglobin:</Text>
-              <Text style={styles.summaryValue}>{item.hemoglobin || '-'} g/dL</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Cân nặng:</Text>
-              <Text style={styles.summaryValue}>{item.weight || '-'} kg</Text>
+              <Text style={styles.summaryLabel}>Tình trạng:</Text>
+              <Text style={styles.summaryValue}>{item.generalCondition || '-'}</Text>
             </View>
             {item.deferralReason && (
               <View style={styles.deferralReason}>
@@ -348,7 +237,7 @@ export default function HealthCheckList() {
         <View style={styles.cardFooter}>
           <TouchableOpacity 
             style={styles.viewDetailBtn}
-            onPress={() => navigation.navigate('HealthCheckDetail', { healthCheckId: item.id })}
+            onPress={() => navigation.navigate('HealthCheckDetail', { registrationId: item.registrationId })}
           >
             <MaterialIcons name="visibility" size={18} color="#FF6B6B" />
             <Text style={styles.viewDetailText}>Xem chi tiết</Text>
@@ -370,13 +259,15 @@ export default function HealthCheckList() {
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {['Tất cả', 'Chờ khám', 'Đang khám', 'Đảm bảo sức khỏe', 'Không đảm bảo'].map((status) => (
+          {FILTER_OPTIONS.map((option) => (
             <TouchableOpacity
-              key={status}
-              style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
-              onPress={() => setStatusFilter(status)}
+              key={option.value}
+              style={[styles.filterChip, statusFilter === option.value && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>{status}</Text>
+              <Text style={[styles.filterChipText, statusFilter === option.value && styles.filterChipTextActive]}>
+                {option.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -470,9 +361,9 @@ export default function HealthCheckList() {
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="medical-bag" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              Không có phiếu khám sức khỏe nào trong ngày này
+              {loading ? "Đang tải dữ liệu..." : "Không có phiếu khám sức khỏe nào trong ngày này"}
             </Text>
-    </View>
+          </View>
         }
       />
     </SafeAreaView>

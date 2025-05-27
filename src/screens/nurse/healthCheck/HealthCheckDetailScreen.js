@@ -1,241 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, StyleSheet, ScrollView, Platform, TouchableOpacity, Image, Alert } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import healthCheckAPI from '@/apis/healthCheckAPI';
+import bloodDonationAPI from '@/apis/bloodDonation';
+import { useSelector } from 'react-redux';
+import { authSelector } from '@/redux/reducers/authReducer';
+import { DONATION_STATUS, getStatusName, getStatusColor } from '@/constants/donationStatus';
 
-// Mock data - same as in HealthCheckList.js
-const MOCK_HEALTH_CHECKS = [
-  {
-    id: "HC001",
-    registrationId: "REG123456",
-    patient: {
-      name: "Nguyễn Văn A",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      bloodType: "A+",
-      gender: "Nam",
-      dob: "01/01/1990",
-      phone: "0901234567",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T08:30:00Z',
-    isEligible: true,
-    status: "completed",
-    bloodPressure: "120/80",
-    hemoglobin: 14.2,
-    weight: 62,
-    pulse: 75,
-    temperature: 36.7,
-    generalCondition: "Tốt",
-    notes: "Người hiến đủ điều kiện hiến máu",
-  },
-  {
-    id: "HC002",
-    registrationId: "REG123457",
-    patient: {
-      name: "Trần Thị B",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      bloodType: "O-",
-      gender: "Nữ",
-      dob: "15/05/1985",
-      phone: "0901234568",
-    },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T10:00:00Z',
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "140/90",
-    hemoglobin: 11.5,
-    weight: 45,
-    pulse: 85,
-    temperature: 37.2,
-    generalCondition: "Huyết áp cao, thiếu máu nhẹ",
-    deferralReason: "Huyết áp cao, hemoglobin thấp",
-    notes: "Khuyến khích tái khám sau 3 tháng",
-  },
-  {
-    id: "HC003",
-    registrationId: "REG123458",
-    patient: {
-      name: "Lê Văn C",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      bloodType: "B+",
-      gender: "Nam",
-      dob: "20/12/1992",
-      phone: "0901234569",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T09:15:00Z',
-    isEligible: true,
-    status: "in_progress",
-    bloodPressure: "118/75",
-    hemoglobin: 15.1,
-    weight: 70,
-    pulse: 72,
-    temperature: 36.5,
-    generalCondition: "Rất tốt",
-    notes: "Đang trong quá trình khám",
-  },
-  {
-    id: "HC004",
-    registrationId: "REG123459",
-    patient: {
-      name: "Phạm Thị D",
-      avatar: "https://i.pravatar.cc/150?img=4",
-      bloodType: "AB+",
-      gender: "Nữ",
-      dob: "10/08/1988",
-      phone: "0901234570",
-    },
-    doctor: {
-      name: "BS. Lê Thị C",
-      avatar: "https://i.pravatar.cc/150?img=4",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T09:00:00Z',
-    isEligible: true,
-    status: "completed",
-    bloodPressure: "115/70",
-    hemoglobin: 13.8,
-    weight: 55,
-    pulse: 68,
-    temperature: 36.4,
-    generalCondition: "Tốt",
-    notes: "Đủ điều kiện hiến máu",
-  },
-  {
-    id: "HC005",
-    registrationId: "REG123460",
-    patient: {
-      name: "Ngô Văn E",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      bloodType: "A-",
-      gender: "Nam",
-      dob: "25/03/1990",
-      phone: "0901234571",
-    },
-    doctor: {
-      name: "BS. Trần Văn B",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T10:30:00Z',
-    isEligible: null,
-    status: "pending",
-    notes: "Chờ khám sức khỏe",
-  },
-  {
-    id: "HC006",
-    registrationId: "REG123461",
-    patient: {
-      name: "Võ Thị F",
-      avatar: "https://i.pravatar.cc/150?img=6",
-      bloodType: "O+",
-      gender: "Nữ",
-      dob: "12/11/1987",
-      phone: "0901234572",
-    },
-    doctor: {
-      name: "BS. Phạm Văn D",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    facility: {
-      name: 'Bệnh viện Hữu Nghị Việt Đức',
-    },
-    checkDate: '2024-06-01T08:45:00Z',
-    isEligible: false,
-    status: "completed",
-    bloodPressure: "150/95",
-    hemoglobin: 12.8,
-    weight: 48,
-    pulse: 90,
-    temperature: 36.8,
-    generalCondition: "Huyết áp cao",
-    deferralReason: "Huyết áp vượt ngưỡng cho phép",
-    notes: "Cần điều trị huyết áp trước khi hiến máu",
-  },
-];
-
-function getStatusLabel(status, isEligible) {
-  if (status === 'pending') return 'Chờ khám';
-  if (status === 'in_progress') return 'Đang khám';
-  if (status === 'completed' && isEligible === true) return 'Đảm bảo sức khỏe';
-  if (status === 'completed' && isEligible === false) return 'Không đảm bảo';
+function getStatusLabel(registrationStatus, isEligible) {
+  if (registrationStatus === DONATION_STATUS.IN_CONSULT) return 'Chờ khám';
+  if (registrationStatus === DONATION_STATUS.REJECTED) return 'Không đảm bảo';
+  if (registrationStatus === DONATION_STATUS.WAITING_DONATION) return 'Đảm bảo sức khỏe';
   return 'Chưa xác định';
 }
 
-function getStatusColor(status, isEligible) {
-  if (status === 'pending') return '#4A90E2';
-  if (status === 'in_progress') return '#FFA502';
-  if (status === 'completed' && isEligible === true) return '#2ED573';
-  if (status === 'completed' && isEligible === false) return '#FF4757';
+function getStatusColorFromRegistration(registrationStatus, isEligible) {
+  if (registrationStatus === DONATION_STATUS.IN_CONSULT) return '#4A90E2';
+  if (registrationStatus === DONATION_STATUS.REJECTED) return '#FF4757';
+  if (registrationStatus === DONATION_STATUS.WAITING_DONATION) return '#2ED573';
   return '#95A5A6';
 }
 
-const HealthCheckDetailScreen = ({ navigation, route }) => {
-  const [healthCheck, setHealthCheck] = useState(null);
+const HealthCheckDetailScreen = ({ route }) => {
+  const [registrationData, setRegistrationData] = useState(null);
+  const [healthCheckData, setHealthCheckData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isCreatingDonation, setIsCreatingDonation] = useState(false);
+  const navigation = useNavigation();
+  const { user } = useSelector(authSelector);
   
-  const healthCheckId = route?.params?.healthCheckId;
+  const registrationId = route?.params?.registrationId;
+
+  const fetchHealthCheckDetail = async () => {
+    try {
+      if (!registrationId) {
+        Alert.alert('Lỗi', 'Không tìm thấy thông tin đăng ký');
+        setLoading(false);
+        return;
+      }
+
+      // Sử dụng API mới để lấy thông tin theo registration ID
+      const response = await healthCheckAPI.HandleHealthCheck(
+        `/registration/${registrationId}`,
+        null,
+        'get'
+      );
+
+      if (response.data) {
+        console.log("✅ Data received:", response.data);
+        setRegistrationData(response.data.registration);
+        setHealthCheckData(response.data.healthCheck);
+      } else {
+        Alert.alert('Lỗi', 'Không thể tải thông tin chi tiết');
+      }
+    } catch (error) {
+      console.error('Error fetching health check detail:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin chi tiết');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate API call to fetch health check details
-    const fetchHealthCheckDetails = () => {
-      const foundHealthCheck = MOCK_HEALTH_CHECKS.find(hc => hc.id === healthCheckId);
-      if (foundHealthCheck) {
-        setHealthCheck(foundHealthCheck);
-      } else {
-        // Fallback to first item if ID not found
-        setHealthCheck(MOCK_HEALTH_CHECKS[0]);
-      }
+    const timeoutId = setTimeout(() => {
       setLoading(false);
+    }, 10000); 
+    
+    const runFetch = async () => {
+      try {
+        await fetchHealthCheckDetail();
+      } catch (error) {
+        setLoading(false);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     };
+    
+    runFetch();
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [registrationId]);
 
-    fetchHealthCheckDetails();
-  }, [healthCheckId]);
+  // Refresh when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchHealthCheckDetail();
+    }, [registrationId])
+  );
 
-  const handleProceedToDonation = () => {
+  const handleCreateBloodDonation = async () => {
+    if (!registrationData) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin đăng ký');
+      return;
+    }
+
     Alert.alert(
       'Tiến hành hiến máu',
-      `Xác nhận tiến hành hiến máu cho ${healthCheck.patient.name}?`,
+      `Xác nhận tiến hành hiến máu cho ${registrationData.userId?.fullName}?`,
       [
         { 
           text: 'Hủy', 
@@ -243,57 +107,65 @@ const HealthCheckDetailScreen = ({ navigation, route }) => {
         },
         {
           text: 'Xác nhận',
-          onPress: () => {
-            // TODO: Navigate to donation process or call API
-            Alert.alert(
-              'Thành công',
-              'Đã chuyển người hiến đến quy trình hiến máu!',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => navigation.navigate('Donations') // Navigate to donation list/process
-                }
-              ]
-            );
+          onPress: async () => {
+            setIsCreatingDonation(true);
+            try {
+              const donationData = {
+                userId: registrationData.userId._id,
+                bloodGroupId: registrationData.bloodGroupId._id,
+                bloodDonationRegistrationId: registrationData._id,
+                bloodComponent: registrationData.bloodComponent || 'Máu toàn phần',
+              };
+
+              const response = await bloodDonationAPI.HandleBloodDonation(
+                '',
+                donationData,
+                'post'
+              );
+
+              if (response.data) {
+                Alert.alert(
+                  'Thành công',
+                  'Đã tạo bản ghi hiến máu thành công!',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        // Navigate back to HealthCheckList and refresh
+                        navigation.goBack();
+                      }
+                    }
+                  ]
+                );
+              }
+            } catch (error) {
+              console.error('Error creating blood donation:', error);
+              const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi tạo bản ghi hiến máu';
+              Alert.alert('Lỗi', errorMessage);
+            } finally {
+              setIsCreatingDonation(false);
+            }
           }
         }
       ]
     );
   };
 
-  const handleUpdateStatus = () => {
-    Alert.alert(
-      'Cập nhật trạng thái',
-      'Chọn hành động:',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Đủ điều kiện', 
-          onPress: () => {
-            setHealthCheck(prev => ({ ...prev, isEligible: true, status: 'completed' }));
-            Alert.alert('Thành công', 'Đã cập nhật: Đủ điều kiện hiến máu');
-          }
-        },
-        { 
-          text: 'Không đủ điều kiện', 
-          onPress: () => {
-            setHealthCheck(prev => ({ ...prev, isEligible: false, status: 'completed' }));
-            Alert.alert('Thành công', 'Đã cập nhật: Không đủ điều kiện hiến máu');
-          }
-        }
-      ]
-    );
-  };
-
-  if (loading || !healthCheck) {
+  if (loading || !registrationData) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.loadingText}>Đang tải...</Text>
+          <MaterialCommunityIcons name="loading" size={48} color="#FF6B6B" />
+          <Text style={styles.loadingText}>Đang tải thông tin...</Text>
         </View>
       </SafeAreaView>
     );
   }
+
+  // Determine status and eligibility from registration data
+  const isEligible = registrationData.status === DONATION_STATUS.WAITING_DONATION;
+  const statusLabel = getStatusLabel(registrationData.status, isEligible);
+  const statusColor = getStatusColorFromRegistration(registrationData.status, isEligible);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -303,10 +175,25 @@ const HealthCheckDetailScreen = ({ navigation, route }) => {
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Image source={{ uri: healthCheck.patient.avatar }} style={styles.avatar} />
-          <Text style={styles.userName}>{healthCheck.patient.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(healthCheck.status, healthCheck.isEligible) }]}> 
-            <Text style={styles.statusBadgeText}>{getStatusLabel(healthCheck.status, healthCheck.isEligible)}</Text>
+          <View style={styles.avatarContainer}>
+            <Image 
+              source={{ 
+                uri: registrationData.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+              }} 
+              style={styles.avatar} 
+            />
+            <View style={styles.bloodTypeBadge}>
+              <Text style={styles.bloodTypeText}>{registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type}</Text>
+            </View>
+          </View>
+          <Text style={styles.userName}>{registrationData.userId?.fullName || 'N/A'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}> 
+            <MaterialCommunityIcons 
+              name={isEligible ? 'check-circle' : registrationData.status === DONATION_STATUS.REJECTED ? 'close-circle' : 'clock'} 
+              size={16} 
+              color="#fff" 
+            />
+            <Text style={styles.statusBadgeText}>{statusLabel}</Text>
           </View>
         </View>
         <View style={{ width: 40 }} />
@@ -315,66 +202,143 @@ const HealthCheckDetailScreen = ({ navigation, route }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Thông tin bệnh nhân */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Thông tin bệnh nhân</Text>
-          <InfoRow label="Họ tên" value={healthCheck.patient.name} />
-          <InfoRow label="Ngày sinh" value={healthCheck.patient.dob} />
-          <InfoRow label="Giới tính" value={healthCheck.patient.gender} />
-          <InfoRow label="Nhóm máu" value={healthCheck.patient.bloodType} />
-          <InfoRow label="SĐT" value={healthCheck.patient.phone} />
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="account-heart" size={24} color="#FF6B6B" />
+            <Text style={styles.cardTitle}>Thông tin người hiến</Text>
+          </View>
+          <View style={styles.patientInfoGrid}>
+            <InfoCard icon="account" label="Họ tên" value={registrationData.userId?.fullName} color="#4A90E2" />
+            <InfoCard icon="calendar" label="Ngày sinh" value={registrationData.userId?.yob ? new Date(registrationData.userId.yob).toLocaleDateString('vi-VN') : 'N/A'} color="#9B59B6" />
+            <InfoCard icon="human-male-female" label="Giới tính" value={registrationData.userId?.sex === 'male' ? 'Nam' : registrationData.userId?.sex === 'female' ? 'Nữ' : 'N/A'} color="#E74C3C" />
+            <InfoCard icon="water" label="Nhóm máu" value={registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type} color="#FF6B6B" />
+          </View>
+          <View style={styles.contactInfo}>
+            <InfoRow icon="phone" label="Số điện thoại" value={registrationData.userId?.phone} />
+            <InfoRow icon="email" label="Email" value={registrationData.userId?.email} />
+          </View>
         </View>
 
         {/* Thông tin chi tiết health check */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Thông tin khám sức khoẻ</Text>
-          <InfoRow label="Mã đăng ký" value={healthCheck.registrationId} />
-          <InfoRow label="Ngày khám" value={new Date(healthCheck.checkDate).toLocaleString('vi-VN')} />
-          <InfoRow label="Cơ sở" value={healthCheck.facility?.name || 'Bệnh viện Hữu Nghị Việt Đức'} />
-          <InfoRow label="Y tá hỗ trợ" value={healthCheck.nurse.name} />
-          <InfoRow label="Bác sĩ khám" value={healthCheck.doctor.name} />
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="stethoscope" size={24} color="#FF6B6B" />
+            <Text style={styles.cardTitle}>Thông tin khám sức khỏe</Text>
+          </View>
           
-          {healthCheck.status === 'completed' && (
-            <>
-              <InfoRow 
-                label="Đủ điều kiện" 
-                value={healthCheck.isEligible === true ? 'Đủ' : healthCheck.isEligible === false ? 'Không đủ' : 'Chưa xác định'} 
-                badge={healthCheck.isEligible === true ? 'success' : healthCheck.isEligible === false ? 'danger' : 'default'} 
-              />
+          <View style={styles.healthCheckInfo}>
+            <InfoRow icon="identifier" label="Mã đăng ký" value={registrationData.code || registrationData._id} />
+            <InfoRow icon="calendar-clock" label="Ngày khám" value={new Date(registrationData.preferredDate).toLocaleString('vi-VN')} />
+            <InfoRow icon="hospital-building" label="Cơ sở" value={registrationData.facilityId?.name} />
+            <InfoRow icon="account-tie" label="Y tá hỗ trợ" value={registrationData.staffId?.userId?.fullName || 'Chưa phân công'} />
+            <InfoRow icon="doctor" label="Bác sĩ khám" value={healthCheckData?.doctorId?.userId?.fullName || 'Chưa phân công'} />
+            
+            <View style={styles.eligibilityRow}>
+              <MaterialCommunityIcons name="clipboard-check" size={18} color="#636E72" />
+              <Text style={styles.infoLabel}>Đủ điều kiện:</Text>
+              <View style={[
+                styles.eligibilityBadge, 
+                { backgroundColor: isEligible ? '#2ED573' : registrationData.status === DONATION_STATUS.REJECTED ? '#FF4757' : '#95A5A6' }
+              ]}>
+                <MaterialCommunityIcons 
+                  name={isEligible ? 'check' : registrationData.status === DONATION_STATUS.REJECTED ? 'close' : 'help'} 
+                  size={14} 
+                  color="#fff" 
+                />
+                <Text style={styles.eligibilityText}>
+                  {isEligible ? 'Đủ' : registrationData.status === DONATION_STATUS.REJECTED ? 'Không đủ' : 'Chưa xác định'}
+                </Text>
+              </View>
+            </View>
+          </View>
+          
+          {/* Health check details if available */}
+          {healthCheckData && (
+            <View style={styles.vitalSignsSection}>
+              <Text style={styles.subSectionTitle}>📊 Chỉ số sinh hiệu</Text>
+              <View style={styles.vitalSignsGrid}>
+                {healthCheckData.bloodPressure && (
+                  <VitalCard icon="heart-pulse" label="Huyết áp" value={healthCheckData.bloodPressure + ' mmHg'} color="#E74C3C" />
+                )}
+                {healthCheckData.hemoglobin && (
+                  <VitalCard icon="water-percent" label="Hemoglobin" value={healthCheckData.hemoglobin + ' g/dL'} color="#9B59B6" />
+                )}
+                {healthCheckData.weight && (
+                  <VitalCard icon="weight" label="Cân nặng" value={healthCheckData.weight + ' kg'} color="#F39C12" />
+                )}
+                {healthCheckData.pulse && (
+                  <VitalCard icon="heart" label="Nhịp tim" value={healthCheckData.pulse + ' bpm'} color="#FF6B6B" />
+                )}
+                {healthCheckData.temperature && (
+                  <VitalCard icon="thermometer" label="Nhiệt độ" value={healthCheckData.temperature + ' °C'} color="#3498DB" />
+                )}
+                {healthCheckData.generalCondition && (
+                  <VitalCard icon="account-check" label="Tình trạng" value={healthCheckData.generalCondition} color="#2ED573" />
+                )}
+              </View>
               
-              {healthCheck.bloodPressure && <InfoRow label="Huyết áp" value={healthCheck.bloodPressure + ' mmHg'} />}
-              {healthCheck.hemoglobin && <InfoRow label="Hemoglobin" value={healthCheck.hemoglobin + ' g/dL'} />}
-              {healthCheck.weight && <InfoRow label="Cân nặng" value={healthCheck.weight + ' kg'} />}
-              {healthCheck.pulse && <InfoRow label="Nhịp tim" value={healthCheck.pulse + ' bpm'} />}
-              {healthCheck.temperature && <InfoRow label="Nhiệt độ" value={healthCheck.temperature + ' °C'} />}
-              {healthCheck.generalCondition && <InfoRow label="Tình trạng chung" value={healthCheck.generalCondition} />}
-              {healthCheck.deferralReason && <InfoRow label="Lý do loại" value={healthCheck.deferralReason} badge="danger" />}
-            </>
+              {healthCheckData.deferralReason && (
+                <View style={styles.deferralSection}>
+                  <MaterialCommunityIcons name="alert-circle" size={20} color="#FF4757" />
+                  <Text style={styles.deferralTitle}>Lý do không đủ điều kiện:</Text>
+                  <Text style={styles.deferralText}>{healthCheckData.deferralReason}</Text>
+                </View>
+              )}
+              
+              {healthCheckData.notes && (
+                <View style={styles.notesSection}>
+                  <MaterialCommunityIcons name="note-text" size={20} color="#636E72" />
+                  <Text style={styles.notesTitle}>Ghi chú bác sĩ:</Text>
+                  <Text style={styles.notesText}>{healthCheckData.notes}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Hiển thị thông báo nếu chưa có health check */}
+          {!healthCheckData && (
+            <View style={styles.noHealthCheckSection}>
+              <MaterialCommunityIcons name="clipboard-text-outline" size={48} color="#95A5A6" />
+              <Text style={styles.noHealthCheckTitle}>Chưa có thông tin khám sức khỏe</Text>
+              <Text style={styles.noHealthCheckText}>
+                {registrationData.status === DONATION_STATUS.CHECKED_IN 
+                  ? 'Người hiến đã check-in, đang chờ tạo phiếu khám sức khỏe'
+                  : 'Thông tin khám sức khỏe sẽ được cập nhật sau khi bác sĩ thực hiện khám'
+                }
+              </Text>
+            </View>
           )}
           
-          {healthCheck.notes && <InfoRow label="Ghi chú" value={healthCheck.notes} />}
+          {registrationData.notes && (
+            <View style={styles.registrationNotesSection}>
+              <MaterialCommunityIcons name="clipboard-text" size={20} color="#636E72" />
+              <Text style={styles.notesTitle}>Ghi chú đăng ký:</Text>
+              <Text style={styles.notesText}>{registrationData.notes}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
       {/* Footer: Action buttons */}
       <View style={styles.footer}>
-        {healthCheck.status === 'pending' || healthCheck.status === 'in_progress' ? (
+        {registrationData.status === DONATION_STATUS.IN_CONSULT ? (
+          <View style={styles.pendingContainer}>
+            <MaterialCommunityIcons name="clock-outline" size={24} color="#4A90E2" />
+            <Text style={styles.pendingText}>Đang chờ bác sĩ khám</Text>
+          </View>
+        ) : registrationData.status === DONATION_STATUS.WAITING_DONATION && isEligible ? (
           <TouchableOpacity
-            style={styles.updateButton}
-            onPress={handleUpdateStatus}
+            style={[styles.donationButton, isCreatingDonation && styles.donationButtonDisabled]}
+            onPress={handleCreateBloodDonation}
+            disabled={isCreatingDonation}
           >
-            <MaterialIcons name="edit" size={24} color="#fff" />
-            <Text style={styles.updateButtonText}>Cập nhật kết quả khám</Text>
+            <MaterialCommunityIcons name="heart-plus" size={24} color="#fff" />
+            <Text style={styles.donationButtonText}>
+              {isCreatingDonation ? 'Đang tạo...' : 'Tiến hành hiến máu'}
+            </Text>
           </TouchableOpacity>
-        ) : healthCheck.status === 'completed' && healthCheck.isEligible === true ? (
-          <TouchableOpacity
-            style={styles.donationButton}
-            onPress={handleProceedToDonation}
-          >
-            <MaterialIcons name="bloodtype" size={24} color="#fff" />
-            <Text style={styles.donationButtonText}>Tiến hành hiến máu</Text>
-          </TouchableOpacity>
-        ) : healthCheck.status === 'completed' && healthCheck.isEligible === false ? (
+        ) : registrationData.status === DONATION_STATUS.REJECTED ? (
           <View style={styles.notEligibleContainer}>
-            <MaterialIcons name="cancel" size={24} color="#FF4757" />
+            <MaterialCommunityIcons name="close-circle" size={24} color="#FF4757" />
             <Text style={styles.notEligibleText}>Không đủ điều kiện hiến máu</Text>
           </View>
         ) : null}
@@ -383,16 +347,31 @@ const HealthCheckDetailScreen = ({ navigation, route }) => {
   );
 };
 
-const InfoRow = ({ label, value, badge }) => (
+const InfoRow = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
+    <MaterialCommunityIcons name={icon} size={20} color="#636E72" />
     <Text style={styles.infoLabel}>{label}:</Text>
-    {badge ? (
-      <View style={[styles.badge, badge === 'success' && styles.badgeSuccess, badge === 'danger' && styles.badgeDanger]}>
-        <Text style={[styles.badgeText, badge === 'success' && { color: '#2ED573' }, badge === 'danger' && { color: '#FF4757' }]}>{value || '-'}</Text>
-      </View>
-    ) : (
-      <Text style={styles.infoValue}>{value || '-'}</Text>
-    )}
+    <Text style={styles.infoValue}>{value || '-'}</Text>
+  </View>
+);
+
+const InfoCard = ({ icon, label, value, color }) => (
+  <View style={styles.infoCard}>
+    <View style={[styles.infoCardIcon, { backgroundColor: color }]}>
+      <MaterialCommunityIcons name={icon} size={20} color="#fff" />
+    </View>
+    <Text style={styles.infoCardLabel}>{label}</Text>
+    <Text style={styles.infoCardValue}>{value}</Text>
+  </View>
+);
+
+const VitalCard = ({ icon, label, value, color }) => (
+  <View style={styles.vitalCard}>
+    <View style={[styles.vitalCardIcon, { backgroundColor: color }]}>
+      <MaterialCommunityIcons name={icon} size={18} color="#fff" />
+    </View>
+    <Text style={styles.vitalCardLabel}>{label}</Text>
+    <Text style={styles.vitalCardValue}>{value}</Text>
   </View>
 );
 
@@ -409,6 +388,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#636E72',
+    marginTop: 12,
   },
   header: {
     backgroundColor: '#FF6B6B',
@@ -416,21 +396,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 20 : 40,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    elevation: 3,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -439,31 +419,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 3,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
     borderColor: '#fff',
-    marginBottom: 8,
     backgroundColor: '#fff',
   },
+  bloodTypeBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+  },
+  bloodTypeText: {
+    color: '#FF6B6B',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 6,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   statusBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 4,
   },
   statusBadgeText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+    marginLeft: 6,
   },
   scrollContent: {
     padding: 16,
@@ -471,72 +474,255 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#F1F2F6',
+    borderColor: '#F0F0F0',
   },
-  sectionTitle: {
-    fontSize: 17,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B6B',
-    marginBottom: 16,
-    letterSpacing: 0.2,
+    color: '#2D3436',
+    marginLeft: 12,
+  },
+  patientInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  contactInfo: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  infoCard: {
+    width: '48%',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  infoCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoCardLabel: {
+    fontSize: 12,
+    color: '#636E72',
+    textAlign: 'center',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  infoCardValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    textAlign: 'center',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    paddingVertical: 4,
   },
   infoLabel: {
     color: '#636E72',
     fontSize: 15,
     width: 120,
     fontWeight: '500',
+    marginLeft: 8,
   },
   infoValue: {
     color: '#2D3436',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     flex: 1,
   },
-  badge: {
+  healthCheckInfo: {
+    marginBottom: 20,
+  },
+  eligibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+  },
+  eligibilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: '#F1F2F6',
-    alignSelf: 'flex-start',
+    borderRadius: 16,
+    marginLeft: 'auto',
   },
-  badgeSuccess: {
-    backgroundColor: '#E6FAF0',
-  },
-  badgeDanger: {
-    backgroundColor: '#FFEAEA',
-  },
-  badgeText: {
+  eligibilityText: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 4,
+  },
+  vitalSignsSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  subSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  vitalSignsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  vitalCard: {
+    width: '48%',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  vitalCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  vitalCardLabel: {
+    fontSize: 11,
     color: '#636E72',
+    textAlign: 'center',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  vitalCardValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    textAlign: 'center',
+  },
+  deferralSection: {
+    backgroundColor: '#FFEAEA',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF4757',
+  },
+  deferralTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FF4757',
+    marginLeft: 8,
+    marginBottom: 8,
+  },
+  deferralText: {
+    color: '#2D3436',
+    fontSize: 14,
+    lineHeight: 20,
+    paddingLeft: 28,
+  },
+  notesSection: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#636E72',
+  },
+  notesTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginLeft: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notesText: {
+    color: '#2D3436',
+    fontSize: 14,
+    lineHeight: 20,
+    paddingLeft: 28,
+    fontStyle: 'italic',
+  },
+  registrationNotesSection: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4A90E2',
   },
   footer: {
-    padding: 16,
+    padding: 20,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   donationButton: {
     backgroundColor: '#2ED573',
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#2ED573',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  donationButtonDisabled: {
+    opacity: 0.7,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   donationButtonText: {
     color: '#FFFFFF',
@@ -544,27 +730,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  updateButton: {
-    backgroundColor: '#4A90E2',
+  pendingContainer: {
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F0F8FF',
+    borderWidth: 2,
+    borderColor: '#4A90E2',
   },
-  updateButtonText: {
-    color: '#FFFFFF',
+  pendingText: {
+    color: '#4A90E2',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
   },
   notEligibleContainer: {
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFEAEA',
     borderWidth: 2,
     borderColor: '#FF4757',
   },
@@ -573,6 +761,29 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  noHealthCheckSection: {
+    alignItems: 'center',
+    padding: 32,
+    marginTop: 20,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  noHealthCheckTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#636E72',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noHealthCheckText: {
+    fontSize: 14,
+    color: '#95A5A6',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

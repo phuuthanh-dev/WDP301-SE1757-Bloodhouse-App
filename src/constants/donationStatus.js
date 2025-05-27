@@ -131,7 +131,7 @@ export const getStatusColor = (status) => {
     case DONATION_STATUS.REGISTERED:
       return "#FFA502";
     case DONATION_STATUS.CHECKED_IN:
-      return "#FFA502";
+      return "#2ED573";
     case DONATION_STATUS.IN_CONSULT:
       return "#1E90FF";
     case DONATION_STATUS.REJECTED:
