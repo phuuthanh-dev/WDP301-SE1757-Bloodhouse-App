@@ -10,15 +10,19 @@ import {
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
+import bloodDonationRegistrationAPI from '@/apis/bloodDonationRegistration';
+import { toast } from 'sonner-native';
 
 export default function ScannerScreen({ route, navigation }) {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [flashMode, setFlashMode] = useState('off');
+  const [processing, setProcessing] = useState(false);
   
-  const mode = route.params?.mode || 'donor'; // 'donor', 'gift', or 'blood'
+  const mode = route.params?.mode || 'donor'; // 'donor', 'gift', 'blood', or 'checkin'
   const giftId = route.params?.giftId;
   const giftName = route.params?.giftName;
+  const registrationId = route.params?.registrationId;
 
   useEffect(() => {
     (async () => {
@@ -28,6 +32,7 @@ export default function ScannerScreen({ route, navigation }) {
   }, []);
 
   const handleBarCodeScanned = ({ type, data }) => {
+    if (processing) return; // Prevent multiple scans
     setScanned(true);
     
     switch (mode) {
@@ -40,8 +45,131 @@ export default function ScannerScreen({ route, navigation }) {
       case 'blood':
         handleBloodScan(data);
         break;
+      case 'checkin':
+        handleCheckInScan(data);
+        break;
       default:
         Alert.alert('Lỗi', 'Chế độ quét không hợp lệ');
+    }
+  };
+
+  const handleCheckInScan = async (qrData) => {
+    try {
+      setProcessing(true);
+      
+      // Parse QR code data
+      let parsedData;
+      try {
+        parsedData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+      } catch (error) {
+        throw new Error('QR code không đúng định dạng');
+      }
+
+      // Validate QR data structure
+      if (!parsedData.registrationId) {
+        throw new Error('QR code không chứa thông tin đăng ký hiến máu');
+      }
+
+      // Show confirmation dialog with better styling
+      Alert.alert(
+        ' Xác nhận Check-in',
+        `Bạn có muốn check-in cho đăng ký hiến máu?`,
+        [
+          {
+            text: 'Hủy bỏ',
+            style: 'cancel',
+            onPress: () => {
+              setScanned(false);
+              setProcessing(false);
+            },
+          },
+          {
+            text: ' Xác nhận',
+            style: 'default',
+            onPress: async () => {
+              try {
+                // Call check-in API
+                const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+                  '/check-in',
+                  { qrData: qrData },
+                  'post'
+                );
+
+                if (response.success || response.data) {
+                  // Show success alert first
+                  Alert.alert(
+                    ' Check-in Thành Công!',
+                    'Người hiến máu đã được check-in thành công.\nHệ thống sẽ cập nhật trạng thái ngay lập tức.',
+                    [
+                      {
+                        text: ' Hoàn tất',
+                        style: 'default',
+                        onPress: () => {
+                          toast.success('✅ Check-in thành công!');
+                          navigation.goBack();
+                        },
+                      },
+                    ]
+                  );
+                } else {
+                  throw new Error(response.message || 'Không thể thực hiện check-in');
+                }
+              } catch (error) {
+                console.error('Check-in error:', error);
+                
+                // Show detailed error dialog
+                Alert.alert(
+                  '❌ Check-in Thất Bại',
+                  `Không thể thực hiện check-in:\n\n${error.message || 'Có lỗi xảy ra khi kết nối với máy chủ'}\n\nVui lòng thử lại hoặc liên hệ quản trị viên.`,
+                  [
+                    {
+                      text: '🔙 Quay lại',
+                      style: 'cancel',
+                      onPress: () => navigation.goBack(),
+                    },
+                    {
+                      text: '🔄 Thử lại',
+                      style: 'default',
+                      onPress: () => {
+                        setScanned(false);
+                        setProcessing(false);
+                      },
+                    },
+                  ]
+                );
+                
+                // Also show toast for immediate feedback
+                toast.error(`❌ ${error.message || 'Check-in thất bại'}`);
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('QR scan error:', error);
+      
+      Alert.alert(
+        '⚠️ Lỗi Quét QR Code',
+        `Không thể đọc mã QR:\n\n${error.message}\n\nVui lòng đảm bảo QR code rõ nét và đúng định dạng.`,
+        [
+          {
+            text: '🔙 Quay lại',
+            style: 'cancel',
+            onPress: () => navigation.goBack(),
+          },
+          {
+            text: '📷 Quét lại',
+            style: 'default',
+            onPress: () => {
+              setScanned(false);
+              setProcessing(false);
+            },
+          },
+        ]
+      );
+      
+      // Show toast for immediate feedback
+      toast.error(`⚠️ ${error.message || 'QR code không hợp lệ'}`);
     }
   };
 
@@ -158,7 +286,9 @@ export default function ScannerScreen({ route, navigation }) {
             ? 'Quét Mã Người Hiến'
             : mode === 'gift'
             ? 'Quét Mã Phát Quà'
-            : 'Quét Mã Đơn Vị Máu'}
+            : mode === 'blood'
+            ? 'Quét Mã Đơn Vị Máu'
+            : 'Quét Mã Check-in'}
         </Text>
         <TouchableOpacity style={styles.flashButton} onPress={toggleFlash}>
           <MaterialIcons
@@ -184,15 +314,19 @@ export default function ScannerScreen({ route, navigation }) {
         
         <View style={styles.guideContainer}>
           <Text style={styles.guideText}>
-            {mode === 'donor'
+            {processing 
+              ? '🔄 Đang xử lý check-in...'
+              : mode === 'donor'
               ? 'Đặt mã định danh người hiến vào khung hình'
               : mode === 'gift'
               ? 'Đặt mã định danh người nhận quà vào khung hình'
-              : 'Đặt mã đơn vị máu vào khung hình'}
+              : mode === 'blood'
+              ? 'Đặt mã đơn vị máu vào khung hình'
+              : 'Đặt mã đăng ký vào khung hình'}
           </Text>
         </View>
 
-        {scanned && (
+        {scanned && !processing && (
           <TouchableOpacity
             style={styles.rescanButton}
             onPress={() => setScanned(false)}
@@ -200,6 +334,16 @@ export default function ScannerScreen({ route, navigation }) {
             <MaterialIcons name="refresh" size={24} color="#FFFFFF" />
             <Text style={styles.rescanText}>Quét lại</Text>
           </TouchableOpacity>
+        )}
+
+        {processing && (
+          <View style={styles.processingContainer}>
+            <View style={styles.processingCard}>
+              <MaterialIcons name="hourglass-empty" size={32} color="#FF6B6B" />
+              <Text style={styles.processingText}>Đang xử lý check-in...</Text>
+              <Text style={styles.processingSubText}>Vui lòng đợi trong giây lát</Text>
+            </View>
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -302,6 +446,41 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  processingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  processingCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginHorizontal: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  processingText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  processingSubText: {
+    fontSize: 14,
+    color: '#718096',
     textAlign: 'center',
   },
 }); 
