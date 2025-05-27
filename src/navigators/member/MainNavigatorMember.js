@@ -18,6 +18,8 @@ import ReceiveRequestScreen from "@/screens/member/bloodReceiveRequest/ReceiveRe
 import BloodCompatibilityScreen from "@/screens/member/bloodCompatibility/BloodCompatibilityScreen";
 import ReceiveRequestDetailScreen from "@/screens/member/bloodReceiveRequest/ReceiveRequestDetailScreen";
 import VerifyLevel2Screen from "@/screens/member/profile/VerifyLevel2Screen";
+import { EmergencyCampaignListScreen } from "@/screens/member/mergencyCampaign/EmergencyCampaignListScreen";
+import { EmergencyCampaignDetailScreen } from "@/screens/member/mergencyCampaign/EmergencyCampaignDetailScreen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -48,6 +50,8 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="BloodCompatibility" component={BloodCompatibilityScreen} />
       <Stack.Screen name="ReceiveRequestDetail" component={ReceiveRequestDetailScreen} />
       <Stack.Screen name="VerifyLevel2Screen" component={VerifyLevel2Screen} />
+      <Stack.Screen name="EmergencyCampaignList" component={EmergencyCampaignListScreen} />
+      <Stack.Screen name="EmergencyCampaignDetail" component={EmergencyCampaignDetailScreen} />
     </Stack.Navigator>
   );
 };

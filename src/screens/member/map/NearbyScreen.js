@@ -8,6 +8,7 @@ import {
   StatusBar,
   Dimensions,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from "react-native-maps";
@@ -185,7 +186,7 @@ export default function NearbyScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
 
       {/* Header */}
       <View style={styles.header}>
@@ -299,25 +300,23 @@ export default function NearbyScreen({ navigation }) {
       >
         <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#fff" />
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
+    backgroundColor: "#FF6B6B",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#FF6B6B",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E9ECEF",
+    paddingVertical: 16,
   },
   backButton: {
     padding: 8,

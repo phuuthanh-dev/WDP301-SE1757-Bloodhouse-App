@@ -8,12 +8,16 @@ import {
   ScrollView,
   Platform,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { authSelector } from "@/redux/reducers/authReducer";
 import { useFacility } from "@/contexts/FacilityContext";
 import facilityAPI from "@/apis/facilityAPI";
+
+const screenWidth = Dimensions.get('window').width;
+const cardWidth = (screenWidth - 48) / 2; // 48 = padding left 16 + padding right 16 + gap 16
 
 export default function DashboardScreen({ navigation }) {
   const { user } = useSelector(authSelector);
@@ -25,7 +29,7 @@ export default function DashboardScreen({ navigation }) {
     {
       id: "1",
       title: "Kho Máu",
-      description: "Quản lý lượng máu và theo dõi tình trạng kho",
+      description: "Quản lý lượng máu",
       icon: "opacity",
       route: "BloodInventory",
       stats: {
@@ -36,57 +40,63 @@ export default function DashboardScreen({ navigation }) {
     },
     {
       id: "2",
-      title: "Danh Sách Người Hiến",
-      description: "Xem và quản lý người hiến máu đã đăng ký",
+      title: "Người Hiến",
+      description: "Quản lý người hiến",
       icon: "people",
       route: "DonorList",
       stats: {
-        total: loading
-          ? "..."
-          : stats.totalDonationRequestPending?.toString() || "0",
-        label: "Yêu Cầu Chờ Duyệt",
+        total: loading ? "..." : stats.totalDonationRequestPending?.toString() || "0",
+        label: "Chờ Duyệt",
       },
       color: "#2ED573",
     },
     {
       id: "3",
-      title: "Yêu Cầu Nhận Máu",
-      description: "Xem và quản lý yêu cầu nhận máu đã đăng ký",
+      title: "Nhận Máu",
+      description: "Yêu cầu nhận máu",
       icon: "request-page",
       route: "ReceiveRequestList",
       stats: {
-        total: loading
-          ? "..."
-          : stats.totalReceiveRequestPending?.toString() || "0",
-        label: "Yêu Cầu Chờ Duyệt",
+        total: loading ? "..." : stats.totalReceiveRequestPending?.toString() || "0",
+        label: "Chờ Duyệt",
       },
       color: "#FF6B6B",
     },
     {
       id: "4",
-      title: "Yêu Cầu Hiến Máu",
-      description: "Xử lý các cuộc hẹn hiến máu đến",
+      title: "Hiến Máu",
+      description: "Cuộc hẹn hiến máu",
       icon: "event",
       route: "DonationRequests",
       stats: {
-        total: loading
-          ? "..."
-          : stats.totalDonationRequestPending?.toString() || "0",
-        label: "Yêu Cầu Chờ Duyệt",
+        total: loading ? "..." : stats.totalDonationRequestPending?.toString() || "0",
+        label: "Chờ Duyệt",
       },
       color: "#1E90FF",
     },
     {
       id: "5",
-      title: "Yêu Cầu Khẩn Cấp",
-      description: "Quản lý nhu cầu máu khẩn cấp",
+      title: "Khẩn Cấp",
+      description: "Yêu cầu khẩn cấp",
       icon: "warning",
       route: "EmergencyRequests",
       stats: {
         total: loading ? "..." : stats.totalEmergencyRequest?.toString() || "0",
-        label: "Trường Hợp Khẩn Cấp",
+        label: "Trường Hợp",
       },
       color: "#FF4757",
+    },
+    {
+      id: "6",
+      title: "Chiến Dịch",
+      description: "Chiến dịch khẩn cấp",
+      icon: "campaign",
+      route: "EmergencyCampaignScreen",
+      stats: {
+        total: loading ? "..." : stats.totalEmergencyCampaigns?.toString() || "0",
+        label: "Đang Diễn Ra",
+      },
+      color: "#FFA502",
     },
   ];
 
@@ -111,7 +121,7 @@ export default function DashboardScreen({ navigation }) {
   const renderDashboardCard = (card) => (
     <TouchableOpacity
       key={card.id}
-      style={styles.card}
+      style={[styles.card, { width: cardWidth }]}
       onPress={() => navigation.navigate(card.route)}
     >
       <View style={styles.cardHeader}>
@@ -119,10 +129,6 @@ export default function DashboardScreen({ navigation }) {
           style={[styles.iconContainer, { backgroundColor: card.color + "20" }]}
         >
           <MaterialIcons name={card.icon} size={24} color={card.color} />
-        </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.statsNumber}>{card.stats.total}</Text>
-          <Text style={styles.statsLabel}>{card.stats.label}</Text>
         </View>
       </View>
 
@@ -132,8 +138,8 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.cardFooter}>
-        <View style={styles.criticalInfo}></View>
-        <MaterialIcons name="arrow-forward" size={20} color={card.color} />
+        <Text style={styles.statsNumber}>{card.stats.total}</Text>
+        <Text style={styles.statsLabel}>{card.stats.label}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -145,7 +151,7 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.headerContent}>
           <Text style={styles.greeting}>Xin Chào, {user?.fullName}</Text>
           <Text style={styles.headerTitle}>Quản Lý Ngân Hàng Máu</Text>
-          <Text style={styles.headerTitle}>{facilityName}</Text>
+          <Text style={styles.facilityName}>{facilityName}</Text>
         </View>
         <TouchableOpacity style={styles.profileButton}>
           <MaterialIcons name="account-circle" size={32} color="#FFFFFF" />
@@ -180,7 +186,9 @@ export default function DashboardScreen({ navigation }) {
           <RefreshControl refreshing={loading} onRefresh={fetchStats} />
         }
       >
-        {dashboardCards.map(renderDashboardCard)}
+        <View style={styles.cardsGrid}>
+          {dashboardCards.map(renderDashboardCard)}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -212,6 +220,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFFFFF",
     marginTop: 4,
+  },
+  facilityName: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    marginTop: 4,
+    opacity: 0.9,
   },
   profileButton: {
     padding: 8,
@@ -246,10 +260,15 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
+  cardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    marginBottom: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -258,9 +277,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 16,
   },
   iconContainer: {
@@ -270,11 +286,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerRight: {
-    alignItems: "flex-end",
+  cardContent: {
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2D3436",
+    marginBottom: 4,
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: "#636E72",
+    lineHeight: 16,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#E9ECEF",
+    paddingTop: 12,
   },
   statsNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#2D3436",
   },
@@ -282,36 +317,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#636E72",
     marginTop: 2,
-  },
-  cardContent: {
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2D3436",
-    marginBottom: 4,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#636E72",
-    lineHeight: 20,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#E9ECEF",
-  },
-  criticalInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  criticalText: {
-    marginLeft: 6,
-    fontSize: 12,
-    color: "#636E72",
   },
 });

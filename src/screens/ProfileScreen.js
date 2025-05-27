@@ -34,7 +34,7 @@ const VerificationBadge = ({ level }) => {
         size={14} 
         color="#FFF" 
       />
-      <Text style={styles.badgeText}>Mức {level}</Text>
+      <Text style={styles.badgeText}>Xác thực mức {level}</Text>
     </View>
   );
 };
