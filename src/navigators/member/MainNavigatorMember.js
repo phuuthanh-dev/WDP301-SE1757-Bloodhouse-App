@@ -1,4 +1,4 @@
- import React from "react";
+import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DonationScreen from "@/screens/member/donation/DonationScreen";
 import BloodTypeDetailScreen from "@/screens/member/bloodType/BloodTypeDetailScreen";
@@ -18,8 +18,8 @@ import ReceiveRequestScreen from "@/screens/member/bloodReceiveRequest/ReceiveRe
 import BloodCompatibilityScreen from "@/screens/member/bloodCompatibility/BloodCompatibilityScreen";
 import ReceiveRequestDetailScreen from "@/screens/member/bloodReceiveRequest/ReceiveRequestDetailScreen";
 import VerifyLevel2Screen from "@/screens/member/profile/VerifyLevel2Screen";
-import { EmergencyCampaignListScreen } from "@/screens/member/mergencyCampaign/EmergencyCampaignListScreen";
-import { EmergencyCampaignDetailScreen } from "@/screens/member/mergencyCampaign/EmergencyCampaignDetailScreen";
+import SupportRequestsScreen from "@/screens/member/supportRequest/SupportRequestsScreen";
+import SupportRequestDetailScreen from "@/screens/member/supportRequest/SupportRequestDetailScreen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -47,11 +47,23 @@ const MainNavigatorMember = () => {
       <Stack.Screen name="AboutScreen" component={AboutScreen} />
       <Stack.Screen name="Nearby" component={NearbyScreen} />
       <Stack.Screen name="DonationHistory" component={DonationHistoryScreen} />
-      <Stack.Screen name="BloodCompatibility" component={BloodCompatibilityScreen} />
-      <Stack.Screen name="ReceiveRequestDetail" component={ReceiveRequestDetailScreen} />
+      <Stack.Screen
+        name="BloodCompatibility"
+        component={BloodCompatibilityScreen}
+      />
+      <Stack.Screen
+        name="ReceiveRequestDetail"
+        component={ReceiveRequestDetailScreen}
+      />
       <Stack.Screen name="VerifyLevel2Screen" component={VerifyLevel2Screen} />
-      <Stack.Screen name="EmergencyCampaignList" component={EmergencyCampaignListScreen} />
-      <Stack.Screen name="EmergencyCampaignDetail" component={EmergencyCampaignDetailScreen} />
+      <Stack.Screen
+        name="SupportRequestScreen"
+        component={SupportRequestsScreen}
+      />
+      <Stack.Screen
+        name="SupportRequestDetail"
+        component={SupportRequestDetailScreen}
+      />
     </Stack.Navigator>
   );
 };

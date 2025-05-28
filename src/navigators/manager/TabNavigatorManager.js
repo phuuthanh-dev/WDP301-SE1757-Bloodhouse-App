@@ -4,10 +4,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 // Import screens
 import ProfileScreen from '@/screens/ProfileScreen';
-import ManageRequestsScreen from '@/screens/manager/ManageRequestsScreen';
-import ManageStaffsScreen from '@/screens/manager/ManageStaffsScreen';
+import ManageRequestsScreen from '@/screens/manager/manage/ManageRequestsScreen';
+import ManageStaffsScreen from '@/screens/manager/manage/ManageStaffsScreen';
 import DashboardScreen from '@/screens/manager/DashboardScreen';
-import ManageDistributionScreen from '@/screens/manager/ManageDistributionScreen';
+import ManageDistributionScreen from '@/screens/manager/manage/ManageDistributionScreen';
 
 const Tab = createBottomTabNavigator();
 

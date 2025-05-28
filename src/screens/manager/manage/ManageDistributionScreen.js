@@ -27,7 +27,7 @@ export default function ManageDistributionScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await bloodRequestAPI.HandleBloodRequest(
-        `/facility/${facilityId}?status=approved&isFulfilled=false&hasCampaign=false`
+        `/facility/${facilityId}?status=approved&isFulfilled=false`
       );
       if (response.status === 200) {
         setAssignedRequests(response.data.data);

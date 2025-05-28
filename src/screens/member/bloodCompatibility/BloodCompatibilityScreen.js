@@ -180,10 +180,6 @@ export default function BloodCompatibilityScreen({ navigation }) {
     const fetchCompatibility = async () => {
       if (selectedBloodType && selectedComponent) {
         try {
-          const data = {
-            bloodGroupId: selectedBloodType,
-            componentId: selectedComponent,
-          };
           const response = await bloodCompatibilityAPI.HandleBloodCompatibility(
             "?bloodGroupId=" +
               selectedBloodType +
@@ -231,9 +227,15 @@ export default function BloodCompatibilityScreen({ navigation }) {
           <Text style={styles.compatibilityTitle}>Có thể cho máu cho</Text>
           <View style={styles.bloodTypeGrid}>
             {bloodCompatibility?.canDonateTo?.map((type) => (
-              <View key={type._id} style={styles.compatibleType}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("BloodTypeDetail", { groupId: type._id })
+                }
+                key={type._id}
+                style={styles.compatibleType}
+              >
                 <Text style={styles.compatibleTypeText}>{type.name}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -242,9 +244,15 @@ export default function BloodCompatibilityScreen({ navigation }) {
           <Text style={styles.compatibilityTitle}>Có thể nhận máu từ</Text>
           <View style={styles.bloodTypeGrid}>
             {bloodCompatibility?.canReceiveFrom?.map((type) => (
-              <View key={type._id} style={styles.compatibleType}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("BloodTypeDetail", { groupId: type._id })
+                }
+                key={type._id}
+                style={styles.compatibleType}
+              >
                 <Text style={styles.compatibleTypeText}>{type.name}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>

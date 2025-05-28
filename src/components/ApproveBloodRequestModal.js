@@ -13,9 +13,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { formatDateTime } from "@/utils/formatHelpers";
 import bloodInventoryAPI from "@/apis/bloodInventoryAPI";
 import { useFacility } from "@/contexts/FacilityContext";
-import emergencyCampaignAPI from "@/apis/emergencyCampaignAPI";
 import { useNavigation } from "@react-navigation/native";
-import CreateEmergencyCampaignModal from "./CreateEmergencyCampaignModal";
+import bloodRequestAPI from "@/apis/bloodRequestAPI";
+import { useSelector } from "react-redux";
+import { authSelector } from "@/redux/reducers/authReducer";
 
 export default function ApproveBloodRequestModal({
   visible,
@@ -23,14 +24,13 @@ export default function ApproveBloodRequestModal({
   request,
   onApproveSuccess,
 }) {
+  const { user } = useSelector(authSelector);
   const { facilityId } = useFacility();
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [availableUnits, setAvailableUnits] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [creatingCampaign, setCreatingCampaign] = useState(false);
-  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -60,23 +60,41 @@ export default function ApproveBloodRequestModal({
     }
   };
 
+  const handleNeedSupport = async () => {
+    try {
+      const response = await bloodRequestAPI.HandleBloodRequest(
+        `/facility/${facilityId}/${request._id}/status`,
+        {
+          staffId: user._id,
+          status: "approved",
+          needsSupport: true,
+        },
+        "patch"
+      );
+      if (response.status === 200) {
+        Alert.alert("Thành công", "Đã đánh dấu cần hỗ trợ");
+        onClose();
+        navigation.navigate("SupportRequestList");
+      }
+    } catch (error) {
+      console.error("Error marking need support:", error);
+    }
+  };
+
   const handleApprove = async () => {
     if (availableUnits < request.quantity) {
       Alert.alert(
         "Không đủ máu",
-        `Hiện chỉ có ${availableUnits} đơn vị máu ${request.componentId.name} nhóm ${request.groupId.name}. Bạn có muốn tạo chiến dịch tìm người hiến máu không?`,
+        `Hiện chỉ có ${availableUnits} đơn vị máu ${request.componentId.name} nhóm ${request.groupId.name}. Bạn có muốn đánh dấu cần người hỗ trợ không?`,
         [
           {
             text: "Hủy",
             style: "cancel",
           },
           {
-            text: "Tạo chiến dịch",
+            text: "Đánh dấu cần hỗ trợ",
             onPress: () => {
-              onClose();
-              setTimeout(() => {
-                setShowCreateCampaignModal(true);
-              }, 300);
+              handleNeedSupport();
             },
           },
         ]
@@ -86,44 +104,6 @@ export default function ApproveBloodRequestModal({
 
     onApproveSuccess(request._id, selectedDate);
     onClose();
-  };
-
-  const handleCreateCampaign = async (campaignData) => {
-    try {
-      setCreatingCampaign(true);
-      const response = await emergencyCampaignAPI.HandleEmergencyCampaign(
-        "",
-        {
-          requestId: request._id,
-          deadline: campaignData.deadline,
-          note: campaignData.note,
-        },
-        "post"
-      );
-
-      if (response.status === 201) {
-        setShowCreateCampaignModal(false);
-        Alert.alert(
-          "Tạo chiến dịch thành công",
-          `Đã gửi thông báo đến ${response.data.notifiedDonors} người hiến máu phù hợp.`,
-          [
-            {
-              text: "Đóng",
-              onPress: () => {
-                navigation.navigate("EmergencyCampaignScreen");
-              },
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      Alert.alert(
-        "Lỗi",
-        "Không thể tạo chiến dịch hiến máu. Vui lòng thử lại sau."
-      );
-    } finally {
-      setCreatingCampaign(false);
-    }
   };
 
   return (
@@ -190,7 +170,9 @@ export default function ApproveBloodRequestModal({
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Kiểm tra tồn kho</Text>
                 {loading ? (
-                  <Text style={styles.loadingText}>Đang kiểm tra tồn kho...</Text>
+                  <Text style={styles.loadingText}>
+                    Đang kiểm tra tồn kho...
+                  </Text>
                 ) : (
                   <>
                     <View style={styles.inventoryInfo}>
@@ -198,7 +180,8 @@ export default function ApproveBloodRequestModal({
                       <Text
                         style={[
                           styles.value,
-                          availableUnits < request.quantity && styles.warningText,
+                          availableUnits < request.quantity &&
+                            styles.warningText,
                         ]}
                       >
                         {availableUnits} đơn vị
@@ -210,7 +193,8 @@ export default function ApproveBloodRequestModal({
                           ⚠️ Không đủ đơn vị máu để đáp ứng yêu cầu
                         </Text>
                         <Text style={styles.warningSubtext}>
-                          Bạn có thể tạo chiến dịch để tìm người hiến máu phù hợp
+                          Bạn có thể đánh dấu là đã được duyệt và cần người hỗ
+                          trợ.
                         </Text>
                       </View>
                     )}
@@ -223,7 +207,6 @@ export default function ApproveBloodRequestModal({
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
                 onPress={onClose}
-                disabled={creatingCampaign}
               >
                 <Text style={styles.buttonText}>Hủy</Text>
               </TouchableOpacity>
@@ -231,14 +214,12 @@ export default function ApproveBloodRequestModal({
                 style={[
                   styles.button,
                   styles.approveButton,
-                  creatingCampaign && styles.disabledButton,
                 ]}
                 onPress={handleApprove}
-                disabled={creatingCampaign}
               >
                 <Text style={[styles.buttonText, styles.approveButtonText]}>
                   {availableUnits < request.quantity
-                    ? "Tạo chiến dịch"
+                    ? "Đánh dấu cần hỗ trợ"
                     : "Duyệt yêu cầu"}
                 </Text>
               </TouchableOpacity>
@@ -246,14 +227,6 @@ export default function ApproveBloodRequestModal({
           </View>
         </View>
       </Modal>
-
-      <CreateEmergencyCampaignModal
-        visible={showCreateCampaignModal}
-        onClose={() => setShowCreateCampaignModal(false)}
-        onSubmit={handleCreateCampaign}
-        loading={creatingCampaign}
-        request={request}
-      />
     </>
   );
 }

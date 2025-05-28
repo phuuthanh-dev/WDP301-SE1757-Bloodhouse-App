@@ -13,7 +13,9 @@
         "@contexts/*": ["src/contexts/*"],
         "@hooks/*": ["src/hooks/*"],
         "@store/*": ["src/store/*"],
-        "@styles/*": ["src/styles/*"]
+        "@styles/*": ["src/styles/*"],
+        "@services/*": ["src/services/*"],
+        "@redux/*": ["src/redux/*"]
       }
     },
     "extends": "expo/tsconfig.base"
