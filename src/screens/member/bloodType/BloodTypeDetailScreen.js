@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Platform,
+  SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import bloodGroupAPI from "@/apis/bloodGroup";
 
 const bloodCompatibility = [
   {
@@ -59,10 +62,19 @@ const donationTips = [
 ];
 
 export default function BloodTypeDetailScreen({ route, navigation }) {
-  const { group } = route.params;
+  const { groupId } = route.params;
+  const [group, setGroup] = useState(null);
   const compatibilityData = bloodCompatibility.find(
     (item) => item.type === group?.name
   );
+
+  useEffect(() => {
+    const fetchGroup = async () => {
+      const response = await bloodGroupAPI.HandleBloodGroup(`/${groupId}`);
+      setGroup(response.data);
+    };
+    fetchGroup();
+  }, [groupId]);
 
   const renderCompatibilitySection = (title, types) => (
     <View style={styles.compatibilitySection}>
@@ -89,55 +101,59 @@ export default function BloodTypeDetailScreen({ route, navigation }) {
   );
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.bloodType}>{group?.name}</Text>
-          <Text style={styles.percentage}>{group?.populationRate}% dân số</Text>
-        </View>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin chung</Text>
-          <Text style={styles.description}>{group?.note}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.bloodType}>{group?.name}</Text>
+            <Text style={styles.percentage}>
+              {group?.populationRate}% dân số
+            </Text>
+          </View>
         </View>
 
-        {/* Compatibility */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tương thích máu</Text>
-          {renderCompatibilitySection(
-            "Có thể cho máu cho",
-            compatibilityData?.canGiveTo
-          )}
-          {renderCompatibilitySection(
-            "Có thể nhận máu từ",
-            compatibilityData?.canReceiveFrom
-          )}
-        </View>
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Description */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Thông tin chung</Text>
+            <Text style={styles.description}>{group?.note}</Text>
+          </View>
 
-        {/* Characteristics */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Đặc điểm</Text>
-          {renderList(group?.characteristics)}
-        </View>
+          {/* Compatibility */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tương thích máu</Text>
+            {renderCompatibilitySection(
+              "Có thể cho máu cho",
+              compatibilityData?.canGiveTo
+            )}
+            {renderCompatibilitySection(
+              "Có thể nhận máu từ",
+              compatibilityData?.canReceiveFrom
+            )}
+          </View>
 
-        {/* Donation Tips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Lưu ý khi hiến máu</Text>
-          {renderList(donationTips)}
+          {/* Characteristics */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Đặc điểm</Text>
+            {renderList(group?.characteristics)}
+          </View>
+
+          {/* Donation Tips */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Lưu ý khi hiến máu</Text>
+            {renderList(donationTips)}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -149,7 +165,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FF6B6B",
     padding: 20,
-    paddingTop: 40,
   },
   backButton: {
     marginBottom: 16,

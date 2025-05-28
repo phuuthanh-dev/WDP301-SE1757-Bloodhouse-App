@@ -43,7 +43,7 @@ export default function DashboardScreen({ navigation }) {
       title: "Người Hiến",
       description: "Quản lý người hiến",
       icon: "people",
-      route: "DonorList",
+      route: "DonationList",
       stats: {
         total: loading ? "..." : stats.totalDonationRequestPending?.toString() || "0",
         label: "Chờ Duyệt",
@@ -76,27 +76,15 @@ export default function DashboardScreen({ navigation }) {
     },
     {
       id: "5",
-      title: "Khẩn Cấp",
-      description: "Yêu cầu khẩn cấp",
-      icon: "warning",
-      route: "EmergencyRequests",
+      title: "Hỗ Trợ",
+      description: "Yêu cầu cần hỗ trợ",
+      icon: "volunteer-activism",
+      route: "SupportRequestList",
       stats: {
-        total: loading ? "..." : stats.totalEmergencyRequest?.toString() || "0",
-        label: "Trường Hợp",
+        total: loading ? "..." : stats.totalSupportRequests?.toString() || "0",
+        label: "Yêu Cầu",
       },
       color: "#FF4757",
-    },
-    {
-      id: "6",
-      title: "Chiến Dịch",
-      description: "Chiến dịch khẩn cấp",
-      icon: "campaign",
-      route: "EmergencyCampaignScreen",
-      stats: {
-        total: loading ? "..." : stats.totalEmergencyCampaigns?.toString() || "0",
-        label: "Đang Diễn Ra",
-      },
-      color: "#FFA502",
     },
   ];
 

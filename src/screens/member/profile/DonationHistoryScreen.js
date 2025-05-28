@@ -180,11 +180,11 @@ export default function DonationHistoryScreen({ navigation }) {
       onPress={() => navigation.navigate("ReceiveRequestDetail", { request })}
     >
       <View style={styles.cardHeader}>
-        {request?.scheduleDate && (
+        {request?.scheduledDeliveryDate && (
           <View style={styles.dateContainer}>
             <MaterialIcons name="event" size={20} color="#636E72" />
             <Text style={styles.date}>
-              Ngày hẹn: {formatDateTime(request.scheduleDate)}
+              Ngày hẹn: {formatDateTime(request.scheduledDeliveryDate)}
             </Text>
           </View>
         )}

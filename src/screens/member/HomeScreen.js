@@ -105,17 +105,23 @@ export default function HomeScreen({ navigation }) {
           color: "#9C27B0", // Purple for location
           bgColor: "rgba(156, 39, 176, 0.1)",
         };
-      case "emergency":
-        return {
-          icon: "campaign",
-          color: "#FF9800", // Orange for emergency
-          bgColor: "rgba(255, 152, 0, 0.1)",
-        };
       case "history":
         return {
           icon: "history",
           color: "#607D8B", // Blue grey for history
           bgColor: "rgba(96, 125, 139, 0.1)",
+        };
+      case "support":
+        return {
+          icon: "volunteer-activism",
+          color: "#E91E63", // Pink for support
+          bgColor: "rgba(233, 30, 99, 0.1)",
+        };
+      case "event":
+        return {
+          icon: "event",
+          color: "#E91E63", // Anh đỏ
+          bgColor: "rgba(233, 30, 99, 0.1)",
         };
       default:
         return {
@@ -129,7 +135,7 @@ export default function HomeScreen({ navigation }) {
     <TouchableOpacity
       key={info._id}
       style={styles.bloodTypeCard}
-      onPress={() => navigation.navigate("BloodTypeDetail", { info })}
+      onPress={() => navigation.navigate("BloodTypeDetail", { groupId: info._id })}
     >
       <View style={styles.bloodTypeHeader}>
         <View style={styles.bloodTypeContainer}>
@@ -222,21 +228,35 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.quickActionsContainer}>
           <View style={styles.quickActions}>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("compatibility").bgColor }]}
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor:
+                    getActionButtonStyle("compatibility").bgColor,
+                },
+              ]}
               onPress={() => navigation.navigate("BloodCompatibility")}
             >
-              <MaterialIcons 
-                name="compare-arrows" 
-                size={24} 
-                color={getActionButtonStyle("compatibility").color} 
+              <MaterialIcons
+                name="compare-arrows"
+                size={24}
+                color={getActionButtonStyle("compatibility").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("compatibility").color }]}>
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("compatibility").color },
+                ]}
+              >
                 Kiểm tra tương thích
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("donation").bgColor }]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("donation").bgColor },
+              ]}
               onPress={() => navigation.navigate("Donation")}
             >
               <FontAwesome5
@@ -244,65 +264,124 @@ export default function HomeScreen({ navigation }) {
                 size={24}
                 color={getActionButtonStyle("donation").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("donation").color }]}>
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("donation").color },
+                ]}
+              >
                 Đăng ký hiến máu
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("request").bgColor }]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("request").bgColor },
+              ]}
               onPress={() => navigation.navigate("ReceiveRequest")}
             >
-              <MaterialIcons 
-                name="local-hospital" 
-                size={24} 
-                color={getActionButtonStyle("request").color} 
+              <MaterialIcons
+                name="local-hospital"
+                size={24}
+                color={getActionButtonStyle("request").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("request").color }]}>
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("request").color },
+                ]}
+              >
                 Yêu cầu nhận máu
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("nearby").bgColor },
+              ]}
+              onPress={() => navigation.navigate("Nearby")}
+            >
+              <MaterialIcons
+                name="near-me"
+                size={24}
+                color={getActionButtonStyle("nearby").color}
+              />
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("nearby").color },
+                ]}
+              >
+                Tìm vị trí gần đây
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("nearby").bgColor }]}
-              onPress={() => navigation.navigate("Nearby")}
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("nearby").bgColor },
+              ]}
+              onPress={() => navigation.navigate("BloodDonationEventList")}
             >
-              <MaterialIcons 
-                name="near-me" 
-                size={24} 
-                color={getActionButtonStyle("nearby").color} 
+              <MaterialIcons
+                name="event"
+                size={24}
+                color={getActionButtonStyle("event").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("nearby").color }]}>
-                Tìm vị trí gần đây
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("event").color },
+                ]}
+              >
+                Sự kiện hiến máu
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("emergency").bgColor }]}
-              onPress={() => navigation.navigate("EmergencyCampaignList")}
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("support").bgColor },
+              ]}
+              onPress={() => navigation.navigate("SupportRequestScreen")}
             >
-              <MaterialIcons 
-                name="campaign" 
-                size={24} 
-                color={getActionButtonStyle("emergency").color} 
+              <MaterialIcons
+                name="volunteer-activism"
+                size={24}
+                color={getActionButtonStyle("support").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("emergency").color }]}>
-                Chiến dịch khẩn cấp
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("support").color },
+                ]}
+              >
+                Hỗ trợ yêu cầu
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: getActionButtonStyle("history").bgColor }]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: getActionButtonStyle("history").bgColor },
+              ]}
               onPress={() => navigation.navigate("DonationHistory")}
             >
-              <MaterialIcons 
-                name="history" 
-                size={24} 
-                color={getActionButtonStyle("history").color} 
+              <MaterialIcons
+                name="history"
+                size={24}
+                color={getActionButtonStyle("history").color}
               />
-              <Text style={[styles.actionText, { color: getActionButtonStyle("history").color }]}>
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: getActionButtonStyle("history").color },
+                ]}
+              >
                 Lịch sử yêu cầu
               </Text>
             </TouchableOpacity>

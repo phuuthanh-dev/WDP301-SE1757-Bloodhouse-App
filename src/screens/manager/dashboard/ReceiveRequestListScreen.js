@@ -11,10 +11,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
-import { formatDateTime } from "@/utils/formatHelpers";
 import {
-  getStatusReceiveBloodColor,
-  getStatusReceiveBloodName,
   RECEIVE_BLOOD_STATUS_NAME_LABELS,
 } from "@/constants/receiveBloodStatus";
 import { useFacility } from "@/contexts/FacilityContext";
@@ -50,7 +47,7 @@ export default function ReceiveRequestList({ navigation }) {
     return request.status === activeFilter;
   });
 
-  const handleApproveReceive = (requestId, scheduleDate) => {
+  const handleApproveReceive = (requestId, scheduledDeliveryDate) => {
   }
 
   const handleRejectReceive = (requestId) => {
