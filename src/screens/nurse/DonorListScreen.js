@@ -12,117 +12,75 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
+import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
+import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
 
-// MOCK_DONORS: Dữ liệu mẫu cho các ngày trong tuần (trước, hôm nay, sau)
-const today = new Date();
-function getDateStr(offset) {
-  const d = new Date(today);
-  d.setDate(today.getDate() + offset);
-  return d.toISOString().slice(0, 19) + 'Z';
-}
-const MOCK_DONORS = [
-  // 2 ngày trước
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    appointmentTime: getDateStr(-2).replace('09:00:00', '08:30:00'),
-    bloodType: "A+",
-    status: "checked_in",
-    hasMedicalCheck: true,
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    avatar: "https://i.pravatar.cc/150?img=2",
-    appointmentTime: getDateStr(-2).replace('09:00:00', '10:00:00'),
-    bloodType: "O-",
-    status: "checked_in",
-    hasMedicalCheck: false,
-  },
-  // 1 ngày trước
-  {
-    id: "3",
-    name: "Lê Văn C",
-    avatar: "https://i.pravatar.cc/150?img=3",
-    appointmentTime: getDateStr(-1).replace('09:00:00', '09:15:00'),
-    bloodType: "B+",
-    status: "pending",
-    hasMedicalCheck: false,
-  },
-  // Hôm nay
-  {
-    id: "4",
-    name: "Phạm Thị D",
-    avatar: "https://i.pravatar.cc/150?img=4",
-    appointmentTime: getDateStr(0).replace('09:00:00', '09:00:00'),
-    bloodType: "AB+",
-    status: "checked_in",
-    hasMedicalCheck: false,
-  },
-  {
-    id: "5",
-    name: "Ngô Văn E",
-    avatar: "https://i.pravatar.cc/150?img=5",
-    appointmentTime: getDateStr(0).replace('09:00:00', '10:30:00'),
-    bloodType: "A-",
-    status: "pending",
-    hasMedicalCheck: false,
-  },
-  // 1 ngày sau
-  {
-    id: "6",
-    name: "Phạm Thị F",
-    avatar: "https://i.pravatar.cc/150?img=6",
-    appointmentTime: getDateStr(1).replace('09:00:00', '08:45:00'),
-    bloodType: "O+",
-    status: "checked_in",
-    hasMedicalCheck: false,
-  },
-  // 2 ngày sau
-  {
-    id: "7",
-    name: "Lê Văn G",
-    avatar: "https://i.pravatar.cc/150?img=7",
-    appointmentTime: getDateStr(2).replace('09:00:00', '11:00:00'),
-    bloodType: "B-",
-    status: "pending",
-    hasMedicalCheck: false,
-  },
-  {
-    id: "8",
-    name: "Trần Thị H",
-    avatar: "https://i.pravatar.cc/150?img=8",
-    appointmentTime: getDateStr(2).replace('09:00:00', '09:30:00'),
-    bloodType: "AB-",
-    status: "checked_in",
-    hasMedicalCheck: true,
-  },
-];
-
-export default function DonorListScreen() {
+export default function DonorListScreen({ route }) {
   const [donors, setDonors] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('Tất cả');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Định nghĩa các filter status cho trang này - chỉ 2 trạng thái
+  const FILTER_OPTIONS = [
+    { label: "Tất cả", value: "all" },
+    { label: getStatusName(DONATION_STATUS.REGISTERED), value: DONATION_STATUS.REGISTERED },
+    { label: getStatusName(DONATION_STATUS.CHECKED_IN), value: DONATION_STATUS.CHECKED_IN },
+  ];
 
   const fetchDonors = async () => {
+    setLoading(true);
     try {
-      // Simulating API call with mock data
-      setDonors(MOCK_DONORS);
+      // Build query params
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100', // Lấy nhiều để có thể filter local theo ngày
+      });
+
+      // Nếu không phải "Tất cả", thêm status filter
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      // Thêm search term nếu có
+      if (searchText.trim()) {
+        params.append('search', searchText.trim());
+      }
+
+      const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
+        `/staff/assigned?${params.toString()}`
+      );
+      
+      
+      if (response.data && response.data.data) {
+        // Nếu statusFilter là 'all', filter chỉ 2 status cho phép
+        let filteredData = response.data.data;
+        if (statusFilter === 'all') {
+          filteredData = response.data.data.filter(donor => 
+            [DONATION_STATUS.REGISTERED, DONATION_STATUS.CHECKED_IN].includes(donor.status)
+          );
+        }
+        setDonors(filteredData);
+      } else {
+        setDonors([]);
+      }
     } catch (error) {
       console.error("Error fetching donors:", error);
+      setDonors([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,26 +92,39 @@ export default function DonorListScreen() {
 
   useEffect(() => {
     fetchDonors();
-  }, []);
+  }, [statusFilter, searchText]);
+
+  // Handle refresh parameter from navigation
+  useEffect(() => {
+    if (route.params?.refresh) {
+      fetchDonors();
+      // Clear the refresh parameter to prevent infinite refresh
+      navigation.setParams({ refresh: undefined });
+    }
+  }, [route.params?.refresh]);
+
+  // Refresh when tab is focused (when returning from health check creation)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchDonors();
+    }, [])
+  );
 
   const handleScanDonor = (donorId) => {
     navigation.navigate("Scanner", { mode: "donor", donorId });
   };
 
-  // Lọc donors theo ngày, trạng thái, tên
+  // Lọc donors theo ngày đã chọn và tên
   const filteredDonors = donors.filter((donor) => {
-    const donorDate = new Date(donor.appointmentTime);
+    const donorDate = new Date(donor.preferredDate);
     const matchDate =
       donorDate.getFullYear() === selectedDate.getFullYear() &&
       donorDate.getMonth() === selectedDate.getMonth() &&
       donorDate.getDate() === selectedDate.getDate();
-    const matchStatus =
-      statusFilter === 'Tất cả' ||
-      (statusFilter === 'Chờ check-in' && donor.status === 'pending') ||
-      (statusFilter === 'Đã check-in' && donor.status === 'checked_in' && !donor.hasMedicalCheck) ||
-      (statusFilter === 'Đã kiểm tra y tế' && donor.status === 'checked_in' && donor.hasMedicalCheck);
-    const matchName = donor.name.toLowerCase().includes(searchText.toLowerCase());
-    return matchDate && matchStatus && matchName;
+    
+    const matchName = donor.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
+    
+    return matchDate && matchName;
   });
 
   // Chuyển tuần
@@ -172,72 +143,71 @@ export default function DonorListScreen() {
   };
 
   const renderDonorItem = ({ item }) => {
-    // Xác định trạng thái
-    let statusLabel = "Chờ check-in";
-    let statusColor = "#4A90E2";
-    if (item.status === "checked_in" && !item.hasMedicalCheck) {
-      statusLabel = "Đã check-in";
-      statusColor = "#2ED573";
-    } else if (item.status === "checked_in" && item.hasMedicalCheck) {
-      statusLabel = "Đã kiểm tra y tế";
-      statusColor = "#FFA502";
-    }
+    // Lấy thông tin trạng thái
+    const statusLabel = getStatusName(item.status);
+    const statusColor = getStatusColor(item.status);
 
-    // Điều hướng
-    const handleMedicalCheck = () => {
-      if (item.hasMedicalCheck) {
-        navigation.navigate("HealthCheckDetail", { donorId: item.id });
-      } else {
-        navigation.navigate("HealthCheckCreateFromDonor", { donorId: item.id });
+    // Điều hướng tạo khám y tế
+    const handleCreateHealthCheck = () => {
+      navigation.navigate("HealthCheckCreateFromDonor", { registrationId: item._id });
+    };
+
+    const handleCheckIn = () => {
+      if (item.status === DONATION_STATUS.REGISTERED) {
+        navigation.navigate("Scanner", { mode: "checkin", registrationId: item._id });
       }
     };
 
     return (
       <TouchableOpacity
         style={styles.donorCard}
-        onPress={() => handleScanDonor(item.id)}
+        onPress={() => {
+          if (item.status === DONATION_STATUS.REGISTERED) {
+            handleCheckIn();
+          } else if (item.status === DONATION_STATUS.CHECKED_IN) {
+            handleCreateHealthCheck();
+          }
+        }}
       >
         <View style={styles.donorInfo}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: item.avatar || "https://via.placeholder.com/50" }}
+              source={{ 
+                uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+              }}
               style={styles.avatar}
             />
             <View style={styles.bloodTypeBadge}>
-              <Text style={styles.bloodTypeText}>{item.bloodType}</Text>
+              <Text style={styles.bloodTypeText}>{item.bloodGroupId?.name || item.bloodGroupId?.type}</Text>
             </View>
           </View>
           <View style={styles.textContainer}>
-            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.name}>{item.userId?.fullName || "N/A"}</Text>
             <View style={styles.detailsRow}>
               <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
               <Text style={styles.details}>
-                {formatDateTime(new Date(item.appointmentTime))}
+                {formatDateTime(new Date(item.preferredDate))}
               </Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}> 
-              <MaterialCommunityIcons name="clock-alert-outline" size={14} color="#FFF" />
+              <MaterialCommunityIcons name="clock-check-outline" size={14} color="#FFF" />
               <Text style={styles.statusText}>{statusLabel}</Text>
             </View>
-            {/* Button kiểm tra y tế */}
-            {item.status === "checked_in" && (
-              <TouchableOpacity
-                style={styles.medicalCheckBtn}
-                onPress={handleMedicalCheck}
-              >
-                <MaterialCommunityIcons name={item.hasMedicalCheck ? "file-document-outline" : "plus-box-multiple"} size={18} color="#FFF" />
-                <Text style={styles.medicalCheckText}>
-                  {item.hasMedicalCheck ? "Xem kiểm tra y tế" : "Tạo kiểm tra y tế"}
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
-        {/* Ẩn button quét mã nếu đã check-in */}
-        {item.status !== "checked_in" && (
-          <TouchableOpacity style={styles.scanButton} onPress={() => handleScanDonor(item.id)}>
+        
+        {/* Button thao tác chính */}
+        {item.status === DONATION_STATUS.REGISTERED && (
+          <TouchableOpacity style={styles.scanButton} onPress={handleCheckIn}>
             <MaterialCommunityIcons name="qrcode-scan" size={22} color="#FFF" />
-            <Text style={styles.scanText}>Quét mã</Text>
+            <Text style={styles.scanText}>Check-in</Text>
+          </TouchableOpacity>
+        )}
+        
+        {item.status === DONATION_STATUS.CHECKED_IN && (
+          <TouchableOpacity style={[styles.scanButton, { backgroundColor: "#2ED573" }]} onPress={handleCreateHealthCheck}>
+            <MaterialCommunityIcons name="stethoscope" size={22} color="#FFF" />
+            <Text style={styles.scanText}>Khám y tế</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -252,16 +222,19 @@ export default function DonorListScreen() {
           <Text style={styles.headerCount}>{filteredDonors.length}</Text>
         </View>
       </View>
+      
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {['Tất cả', 'Chờ check-in', 'Đã check-in', 'Đã kiểm tra y tế'].map((status) => (
+          {FILTER_OPTIONS.map((option) => (
             <TouchableOpacity
-              key={status}
-              style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
-              onPress={() => setStatusFilter(status)}
+              key={option.value}
+              style={[styles.filterChip, statusFilter === option.value && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>{status}</Text>
+              <Text style={[styles.filterChipText, statusFilter === option.value && styles.filterChipTextActive]}>
+                {option.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -281,6 +254,7 @@ export default function DonorListScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      
       {/* Calendar Modal */}
       {calendarVisible && (
         <View style={styles.calendarModalWrap}>
@@ -305,6 +279,7 @@ export default function DonorListScreen() {
           </View>
         </View>
       )}
+      
       {/* Calendar Bar */}
       <View style={styles.calendarBar}>
         <TouchableOpacity onPress={handlePrevWeek} style={styles.weekNavBtn}>
@@ -334,11 +309,12 @@ export default function DonorListScreen() {
           <MaterialCommunityIcons name="chevron-right" size={28} color="#FF6B6B" />
         </TouchableOpacity>
       </View>
+      
       {/* Danh sách người hiến máu */}
       <FlatList
         data={filteredDonors}
         renderItem={renderDonorItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl 
@@ -352,7 +328,7 @@ export default function DonorListScreen() {
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="qrcode-scan" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              Không có người hiến máu nào chưa check-in
+              {loading ? "Đang tải dữ liệu..." : "Không có người hiến máu nào trong ngày được chọn"}
             </Text>
           </View>
         }
@@ -428,6 +404,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 2,
     borderColor: "#FF6B6B",
+    backgroundColor: "#F8F9FA",
   },
   bloodTypeBadge: {
     position: "absolute",
@@ -468,7 +445,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#2ED573",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

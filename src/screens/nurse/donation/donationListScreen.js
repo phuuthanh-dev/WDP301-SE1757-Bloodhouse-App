@@ -12,139 +12,15 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-
-// MOCK_DONATIONS: Dữ liệu mẫu cho các lần hiến máu
-const today = new Date();
-function getDateStr(offset) {
-  const d = new Date(today);
-  d.setDate(today.getDate() + offset);
-  return d.toISOString().slice(0, 19) + 'Z';
-}
-
-const MOCK_DONATIONS = [
-  {
-    id: "DON001",
-    registrationId: "REG123456",
-    healthCheckId: "HC001",
-    donor: {
-      name: "Nguyễn Văn A",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      bloodType: "A+",
-      gender: "Nam",
-      dob: "01/01/1990",
-      phone: "0901234567",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    startTime: getDateStr(0).replace('09:00:00', '10:00:00'),
-    endTime: getDateStr(0).replace('09:00:00', '10:30:00'),
-    status: "in_progress", // "pending", "in_progress", "completed", "adverse_event"
-    bloodVolume: 450, // ml
-    bloodBag: {
-      id: "BAG001",
-      type: "Whole Blood",
-    },
-    vitalSigns: {
-      bloodPressure: "120/80",
-      pulse: 75,
-      temperature: 36.5,
-    },
-    notes: "Quá trình hiến máu diễn ra bình thường",
-  },
-  {
-    id: "DON002",
-    registrationId: "REG123459",
-    healthCheckId: "HC004",
-    donor: {
-      name: "Phạm Thị D",
-      avatar: "https://i.pravatar.cc/150?img=4",
-      bloodType: "AB+",
-      gender: "Nữ",
-      dob: "10/08/1988",
-      phone: "0901234570",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    startTime: getDateStr(0).replace('09:00:00', '09:30:00'),
-    endTime: getDateStr(0).replace('09:00:00', '10:00:00'),
-    status: "completed",
-    bloodVolume: 450,
-    bloodBag: {
-      id: "BAG002",
-      type: "Whole Blood",
-    },
-    vitalSigns: {
-      bloodPressure: "115/70",
-      pulse: 68,
-      temperature: 36.4,
-    },
-    notes: "Hoàn thành thành công",
-  },
-  {
-    id: "DON003",
-    registrationId: "REG123461",
-    healthCheckId: "HC006",
-    donor: {
-      name: "Lê Văn C",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      bloodType: "B+",
-      gender: "Nam",
-      dob: "20/12/1992",
-      phone: "0901234569",
-    },
-    nurse: {
-      name: "Y tá Lê Thị C",
-    },
-    startTime: getDateStr(-1).replace('09:00:00', '11:00:00'),
-    endTime: getDateStr(-1).replace('09:00:00', '11:35:00'),
-    status: "completed",
-    bloodVolume: 450,
-    bloodBag: {
-      id: "BAG003",
-      type: "Whole Blood",
-    },
-    vitalSigns: {
-      bloodPressure: "118/75",
-      pulse: 72,
-      temperature: 36.5,
-    },
-    notes: "Hoàn thành xuất sắc",
-  },
-  {
-    id: "DON004",
-    registrationId: "REG123462",
-    healthCheckId: "HC007",
-    donor: {
-      name: "Trần Văn E",
-      avatar: "https://i.pravatar.cc/150?img=7",
-      bloodType: "O-",
-      gender: "Nam",
-      dob: "05/07/1985",
-      phone: "0901234573",
-    },
-    nurse: {
-      name: "Y tá Nguyễn Thị E",
-    },
-    startTime: getDateStr(1).replace('09:00:00', '08:30:00'),
-    endTime: null,
-    status: "pending",
-    bloodVolume: null,
-    bloodBag: {
-      id: "BAG004",
-      type: "Whole Blood",
-    },
-    notes: "Chuẩn bị tiến hành hiến máu",
-  },
-];
+import bloodDonationAPI from "@/apis/bloodDonation";
+import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
 
 export default function DonationListScreen() {
   const [donations, setDonations] = useState([]);
@@ -152,16 +28,92 @@ export default function DonationListScreen() {
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('Tất cả');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Định nghĩa các filter status cho trang này
+  const FILTER_OPTIONS = [
+    { label: "Tất cả", value: "all" },
+    { label: "Đang hiến", value: "donating" },
+    { label: "Hoàn thành", value: "completed" },
+    { label: "Huỷ hiến", value: "cancelled" },
+  ];
 
   const fetchDonations = async () => {
+    setLoading(true);
     try {
-      // Simulating API call with mock data
-      setDonations(MOCK_DONATIONS);
+      // Build query params
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+      });
+
+      // Nếu không phải "Tất cả", thêm status filter
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      const response = await bloodDonationAPI.HandleBloodDonation(
+        `?${params.toString()}`,
+        null,
+        'get'
+      );
+      
+      if (response.data && response.data.data) {
+        // Transform data để phù hợp với UI
+        const transformedData = response.data.data.map(donation => ({
+          id: donation._id,
+          registrationId: donation.bloodDonationRegistrationId?._id || donation.bloodDonationRegistrationId,
+          donor: {
+            name: donation.userId?.fullName || "N/A",
+            avatar: donation.userId?.avatar || "https://via.placeholder.com/50",
+            bloodType: donation.bloodGroupId?.name || "N/A",
+            gender: donation.userId?.sex === 'male' ? 'Nam' : donation.userId?.sex === 'female' ? 'Nữ' : 'N/A',
+            dob: donation.userId?.yob ? new Date(donation.userId.yob).toLocaleDateString('vi-VN') : 'N/A',
+            phone: donation.userId?.phone || 'N/A',
+          },
+          nurse: {
+            name: donation.staffId?.userId?.fullName || "Chưa phân công",
+          },
+          facility: {
+            name: donation.bloodDonationRegistrationId?.facilityId?.name || "N/A",
+          },
+          startTime: donation.donationDate || donation.createdAt,
+          endTime: donation.status === 'completed' ? donation.updatedAt : null,
+          status: donation.status === 'donating' ? 'in_progress' : 
+                  donation.status === 'completed' ? 'completed' : 'pending',
+          bloodVolume: donation.quantity || null,
+         
+          vitalSigns: {
+            bloodPressure: "120/80", // Mock data - would come from health check
+            pulse: 75,
+            temperature: 36.5,
+          },
+          notes: donation.notes || "",
+          originalData: donation, // Keep original data for updates
+        }));
+
+        // Nếu statusFilter là 'all', filter chỉ 2 status cho phép
+        let filteredData = transformedData;
+        if (statusFilter === 'all') {
+          filteredData = transformedData.filter(donation => 
+            donation.originalData.status === 'donating' || 
+            donation.originalData.status === 'completed' ||
+            donation.originalData.status === 'cancelled'
+          );
+        }
+        
+        setDonations(filteredData);
+      } else {
+        setDonations([]);
+      }
     } catch (error) {
       console.error("Error fetching donations:", error);
+      setDonations([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,7 +125,14 @@ export default function DonationListScreen() {
 
   useEffect(() => {
     fetchDonations();
-  }, []);
+  }, [statusFilter]);
+
+  // Refresh when screen is focused (when returning from detail screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchDonations();
+    }, [])
+  );
 
   // Lọc donations theo ngày, trạng thái, tên
   const filteredDonations = donations.filter((donation) => {
@@ -183,15 +142,8 @@ export default function DonationListScreen() {
       donationDate.getMonth() === selectedDate.getMonth() &&
       donationDate.getDate() === selectedDate.getDate();
     
-    const matchStatus =
-      statusFilter === 'Tất cả' ||
-      (statusFilter === 'Chờ hiến' && donation.status === 'pending') ||
-      (statusFilter === 'Đang hiến' && donation.status === 'in_progress') ||
-      (statusFilter === 'Hoàn thành' && donation.status === 'completed') ||
-      (statusFilter === 'Sự cố' && donation.status === 'adverse_event');
-    
     const matchName = donation.donor.name.toLowerCase().includes(searchText.toLowerCase());
-    return matchDate && matchStatus && matchName;
+    return matchDate && matchName;
   });
 
   // Chuyển tuần
@@ -210,14 +162,12 @@ export default function DonationListScreen() {
   };
 
   const getStatusInfo = (donation) => {
-    if (donation.status === 'pending') {
-      return { label: 'Chờ hiến', color: '#4A90E2', icon: 'clock-outline' };
-    } else if (donation.status === 'in_progress') {
+    if (donation.originalData?.status === 'donating') {
       return { label: 'Đang hiến', color: '#FFA502', icon: 'heart-pulse' };
-    } else if (donation.status === 'completed') {
+    } else if (donation.originalData?.status === 'completed') {
       return { label: 'Hoàn thành', color: '#2ED573', icon: 'check-circle' };
-    } else if (donation.status === 'adverse_event') {
-      return { label: 'Sự cố', color: '#FF4757', icon: 'alert-circle' };
+    } else if (donation.originalData?.status === 'cancelled') {
+      return { label: 'Huỷ hiến', color: '#FF4040', icon: 'close-circle' };
     } else {
       return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
     }
@@ -254,12 +204,12 @@ export default function DonationListScreen() {
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="medical-bag" size={16} color="#636E72" />
-                <Text style={styles.details}>YT: {item.nurse.name}</Text>
+                <MaterialCommunityIcons name="hospital-building" size={16} color="#636E72" />
+                <Text style={styles.details}>CS: {item.facility.name}</Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="test-tube" size={16} color="#636E72" />
-                <Text style={styles.details}>Túi: {item.bloodBag.id}</Text>
+                <MaterialCommunityIcons name="medical-bag" size={16} color="#636E72" />
+                <Text style={styles.details}>YT: {item.nurse.name}</Text>
               </View>
             </View>
           </View>
@@ -267,78 +217,45 @@ export default function DonationListScreen() {
             <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#FFF" />
             <Text style={styles.statusText}>{statusInfo.label}</Text>
           </View>
-        </View>
-        
-        {/* Donation Progress */}
-        {item.status === 'in_progress' && (
-          <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Tiến độ hiến máu</Text>
-              <Text style={styles.progressVolume}>{item.bloodVolume || 0} / 450 ml</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { width: `${((item.bloodVolume || 0) / 450) * 100}%` }
-                ]} 
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Vital Signs */}
-        {(item.status === 'in_progress' || item.status === 'completed') && item.vitalSigns && (
-          <View style={styles.vitalSigns}>
-            <View style={styles.vitalItem}>
-              <Text style={styles.vitalLabel}>Huyết áp</Text>
-              <Text style={styles.vitalValue}>{item.vitalSigns.bloodPressure}</Text>
-            </View>
-            <View style={styles.vitalItem}>
-              <Text style={styles.vitalLabel}>Nhịp tim</Text>
-              <Text style={styles.vitalValue}>{item.vitalSigns.pulse} bpm</Text>
-            </View>
-            <View style={styles.vitalItem}>
-              <Text style={styles.vitalLabel}>Nhiệt độ</Text>
-              <Text style={styles.vitalValue}>{item.vitalSigns.temperature}°C</Text>
-            </View>
-          </View>
-        )}
-        
+        </View>    
         <View style={styles.cardFooter}>
           <TouchableOpacity 
             style={styles.actionBtn}
             onPress={() => {
               // Handle action based on status
-              if (item.status === 'pending') {
-                // Start donation - Navigate to create form to start donation
-                navigation.navigate('DonationCreateForm', { donationId: item.id, mode: 'start' });
-              } else if (item.status === 'in_progress') {
+              if (item.originalData?.status === 'donating') {
                 // Monitor/Update donation - Navigate to update form
-                navigation.navigate('DonationCreateForm', { donationId: item.id, mode: 'update' });
-              } else if (item.status === 'completed') {
+                navigation.navigate('DonationDetail', { 
+                  donationId: item.id,
+                  mode: 'update'
+                });
+              } else if (item.originalData?.status === 'completed') {
                 // View donation details
-                navigation.navigate('DonationDetail', { donationId: item.id });
-              } else if (item.status === 'adverse_event') {
-                // View donation details with incident info
-                navigation.navigate('DonationDetail', { donationId: item.id });
+                navigation.navigate('DonationDetail', { 
+                  donationId: item.id,
+                  mode: 'view'
+                });
+              } else {
+                // Default view mode for other statuses
+                navigation.navigate('DonationDetail', { 
+                  donationId: item.id,
+                  mode: 'view'
+                });
               }
             }}
           >
             <MaterialIcons 
               name={
-                item.status === 'pending' ? 'play-arrow' : 
-                item.status === 'in_progress' ? 'edit' : 
-                item.status === 'completed' ? 'visibility' : 
+                item.originalData?.status === 'donating' ? 'edit' : 
+                item.originalData?.status === 'completed' ? 'visibility' : 
                 'info'
               } 
               size={18} 
               color="#FF6B6B" 
             />
             <Text style={styles.actionText}>
-              {item.status === 'pending' ? 'Bắt đầu' : 
-               item.status === 'in_progress' ? 'Cập nhật thông tin' : 
-               item.status === 'completed' ? 'Xem chi tiết' : 
+              {item.originalData?.status === 'donating' ? 'Cập nhật thông tin' : 
+               item.originalData?.status === 'completed' ? 'Xem chi tiết' : 
                'Chi tiết'}
             </Text>
           </TouchableOpacity>
@@ -359,13 +276,13 @@ export default function DonationListScreen() {
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {['Tất cả', 'Chờ hiến', 'Đang hiến', 'Hoàn thành', 'Sự cố'].map((status) => (
+          {FILTER_OPTIONS.map((option) => (
             <TouchableOpacity
-              key={status}
-              style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
-              onPress={() => setStatusFilter(status)}
+              key={option.value}
+              style={[styles.filterChip, statusFilter === option.value && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>{status}</Text>
+              <Text style={[styles.filterChipText, statusFilter === option.value && styles.filterChipTextActive]}>{option.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
