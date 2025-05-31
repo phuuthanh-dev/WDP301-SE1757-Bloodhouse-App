@@ -1,11 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Import screens
 import ProfileScreen from '@/screens/ProfileScreen';
-import DoctorDashboardScreen from '@/screens/doctor/DoctorDashboardScreen';
-import PostDonationScreen from '@/screens/doctor/PostDonationScreen';
+import HealthCheckListScreen from '@/screens/doctor/healthCheck/HealthCheckPendingListScreen';
+import BloodDonationListScreen from '@/screens/doctor/bloodSplit/BloodDonationListScreen';
+import BloodUnitListScreen from '@/screens/doctor/bloodUnit/BloodUnitListScreen';
 import DonorListScreen from '@/screens/doctor/DonorListScreen';
 
 const Tab = createBottomTabNavigator();
@@ -25,30 +26,57 @@ const TabNavigatorDoctor = () => {
         },
         tabBarActiveTintColor: '#FF6B6B',
         tabBarInactiveTintColor: '#95A5A6',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
       }}
     >
       <Tab.Screen
-        name="Trang chủ"
-        component={DoctorDashboardScreen}
+        name="Health Checks"
+        component={HealthCheckListScreen}
         options={{
+          tabBarLabel: 'Khám',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="dashboard" size={size} color={color} />
+            <MaterialCommunityIcons name="stethoscope" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Danh sách"
-        component={DonorListScreen}
+        name="Blood Donations"
+        component={BloodDonationListScreen}
         options={{
+          tabBarLabel: 'Hiến máu',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="people" size={size} color={color} />
+            <MaterialCommunityIcons name="water" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Hồ sơ" 
+        name="Blood Units"
+        component={BloodUnitListScreen}
+        options={{
+          tabBarLabel: 'Xét nghiệm',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="test-tube" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={BloodDonationListScreen}
+        options={{
+          tabBarLabel: 'Thông báo',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="notifications" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile" 
         component={ProfileScreen}
         options={{
+          tabBarLabel: 'Hồ sơ',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="person" size={size} color={color} />
           ),

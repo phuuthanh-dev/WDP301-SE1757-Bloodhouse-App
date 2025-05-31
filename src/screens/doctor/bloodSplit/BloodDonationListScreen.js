@@ -19,99 +19,51 @@ import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-import bloodDonationAPI from "@/apis/bloodDonation";
-import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
+// import bloodDonationAPI from "@/apis/bloodDonation";
+import { mockBloodDonationAPI, getMockDataByDate, filterByStatus, searchByName } from "@/mocks/doctorMockData";
 
-export default function DonationListScreen() {
-  const [donations, setDonations] = useState([]);
+export default function BloodDonationListScreen() {
+  const [bloodDonations, setBloodDonations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [bloodGroupFilter, setBloodGroupFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Định nghĩa các filter status cho trang này
-  const FILTER_OPTIONS = [
+  // Blood group filter options
+  const BLOOD_GROUP_OPTIONS = [
     { label: "Tất cả", value: "all" },
-    { label: "Đang hiến", value: "donating" },
-    { label: "Hoàn thành", value: "completed" },
-    { label: "Huỷ hiến", value: "cancelled" },
+    { label: "A+", value: "A+" },
+    { label: "A-", value: "A-" },
+    { label: "B+", value: "B+" },
+    { label: "B-", value: "B-" },
+    { label: "AB+", value: "AB+" },
+    { label: "AB-", value: "AB-" },
+    { label: "O+", value: "O+" },
+    { label: "O-", value: "O-" },
   ];
 
-  const fetchDonations = async () => {
+  const fetchBloodDonations = async () => {
     setLoading(true);
     try {
-      // Build query params
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '100',
-      });
-
-      // Nếu không phải "Tất cả", thêm status filter
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
-
-      const response = await bloodDonationAPI.HandleBloodDonation(
-        `?${params.toString()}`,
+      // Using mock API instead of real API
+      const response = await mockBloodDonationAPI.HandleBloodDonation(
+        '?page=1&limit=100&status=confirmed',
         null,
         'get'
       );
       
       if (response.data && response.data.data) {
-        // Transform data để phù hợp với UI
-        const transformedData = response.data.data.map(donation => ({
-          id: donation._id,
-          registrationId: donation.bloodDonationRegistrationId?._id || donation.bloodDonationRegistrationId,
-          donor: {
-            name: donation.userId?.fullName || "N/A",
-            avatar: donation.userId?.avatar || "https://via.placeholder.com/50",
-            bloodType: donation.bloodGroupId?.name || "N/A",
-            gender: donation.userId?.sex === 'male' ? 'Nam' : donation.userId?.sex === 'female' ? 'Nữ' : 'N/A',
-            dob: donation.userId?.yob ? new Date(donation.userId.yob).toLocaleDateString('vi-VN') : 'N/A',
-            phone: donation.userId?.phone || 'N/A',
-          },
-          nurse: {
-            name: donation.staffId?.userId?.fullName || "Chưa phân công",
-          },
-          facility: {
-            name: donation.bloodDonationRegistrationId?.facilityId?.name || "N/A",
-          },
-          startTime: donation.donationDate || donation.createdAt,
-          endTime: donation.status === 'completed' ? donation.updatedAt : null,
-          status: donation.status === 'donating' ? 'in_progress' : 
-                  donation.status === 'completed' ? 'completed' : 'pending',
-          bloodVolume: donation.quantity || null,
-         
-          vitalSigns: {
-            bloodPressure: "120/80", // Mock data - would come from health check
-            pulse: 75,
-            temperature: 36.5,
-          },
-          notes: donation.notes || "",
-          originalData: donation, // Keep original data for updates
-        }));
-
-        // Nếu statusFilter là 'all', filter chỉ 2 status cho phép
-        let filteredData = transformedData;
-        if (statusFilter === 'all') {
-          filteredData = transformedData.filter(donation => 
-            donation.originalData.status === 'donating' || 
-            donation.originalData.status === 'completed' ||
-            donation.originalData.status === 'cancelled'
-          );
-        }
-        
-        setDonations(filteredData);
+        setBloodDonations(response.data.data);
       } else {
-        setDonations([]);
+        setBloodDonations([]);
       }
     } catch (error) {
-      console.error("Error fetching donations:", error);
-      setDonations([]);
+      console.error("Error fetching blood donations:", error);
+      setBloodDonations([]);
     } finally {
       setLoading(false);
     }
@@ -119,32 +71,34 @@ export default function DonationListScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchDonations();
+    await fetchBloodDonations();
     setRefreshing(false);
   };
 
+  useEffect(() => {
+    fetchBloodDonations();
+  }, [bloodGroupFilter, searchText]);
 
-
-  // Refresh when screen is focused (when returning from detail screen)
+  // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchDonations();
-    }, [statusFilter, searchText])
+      fetchBloodDonations();
+    }, [])
   );
 
-  // Lọc donations theo ngày, trạng thái, tên
-  const filteredDonations = donations.filter((donation) => {
-    const donationDate = new Date(donation.startTime);
+  // Filter blood donations by selected date and search text
+  const filteredBloodDonations = bloodDonations.filter((donation) => {
+    const donationDate = new Date(donation.donationDate);
     const matchDate =
       donationDate.getFullYear() === selectedDate.getFullYear() &&
       donationDate.getMonth() === selectedDate.getMonth() &&
       donationDate.getDate() === selectedDate.getDate();
     
-    const matchName = donation.donor.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchName = donation.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
     return matchDate && matchName;
   });
 
-  // Chuyển tuần
+  // Navigation functions
   const handlePrevWeek = () => {
     const prev = new Date(currentWeekStart);
     prev.setDate(prev.getDate() - 7);
@@ -160,54 +114,54 @@ export default function DonationListScreen() {
   };
 
   const getStatusInfo = (donation) => {
-    if (donation.originalData?.status === 'donating') {
-      return { label: 'Đang hiến', color: '#FFA502', icon: 'heart-pulse' };
-    } else if (donation.originalData?.status === 'completed') {
-      return { label: 'Hoàn thành', color: '#2ED573', icon: 'check-circle' };
-    } else if (donation.originalData?.status === 'cancelled') {
-      return { label: 'Huỷ hiến', color: '#FF4040', icon: 'close-circle' };
+    if (donation.status === 'confirmed') {
+      return { label: 'Đã xác nhận', color: '#2ED573', icon: 'check-circle' };
+    } else if (donation.status === 'pending') {
+      return { label: 'Chờ xử lý', color: '#4A90E2', icon: 'clock-outline' };
     } else {
-      return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
+      return { label: 'Đã hủy', color: '#FF4757', icon: 'close-circle' };
     }
   };
 
-  const renderDonationItem = ({ item }) => {
+  const renderBloodDonationItem = ({ item }) => {
     const statusInfo = getStatusInfo(item);
 
     return (
       <TouchableOpacity
         style={styles.donationCard}
-        onPress={() => {
-          // Navigate to donation detail
-          // navigation.navigate('DonationDetail', { donationId: item.id });
-        }}
+        onPress={() => navigation.navigate('BloodUnitSplit', { 
+          donationId: item._id,
+          donationData: item
+        })}
       >
         <View style={styles.cardHeader}>
           <View style={styles.donorInfo}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: item.donor.avatar || "https://via.placeholder.com/50" }}
+                source={{ 
+                  uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+                }}
                 style={styles.avatar}
               />
               <View style={styles.bloodTypeBadge}>
-                <Text style={styles.bloodTypeText}>{item.donor.bloodType}</Text>
+                <Text style={styles.bloodTypeText}>
+                  {item.bloodGroupId?.name || item.bloodGroupId?.type || 'N/A'}
+                </Text>
               </View>
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.donorName}>{item.donor.name}</Text>
+              <Text style={styles.donorName}>{item.userId?.fullName || 'N/A'}</Text>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
+                <MaterialCommunityIcons name="calendar" size={16} color="#4A90E2" />
                 <Text style={styles.details}>
-                  {formatDateTime(new Date(item.startTime))}
+                  {formatDateTime(new Date(item.donationDate))}
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="hospital-building" size={16} color="#636E72" />
-                <Text style={styles.details}>CS: {item.facility.name}</Text>
-              </View>
-              <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="medical-bag" size={16} color="#636E72" />
-                <Text style={styles.details}>YT: {item.nurse.name}</Text>
+                <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
+                <Text style={styles.details}>
+                  {item.quantity || 0}ml • {item.bloodComponent || 'Máu toàn phần'}
+                </Text>
               </View>
             </View>
           </View>
@@ -215,47 +169,36 @@ export default function DonationListScreen() {
             <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#FFF" />
             <Text style={styles.statusText}>{statusInfo.label}</Text>
           </View>
-        </View>    
+        </View>
+        
+        {/* Donation Summary */}
+        <View style={styles.donationSummary}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Mã hiến máu:</Text>
+            <Text style={styles.summaryValue}>{item.code || item._id.slice(-8)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Đơn vị máu:</Text>
+            <Text style={styles.summaryValue}>{item.bloodUnits?.length || 0} đơn vị</Text>
+          </View>
+          {item.notes && (
+            <View style={styles.notesPreview}>
+              <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
+              <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+            </View>
+          )}
+        </View>
+        
         <View style={styles.cardFooter}>
           <TouchableOpacity 
-            style={styles.actionBtn}
-            onPress={() => {
-              // Handle action based on status
-              if (item.originalData?.status === 'donating') {
-                // Monitor/Update donation - Navigate to update form
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'update'
-                });
-              } else if (item.originalData?.status === 'completed') {
-                // View donation details
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'view'
-                });
-              } else {
-                // Default view mode for other statuses
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'view'
-                });
-              }
-            }}
+            style={styles.manageBtn}
+            onPress={() => navigation.navigate('BloodUnitSplit', { 
+              donationId: item._id,
+              donationData: item
+            })}
           >
-            <MaterialIcons 
-              name={
-                item.originalData?.status === 'donating' ? 'edit' : 
-                item.originalData?.status === 'completed' ? 'visibility' : 
-                'info'
-              } 
-              size={18} 
-              color="#FF6B6B" 
-            />
-            <Text style={styles.actionText}>
-              {item.originalData?.status === 'donating' ? 'Cập nhật thông tin' : 
-               item.originalData?.status === 'completed' ? 'Xem chi tiết' : 
-               'Chi tiết'}
-            </Text>
+            <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
+            <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -265,22 +208,24 @@ export default function DonationListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh Sách Hiến Máu</Text>
+        <Text style={styles.headerTitle}>Hiến Máu</Text>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerCount}>{filteredDonations.length}</Text>
+          <Text style={styles.headerCount}>{filteredBloodDonations.length}</Text>
         </View>
       </View>
 
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {FILTER_OPTIONS.map((option) => (
+          {BLOOD_GROUP_OPTIONS.map((option) => (
             <TouchableOpacity
               key={option.value}
-              style={[styles.filterChip, statusFilter === option.value && styles.filterChipActive]}
-              onPress={() => setStatusFilter(option.value)}
+              style={[styles.filterChip, bloodGroupFilter === option.value && styles.filterChipActive]}
+              onPress={() => setBloodGroupFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, statusFilter === option.value && styles.filterChipTextActive]}>{option.label}</Text>
+              <Text style={[styles.filterChipText, bloodGroupFilter === option.value && styles.filterChipTextActive]}>
+                {option.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -356,11 +301,11 @@ export default function DonationListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Danh sách hiến máu */}
+      {/* Blood Donation List */}
       <FlatList
-        data={filteredDonations}
-        renderItem={renderDonationItem}
-        keyExtractor={(item) => item.id.toString()}
+        data={filteredBloodDonations}
+        renderItem={renderBloodDonationItem}
+        keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl 
@@ -374,7 +319,7 @@ export default function DonationListScreen() {
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="water" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              Không có lần hiến máu nào trong ngày này
+              {loading ? "Đang tải dữ liệu..." : "Không có lần hiến máu nào trong ngày này"}
             </Text>
           </View>
         }
@@ -653,65 +598,47 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
-  progressSection: {
+  donationSummary: {
     backgroundColor: "#F8F9FA",
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  progressHeader: {
+  summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  progressTitle: {
+  summaryLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#2D3748",
-  },
-  progressVolume: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#FF6B6B",
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#E2E8F0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#FF6B6B",
-    borderRadius: 4,
-  },
-  vitalSigns: {
-    flexDirection: "row",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    justifyContent: "space-around",
-  },
-  vitalItem: {
-    alignItems: "center",
-  },
-  vitalLabel: {
-    fontSize: 12,
     color: "#636E72",
-    marginBottom: 4,
+    fontWeight: "500",
   },
-  vitalValue: {
+  summaryValue: {
     fontSize: 14,
-    fontWeight: "bold",
     color: "#2D3748",
+    fontWeight: "600",
+  },
+  notesPreview: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F0F8FF",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  notesText: {
+    fontSize: 13,
+    color: "#636E72",
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
-  actionBtn: {
+  manageBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFEAEA",
@@ -719,7 +646,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  actionText: {
+  manageText: {
     fontSize: 14,
     color: "#FF6B6B",
     fontWeight: "600",
@@ -738,4 +665,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 24,
   },
-});
+}); 

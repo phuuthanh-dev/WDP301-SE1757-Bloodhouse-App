@@ -20,8 +20,6 @@ import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import healthCheckAPI from "@/apis/healthCheckAPI";
-import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
-import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
 
 export default function HealthCheckList() {
   const [healthChecks, setHealthChecks] = useState([]);
@@ -34,84 +32,42 @@ export default function HealthCheckList() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Định nghĩa các filter status cho trang này - 4 trạng thái
+  // Filter options for nurse health checks - 4 statuses
   const FILTER_OPTIONS = [
     { label: "Tất cả", value: "all" },
-    { label: "Đang chờ khám", value: DONATION_STATUS.IN_CONSULT },
-    { label: "Không đảm bảo", value: DONATION_STATUS.REJECTED },
-    { label: "Đảm bảo sức khỏe", value: DONATION_STATUS.WAITING_DONATION },
+    { label: "Chờ khám", value: "pending" },
+    { label: "Đã khám", value: "completed" },
+    { label: "Không đủ điều kiện", value: "cancelled" },
+    { label: "Đã hiến máu", value: "donated" },
   ];
 
   const fetchHealthChecks = async () => {
     setLoading(true);
     try {
-      // Build query params for blood donation registrations
+      // Build query params for health checks
       const params = new URLSearchParams({
         page: '1',
         limit: '100',
       });
 
-      // Thêm search term nếu có
+      // Add search term if available
       if (searchText.trim()) {
         params.append('search', searchText.trim());
       }
 
-      // Nếu không phải "Tất cả", thêm status filter
+      // Add status filter if not "all"
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
 
-      const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
-        `/staff/assigned?${params.toString()}`
+      const response = await healthCheckAPI.HandleHealthCheck(
+        `/nurse?${params.toString()}`,
+        null,
+        'get'
       );
       
       if (response.data && response.data.data) {
-        // Filter theo các status cho phép của trang này
-        let filteredData = response.data.data;
-        if (statusFilter === 'all') {
-          filteredData = response.data.data.filter(registration => 
-            [DONATION_STATUS.IN_CONSULT, DONATION_STATUS.REJECTED, DONATION_STATUS.WAITING_DONATION].includes(registration.status)
-          );
-        }
-        
-        // Transform data để phù hợp với UI
-        const transformedData = filteredData.map(registration => ({
-          id: registration._id,
-          registrationId: registration._id,
-          patient: {
-            name: registration.userId?.fullName || "N/A",
-            avatar: registration.userId?.avatar || "https://via.placeholder.com/50",
-            bloodType: registration.bloodGroupId?.name || registration.bloodGroupId?.type || "N/A",
-            gender: registration.userId?.sex === 'male' ? 'Nam' : registration.userId?.sex === 'female' ? 'Nữ' : 'N/A',
-            dob: registration.userId?.yob ? new Date(registration.userId.yob).toLocaleDateString('vi-VN') : 'N/A',
-            phone: registration.userId?.phone || 'N/A',
-          },
-          doctor: {
-            name: registration.staffId?.userId?.fullName || "Chưa phân công",
-            avatar: registration.staffId?.userId?.avatar || "https://via.placeholder.com/50",
-          },
-          nurse: {
-            name: registration.staffId?.userId?.fullName || "N/A",
-          },
-          checkDate: registration.preferredDate,
-          isEligible: registration.status === DONATION_STATUS.WAITING_DONATION ? true : 
-                     registration.status === DONATION_STATUS.REJECTED ? false : null,
-          status: registration.status === DONATION_STATUS.IN_CONSULT ? "pending" :
-                  registration.status === DONATION_STATUS.REJECTED ? "completed" :
-                  registration.status === DONATION_STATUS.WAITING_DONATION ? "completed" : "pending",
-          registrationStatus: registration.status,
-          bloodPressure: null, // Sẽ có từ health check detail
-          hemoglobin: null,
-          weight: null,
-          pulse: null,
-          temperature: null,
-          generalCondition: registration.status === DONATION_STATUS.WAITING_DONATION ? "Đủ điều kiện hiến máu" :
-                           registration.status === DONATION_STATUS.REJECTED ? "Không đủ điều kiện" : "Đang chờ khám",
-          notes: registration.notes || "",
-          deferralReason: registration.status === DONATION_STATUS.REJECTED ? "Không đủ điều kiện hiến máu" : null,
-        }));
-        
-        setHealthChecks(transformedData);
+        setHealthChecks(response.data.data);
       } else {
         setHealthChecks([]);
       }
@@ -129,18 +85,14 @@ export default function HealthCheckList() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchHealthChecks();
-  }, [statusFilter, searchText]);
-
   // Refresh when screen is focused (when returning from detail screen)
   useFocusEffect(
     React.useCallback(() => {
       fetchHealthChecks();
-    }, [])
+    }, [statusFilter, searchText])
   );
 
-  // Lọc health checks theo ngày và tên
+  // Filter health checks by selected date and search text
   const filteredHealthChecks = healthChecks.filter((healthCheck) => {
     const checkDate = new Date(healthCheck.checkDate);
     const matchDate =
@@ -148,11 +100,11 @@ export default function HealthCheckList() {
       checkDate.getMonth() === selectedDate.getMonth() &&
       checkDate.getDate() === selectedDate.getDate();
     
-    const matchName = healthCheck.patient.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchName = healthCheck.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
     return matchDate && matchName;
   });
 
-  // Chuyển tuần
+  // Navigation functions
   const handlePrevWeek = () => {
     const prev = new Date(currentWeekStart);
     prev.setDate(prev.getDate() - 7);
@@ -168,14 +120,17 @@ export default function HealthCheckList() {
   };
 
   const getStatusInfo = (healthCheck) => {
-    if (healthCheck.registrationStatus === DONATION_STATUS.IN_CONSULT) {
-      return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
-    } else if (healthCheck.registrationStatus === DONATION_STATUS.REJECTED) {
-      return { label: 'Không đảm bảo', color: '#FF4757', icon: 'close-circle' };
-    } else if (healthCheck.registrationStatus === DONATION_STATUS.WAITING_DONATION) {
-      return { label: 'Đảm bảo sức khỏe', color: '#2ED573', icon: 'check-circle' };
-    } else {
-      return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
+    switch (healthCheck.status) {
+      case 'pending':
+        return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
+      case 'completed':
+        return { label: 'Đã khám', color: '#2ED573', icon: 'check-circle' };
+      case 'cancelled':
+        return { label: 'Không đủ điều kiện', color: '#FF4757', icon: 'close-circle' };
+      case 'donated':
+        return { label: 'Đã hiến máu', color: '#9B59B6', icon: 'heart' };
+      default:
+        return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
     }
   };
 
@@ -185,21 +140,28 @@ export default function HealthCheckList() {
     return (
       <TouchableOpacity
         style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckDetail', { registrationId: item.registrationId })}
+        onPress={() => navigation.navigate('HealthCheckDetail', { 
+          healthCheckId: item._id,
+          registrationId: item.registrationId?._id || item.registrationId
+        })}
       >
         <View style={styles.cardHeader}>
           <View style={styles.patientInfo}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: item.patient.avatar || "https://via.placeholder.com/50" }}
+                source={{ 
+                  uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+                }}
                 style={styles.avatar}
               />
               <View style={styles.bloodTypeBadge}>
-                <Text style={styles.bloodTypeText}>{item.patient.bloodType}</Text>
+                <Text style={styles.bloodTypeText}>
+                  {item.userId?.bloodId?.name || item.userId?.bloodId?.type || 'N/A'}
+                </Text>
               </View>
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.patientName}>{item.patient.name}</Text>
+              <Text style={styles.patientName}>{item.userId?.fullName || 'N/A'}</Text>
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
                 <Text style={styles.details}>
@@ -208,7 +170,9 @@ export default function HealthCheckList() {
               </View>
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="stethoscope" size={16} color="#636E72" />
-                <Text style={styles.details}>BS: {item.doctor.name}</Text>
+                <Text style={styles.details}>
+                  BS: {item.doctorId?.userId?.fullName || 'Chưa phân công'}
+                </Text>
               </View>
             </View>
           </View>
@@ -219,7 +183,7 @@ export default function HealthCheckList() {
         </View>
         
         {/* Health Check Summary */}
-        {item.status === 'completed' && (
+        {item.status !== 'pending' && (
           <View style={styles.healthSummary}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tình trạng:</Text>
@@ -231,13 +195,22 @@ export default function HealthCheckList() {
                 <Text style={styles.deferralText}>{item.deferralReason}</Text>
               </View>
             )}
+            {item.notes && (
+              <View style={styles.notesPreview}>
+                <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
+                <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+              </View>
+            )}
           </View>
         )}
         
         <View style={styles.cardFooter}>
           <TouchableOpacity 
             style={styles.viewDetailBtn}
-            onPress={() => navigation.navigate('HealthCheckDetail', { registrationId: item.registrationId })}
+            onPress={() => navigation.navigate('HealthCheckDetail', { 
+              healthCheckId: item._id,
+              registrationId: item.registrationId?._id || item.registrationId
+            })}
           >
             <MaterialIcons name="visibility" size={18} color="#FF6B6B" />
             <Text style={styles.viewDetailText}>Xem chi tiết</Text>
@@ -347,7 +320,7 @@ export default function HealthCheckList() {
       <FlatList
         data={filteredHealthChecks}
         renderItem={renderHealthCheckItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl 
@@ -706,5 +679,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
     lineHeight: 24,
+  },
+  notesPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  notesText: {
+    fontSize: 14,
+    color: "#636E72",
+    marginLeft: 6,
   },
 });

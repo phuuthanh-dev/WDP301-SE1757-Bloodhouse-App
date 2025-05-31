@@ -16,6 +16,8 @@ export function getWeekDays(start) {
   }
   return days;
 }
+export const formatDate = (date) => date.toISOString().split('T')[0];
+
 
   
 

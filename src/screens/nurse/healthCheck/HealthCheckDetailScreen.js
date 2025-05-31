@@ -48,7 +48,6 @@ const HealthCheckDetailScreen = ({ route }) => {
       );
 
       if (response.data) {
-        console.log("✅ Data received:", response.data);
         setRegistrationData(response.data.registration);
         setHealthCheckData(response.data.healthCheck);
       } else {
@@ -115,6 +114,7 @@ const HealthCheckDetailScreen = ({ route }) => {
                 bloodGroupId: registrationData.bloodGroupId._id,
                 bloodDonationRegistrationId: registrationData._id,
                 bloodComponent: registrationData.bloodComponent || 'Máu toàn phần',
+                healthCheckId: healthCheckData._id,
               };
 
               const response = await bloodDonationAPI.HandleBloodDonation(

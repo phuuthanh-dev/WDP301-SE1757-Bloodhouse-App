@@ -29,5 +29,11 @@ const formatDurationRoute = (minutes) => {
   return `${hours} giờ ${remainingMinutes} phút`;
 };
 
+const formatBloodPressure = (bloodPressure) => {
+  const bpPattern = /^(\d{2,3})\/(\d{2,3})(\s*mmHg)?$/;
+  const bpMatch = bloodPressure?.match(bpPattern);
+  return bpMatch ? `${bpMatch[1]}/${bpMatch[2]} mmHg` : bloodPressure;
+};
 
-export { formatPrice, formatDateTime, formatDate, formatTime, formatDurationRoute };
+
+export { formatPrice, formatDateTime, formatDate, formatTime, formatDurationRoute, formatBloodPressure };
