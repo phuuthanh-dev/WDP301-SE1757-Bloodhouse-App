@@ -158,7 +158,12 @@ const DonationCreateFormScreen = ({ navigation, route }) => {
             if (isCompleted) {
               navigation.navigate('DonationDetail', { donationId: donationData.id });
             } else {
-              navigation.goBack();
+              navigation.navigate('TabNavigatorNurse', {
+                screen: 'Donations',
+                params: {
+                  screen: 'Donations',
+                },
+              });
             }
           }
         }

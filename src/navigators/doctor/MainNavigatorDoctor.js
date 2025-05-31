@@ -7,7 +7,6 @@ import HealthCheckListScreen from "@/screens/doctor/healthCheck/HealthCheckPendi
 import HealthCheckUpdateScreen from "@/screens/doctor/healthCheck/HealthCheckUpdateScreen";
 
 // Blood Donation Screens
-import BloodDonationListScreen from "@/screens/doctor/bloodSplit/BloodDonationListScreen";
 import BloodUnitSplitScreen from "@/screens/doctor/bloodSplit/BloodUnitSplitScreen";
 import BloodUnitUpdateScreen from "@/screens/doctor/bloodUnit/BloodUnitUpdateScreen";
 import BloodUnitListScreen from "@/screens/doctor/bloodUnit/BloodUnitListScreen";
@@ -32,14 +31,13 @@ const MainNavigatorDoctor = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigatorDoctor} />
+      <Stack.Screen name="TabNavigatorDoctor" component={TabNavigatorDoctor} />
       
       {/* Health Check Flow */}
       <Stack.Screen name="HealthCheckList" component={HealthCheckListScreen} />
       <Stack.Screen name="HealthCheckUpdate" component={HealthCheckUpdateScreen} />
       
       {/* Blood Donation Flow */}
-      <Stack.Screen name="BloodDonationList" component={BloodDonationListScreen} />
       <Stack.Screen name="BloodUnitSplit" component={BloodUnitSplitScreen} />
       <Stack.Screen name="BloodUnitUpdate" component={BloodUnitUpdateScreen} />
       <Stack.Screen name="BloodUnitList" component={BloodUnitListScreen} />

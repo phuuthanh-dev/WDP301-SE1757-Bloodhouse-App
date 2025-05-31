@@ -15,8 +15,11 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-// import bloodDonationAPI from '@/apis/bloodDonation';
-import { mockBloodDonationAPI } from '@/mocks/doctorMockData';
+import { BLOOD_COMPONENT, getAvailableComponents } from '@/constants/bloodComponents';
+import bloodDonationAPI from '@/apis/bloodDonation';
+import bloodUnitAPI from '@/apis/bloodUnit';
+
+
 import { toast } from 'sonner-native';
 import { formatDateTime } from '@/utils/formatHelpers';
 
@@ -34,21 +37,16 @@ const BloodUnitSplitScreen = () => {
 
   // Form state for new blood unit
   const [newBloodUnit, setNewBloodUnit] = useState({
-    bloodComponent: 'Máu toàn phần',
-    volume: '',
-    expiryDate: '',
+    component: '',
+    quantity: '',
+    expiresAt: '',
     notes: '',
   });
 
-  // Blood component options
-  const BLOOD_COMPONENTS = [
-    'Máu toàn phần',
-    'Hồng cầu',
-    'Tiểu cầu',
-    'Plasma',
-    'Bạch cầu',
-    'Cryoprecipitate',
-  ];
+  const getBloodComponents = () => {
+    if (!donation) return [];
+    return getAvailableComponents(donation.bloodComponent);
+  };
 
   useEffect(() => {
     fetchDonationDetail();
@@ -65,16 +63,27 @@ const BloodUnitSplitScreen = () => {
     try {
       setLoading(true);
       
-      // Using mock API instead of real API
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
+      // Get donation detail - Using Mock API
+      const donationResponse = await bloodDonationAPI.HandleBloodDonation(
         `/${donationId}`,
         null,
         'get'
       );
       
-      if (response.data) {
-        setDonation(response.data);
-        setBloodUnits(response.data.bloodUnits || []);
+      if (donationResponse.data) {
+        setDonation(donationResponse.data);
+        
+        const unitsResponse = await bloodUnitAPI.HandleBloodUnit(
+          `/donation/${donationId}`,
+          null,
+          'get'
+        );
+        
+        if (unitsResponse.data && unitsResponse.data.data) {
+          setBloodUnits(unitsResponse.data.data);
+        } else {
+          setBloodUnits([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching donation detail:', error);
@@ -84,23 +93,27 @@ const BloodUnitSplitScreen = () => {
     }
   };
 
+  // Check if the donation can be divided
+  const canBeDivided = () => {
+    return donation && Object.values(BLOOD_COMPONENT).includes(donation.bloodComponent);
+  };
+
   const handleAddBloodUnit = async () => {
     try {
       // Validation
-      if (!newBloodUnit.volume || !newBloodUnit.expiryDate) {
-        Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+      if (!newBloodUnit.quantity) {
+        Alert.alert('Lỗi', 'Vui lòng nhập thể tích');
         return;
       }
 
-      const volume = parseFloat(newBloodUnit.volume);
-      if (isNaN(volume) || volume <= 0) {
-        Alert.alert('Lỗi', 'Thể tích phải là số dương');
+      const quantity = parseFloat(newBloodUnit.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        Alert.alert('Lỗi', 'Khối lượng phải là số dương');
         return;
       }
 
-      // Check total volume doesn't exceed donation quantity
-      const totalExistingVolume = bloodUnits.reduce((sum, unit) => sum + (unit.volume || 0), 0);
-      if (totalExistingVolume + volume > (donation.quantity || 0)) {
+      const totalExistingVolume = bloodUnits.reduce((sum, unit) => sum + (unit.quantity || 0), 0);
+      if (totalExistingVolume + quantity > (donation.quantity || 0)) {
         Alert.alert('Lỗi', `Tổng thể tích không được vượt quá ${donation.quantity}ml`);
         return;
       }
@@ -108,17 +121,15 @@ const BloodUnitSplitScreen = () => {
       setCreating(true);
 
       const bloodUnitData = {
-        bloodDonationId: donationId,
-        bloodComponent: newBloodUnit.bloodComponent,
-        volume: volume,
-        expiryDate: new Date(newBloodUnit.expiryDate).toISOString(),
-        notes: newBloodUnit.notes,
-        status: 'pending', // Default status
+        donationId,
+        units: [{
+          component: newBloodUnit.component,
+          quantity: quantity,
+        }]
       };
 
-      // Using mock API instead of real API
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        '/blood-units',
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        '',
         bloodUnitData,
         'post'
       );
@@ -127,12 +138,12 @@ const BloodUnitSplitScreen = () => {
         toast.success('Tạo đơn vị máu thành công!');
         setShowAddModal(false);
         setNewBloodUnit({
-          bloodComponent: 'Máu toàn phần',
-          volume: '',
-          expiryDate: '',
+          component: '',
+          quantity: '',
+          expiresAt: '',
           notes: '',
         });
-        fetchDonationDetail(); // Refresh data
+        fetchDonationDetail();
       }
     } catch (error) {
       console.error('Error creating blood unit:', error);
@@ -145,7 +156,7 @@ const BloodUnitSplitScreen = () => {
 
   const handleConfirmSplitComplete = async () => {
     try {
-      const totalVolume = bloodUnits.reduce((sum, unit) => sum + (unit.volume || 0), 0);
+      const totalVolume = bloodUnits.reduce((sum, unit) => sum + (unit.quantity || 0), 0);
       const donationQuantity = donation?.quantity || 0;
       
       if (totalVolume < donationQuantity) {
@@ -161,7 +172,13 @@ const BloodUnitSplitScreen = () => {
           ]
         );
       } else {
-        confirmSplitComplete();
+        Alert.alert('Xác nhận', 'Bạn có muốn hoàn thành phân chia?', [
+          { text: 'Tiếp tục phân chia', style: 'cancel' },
+          { 
+            text: 'Hoàn thành', 
+            onPress: () => confirmSplitComplete()
+          }
+        ]);
       }
     } catch (error) {
       console.error('Error confirming split complete:', error);
@@ -173,27 +190,24 @@ const BloodUnitSplitScreen = () => {
     try {
       setSaving(true);
 
-      // Update donation status to indicate splitting is complete
-      const updateData = {
-        status: 'split_completed',
-        splitCompletedAt: new Date().toISOString(),
-        notes: `Đã phân chia thành ${bloodUnits.length} đơn vị máu`
-      };
-
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        `/${donationId}`,
-        updateData,
+      const response = await bloodDonationAPI.HandleBloodDonation(
+        `/doctor/${donationId}/mark-divided`,
+        {},
         'patch'
       );
 
       if (response.data) {
         toast.success('✅ Đã hoàn thành phân chia máu!');
         
-        // Navigate back to BloodDonationListScreen
-        navigation.navigate('BloodDonationList');
+          navigation.navigate('TabNavigatorDoctor', {
+            screen: 'BloodDonations',
+            params: {
+              screen: 'BloodDonationList',
+            },
+          });
       }
     } catch (error) {
-      console.error('Error updating donation status:', error);
+      console.error('Error marking donation as divided:', error);
       const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái';
       Alert.alert('Lỗi', errorMessage);
     } finally {
@@ -203,10 +217,10 @@ const BloodUnitSplitScreen = () => {
 
   const getStatusInfo = (status) => {
     switch (status) {
-      case 'pending':
-        return { label: 'Chờ xử lý', color: '#4A90E2', icon: 'clock-outline' };
-      case 'approved':
-        return { label: 'Đã duyệt', color: '#2ED573', icon: 'check-circle' };
+      case 'testing':
+        return { label: 'Đang kiểm tra', color: '#4A90E2', icon: 'clock-outline' };
+      case 'available':
+        return { label: 'Sẵn sàng', color: '#2ED573', icon: 'check-circle' };
       case 'rejected':
         return { label: 'Từ chối', color: '#FF4757', icon: 'close-circle' };
       case 'expired':
@@ -218,7 +232,7 @@ const BloodUnitSplitScreen = () => {
 
   const renderBloodUnitItem = ({ item }) => {
     const statusInfo = getStatusInfo(item.status);
-    const isExpiringSoon = new Date(item.expiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const isExpiringSoon = new Date(item.expiresAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     return (
       <TouchableOpacity
@@ -232,9 +246,9 @@ const BloodUnitSplitScreen = () => {
           <View style={styles.bloodUnitInfo}>
             <View style={styles.componentBadge}>
               <MaterialCommunityIcons name="test-tube" size={20} color="#FF6B6B" />
-              <Text style={styles.componentText}>{item.bloodComponent}</Text>
+              <Text style={styles.componentText}>{item.component}</Text>
             </View>
-            <Text style={styles.bloodUnitCode}>{item.barcode || item._id.slice(-8)}</Text>
+            <Text style={styles.bloodUnitCode}>{item.code || item._id.slice(-8)}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
             <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#FFF" />
@@ -246,29 +260,23 @@ const BloodUnitSplitScreen = () => {
           <View style={styles.detailRow}>
             <MaterialCommunityIcons name="water" size={16} color="#636E72" />
             <Text style={styles.detailLabel}>Thể tích:</Text>
-            <Text style={styles.detailValue}>{item.volume}ml</Text>
+            <Text style={styles.detailValue}>{item.quantity}ml</Text>
           </View>
           <View style={styles.detailRow}>
             <MaterialCommunityIcons name="calendar" size={16} color="#636E72" />
             <Text style={styles.detailLabel}>Hạn sử dụng:</Text>
             <Text style={[styles.detailValue, isExpiringSoon && styles.expiringText]}>
-              {new Date(item.expiryDate).toLocaleDateString('vi-VN')}
+              {new Date(item.expiresAt).toLocaleDateString('vi-VN')}
             </Text>
           </View>
           {item.testResults && (
             <View style={styles.detailRow}>
               <MaterialCommunityIcons name="flask" size={16} color="#636E72" />
               <Text style={styles.detailLabel}>Kết quả xét nghiệm:</Text>
-              <Text style={styles.detailValue}>{item.testResults}</Text>
+              <Text style={styles.detailValue}>{item.testResults.notes || 'Đang xử lý'}</Text>
             </View>
           )}
         </View>
-
-        {item.notes && (
-          <View style={styles.notesSection}>
-            <Text style={styles.notesText}>{item.notes}</Text>
-          </View>
-        )}
 
         {isExpiringSoon && (
           <View style={styles.warningBanner}>
@@ -280,104 +288,108 @@ const BloodUnitSplitScreen = () => {
     );
   };
 
-  const renderAddBloodUnitModal = () => (
-    <Modal
-      visible={showAddModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowAddModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Thêm đơn vị máu mới</Text>
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <MaterialIcons name="close" size={24} color="#636E72" />
-            </TouchableOpacity>
-          </View>
+  const renderAddBloodUnitModal = () => {
+    const availableComponents = getBloodComponents();
+    
+    // Set default component if not set
+    if (!newBloodUnit.component && availableComponents.length > 0) {
+      setNewBloodUnit(prev => ({ ...prev, component: availableComponents[0] }));
+    }
 
-          <ScrollView style={styles.modalBody}>
-            <View style={styles.formField}>
-              <Text style={styles.fieldLabel}>Thành phần máu *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.componentSelector}>
-                {BLOOD_COMPONENTS.map((component) => (
-                  <TouchableOpacity
-                    key={component}
-                    style={[
-                      styles.componentChip,
-                      newBloodUnit.bloodComponent === component && styles.componentChipActive
-                    ]}
-                    onPress={() => setNewBloodUnit(prev => ({ ...prev, bloodComponent: component }))}
-                  >
-                    <Text style={[
-                      styles.componentChipText,
-                      newBloodUnit.bloodComponent === component && styles.componentChipTextActive
-                    ]}>
-                      {component}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+    return (
+      <Modal
+        visible={showAddModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Thêm đơn vị máu mới</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <MaterialIcons name="close" size={24} color="#636E72" />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.formField}>
-              <Text style={styles.fieldLabel}>Thể tích (ml) *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newBloodUnit.volume}
-                onChangeText={(text) => setNewBloodUnit(prev => ({ ...prev, volume: text }))}
-                placeholder="450"
-                keyboardType="numeric"
-                placeholderTextColor="#A0AEC0"
-              />
-            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Thành phần máu *</Text>
+                <Text style={styles.fieldHint}>
+                  {donation?.bloodComponent === BLOOD_COMPONENT.WHOLE 
+                    ? "Máu toàn phần có thể phân chia thành các thành phần khác"
+                    : `Chỉ có thể chia thành: ${donation?.bloodComponent}`
+                  }
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.componentSelector}>
+                  {availableComponents.map((component) => (
+                    <TouchableOpacity
+                      key={component}
+                      style={[
+                        styles.componentChip,
+                        newBloodUnit.component === component && styles.componentChipActive
+                      ]}
+                      onPress={() => setNewBloodUnit(prev => ({ ...prev, component: component }))}
+                    >
+                      <Text style={[
+                        styles.componentChipText,
+                        newBloodUnit.component === component && styles.componentChipTextActive
+                      ]}>
+                        {component}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-            <View style={styles.formField}>
-              <Text style={styles.fieldLabel}>Ngày hết hạn *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newBloodUnit.expiryDate}
-                onChangeText={(text) => setNewBloodUnit(prev => ({ ...prev, expiryDate: text }))}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A0AEC0"
-              />
-            </View>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Thể tích (ml) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newBloodUnit.quantity}
+                  onChangeText={(text) => setNewBloodUnit(prev => ({ ...prev, quantity: text }))}
+                  placeholder="450"
+                  keyboardType="numeric"
+                  placeholderTextColor="#A0AEC0"
+                />
+              </View>
 
-            <View style={styles.formField}>
-              <Text style={styles.fieldLabel}>Ghi chú</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                value={newBloodUnit.notes}
-                onChangeText={(text) => setNewBloodUnit(prev => ({ ...prev, notes: text }))}
-                placeholder="Ghi chú thêm..."
-                multiline
-                numberOfLines={3}
-                placeholderTextColor="#A0AEC0"
-              />
-            </View>
-          </ScrollView>
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Ghi chú</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={newBloodUnit.notes}
+                  onChangeText={(text) => setNewBloodUnit(prev => ({ ...prev, notes: text }))}
+                  placeholder="Ghi chú thêm..."
+                  multiline
+                  numberOfLines={3}
+                  placeholderTextColor="#A0AEC0"
+                />
+              </View>
+            </ScrollView>
 
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowAddModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Hủy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.createButton, creating && styles.createButtonDisabled]}
-              onPress={handleAddBloodUnit}
-              disabled={creating}
-            >
-              <Text style={styles.createButtonText}>
-                {creating ? 'Đang tạo...' : 'Tạo đơn vị máu'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowAddModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.createButton, creating && styles.createButtonDisabled]}
+                onPress={handleAddBloodUnit}
+                disabled={creating}
+              >
+                <Text style={styles.createButtonText}>
+                  {creating ? 'Đang tạo...' : 'Tạo đơn vị máu'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   if (loading) {
     return (
@@ -390,7 +402,36 @@ const BloodUnitSplitScreen = () => {
     );
   }
 
-  const totalVolume = bloodUnits.reduce((sum, unit) => sum + (unit.volume || 0), 0);
+  // Check if donation can be divided
+  if (!canBeDivided()) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Quản lý đơn vị máu</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="block-helper" size={64} color="#FF4757" />
+          <Text style={styles.errorTitle}>Không thể phân chia</Text>
+          <Text style={styles.errorText}>
+            Loại máu này không được hỗ trợ phân chia trong hệ thống.
+          </Text>
+          <TouchableOpacity 
+            style={styles.backToListButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backToListText}>Quay lại danh sách</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const totalVolume = bloodUnits.reduce((sum, unit) => sum + (unit.quantity || 0), 0);
   const remainingVolume = (donation?.quantity || 0) - totalVolume;
   const isFullySplit = remainingVolume <= 0;
 
@@ -401,13 +442,15 @@ const BloodUnitSplitScreen = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quản lý đơn vị máu</Text>
+        <Text style={[styles.headerTitle, { marginRight: !donation.isDivided ? 0 : 44 }]}>Quản lý đơn vị máu</Text>
+        {!donation.isDivided && (
         <TouchableOpacity 
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
         >
           <MaterialIcons name="add" size={24} color="#fff" />
         </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.scrollContainer}>
@@ -435,6 +478,9 @@ const BloodUnitSplitScreen = () => {
                 </Text>
                 <Text style={styles.donationCode}>
                   Mã: {donation?.code || donation?._id?.slice(-8)}
+                </Text>
+                <Text style={styles.bloodComponent}>
+                  Thành phần: {donation?.bloodComponent}
                 </Text>
               </View>
             </View>
@@ -507,16 +553,17 @@ const BloodUnitSplitScreen = () => {
           <View style={styles.completeSplitCard}>
             <View style={styles.completeSplitHeader}>
               <MaterialCommunityIcons name="check-circle" size={24} color="#2ED573" />
-              <Text style={styles.completeSplitTitle}>Hoàn thành phân chia</Text>
+              <Text style={styles.completeSplitTitle}>{donation.isDivided ? "Đã phân chia đơn vị máu" : "Hoàn thành phân chia"}</Text>
             </View>
             
+            {!donation.isDivided && (
             <Text style={styles.completeSplitDescription}>
               {isFullySplit 
                 ? "Bạn đã phân chia hết máu hiến. Nhấn nút bên dưới để xác nhận hoàn thành."
                 : `Còn lại ${remainingVolume}ml chưa được phân chia. Bạn có thể tiếp tục thêm đơn vị máu hoặc hoàn thành phân chia.`
               }
             </Text>
-
+            )}
             <View style={styles.splitSummary}>
               <View style={styles.summaryItem}>
                 <MaterialCommunityIcons name="test-tube" size={20} color="#4A90E2" />
@@ -538,6 +585,7 @@ const BloodUnitSplitScreen = () => {
               </View>
             </View>
 
+            {!donation.isDivided && (
             <TouchableOpacity
               style={[styles.completeSplitButton, saving && styles.completeSplitButtonDisabled]}
               onPress={handleConfirmSplitComplete}
@@ -548,6 +596,8 @@ const BloodUnitSplitScreen = () => {
                 {saving ? 'Đang xử lý...' : 'Xác nhận hoàn thành phân chia'}
               </Text>
             </TouchableOpacity>
+            )}
+
           </View>
         )}
       </ScrollView>
@@ -597,6 +647,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
+    
   },
   addButton: {
     width: 44,
@@ -605,6 +656,40 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FF4757',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#636E72',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  backToListButton: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  backToListText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   scrollContainer: {
     flex: 1,
@@ -673,6 +758,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4A5568',
     fontWeight: '500',
+    marginBottom: 2,
+  },
+  bloodComponent: {
+    fontSize: 14,
+    color: '#4A5568',
+    fontWeight: '500',
   },
   volumeInfo: {
     backgroundColor: '#F8F9FA',
@@ -693,6 +784,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2D3748',
     fontWeight: 'bold',
+  },
+  progressSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D3748',
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
   },
   bloodUnitsSection: {
     flex: 1,
@@ -789,17 +912,6 @@ const styles = StyleSheet.create({
   expiringText: {
     color: '#FF4757',
   },
-  notesSection: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-  },
-  notesText: {
-    fontSize: 13,
-    color: '#636E72',
-    lineHeight: 18,
-  },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -840,6 +952,77 @@ const styles = StyleSheet.create({
     color: '#95A5A6',
     marginTop: 8,
     textAlign: 'center',
+  },
+  completeSplitCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: '#2ED573',
+  },
+  completeSplitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  completeSplitTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ED573',
+    marginLeft: 12,
+  },
+  completeSplitDescription: {
+    fontSize: 14,
+    color: '#636E72',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  splitSummary: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2D3748',
+    marginLeft: 8,
+  },
+  completeSplitButton: {
+    backgroundColor: '#2ED573',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  completeSplitButtonDisabled: {
+    backgroundColor: '#95A5A6',
+    opacity: 0.6,
+  },
+  completeSplitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -885,6 +1068,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4A5568',
     marginBottom: 8,
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: '#95A5A6',
+    marginBottom: 8,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   componentSelector: {
     flexDirection: 'row',
@@ -960,108 +1150,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '600',
-  },
-  progressSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  progressTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2D3748',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4A90E2',
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  completeSplitCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderWidth: 2,
-    borderColor: '#2ED573',
-  },
-  completeSplitHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  completeSplitTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2ED573',
-    marginLeft: 12,
-  },
-  completeSplitDescription: {
-    fontSize: 14,
-    color: '#636E72',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  splitSummary: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2D3748',
-    marginLeft: 8,
-  },
-  completeSplitButton: {
-    backgroundColor: '#2ED573',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  completeSplitButtonDisabled: {
-    backgroundColor: '#95A5A6',
-    opacity: 0.6,
-  },
-  completeSplitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
   },
 }); 

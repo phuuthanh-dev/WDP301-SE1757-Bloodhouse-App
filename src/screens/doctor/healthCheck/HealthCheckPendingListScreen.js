@@ -165,7 +165,6 @@ export default function HealthCheckListScreen() {
           </View>
         </View>
         
-        {/* Health Check Summary */}
         {item.status !== 'pending' && (
           <View style={styles.healthSummary}>
             <View style={styles.summaryRow}>

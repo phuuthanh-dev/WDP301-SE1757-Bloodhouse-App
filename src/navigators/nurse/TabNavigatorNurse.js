@@ -44,7 +44,7 @@ export default function TabNavigatorNurse() {
         }}
       />
       <Tab.Screen 
-        name="HealthCheckList" 
+        name="HealthChecks" 
         component={HealthCheckList}
         options={{
           title: "Khám sức khoẻ",

@@ -132,8 +132,12 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
             { 
               text: 'OK', 
               onPress: () => {
-                // Navigate back to the tab that contains DonorList
-                navigation.goBack();
+                navigation.navigate('TabNavigatorNurse', {
+                  screen: 'HealthChecks',
+                  params: {
+                    screen: 'HealthChecks',
+                  },
+                });
               }
             }
           ]

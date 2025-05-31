@@ -33,7 +33,7 @@ const TabNavigatorDoctor = () => {
       }}
     >
       <Tab.Screen
-        name="Health Checks"
+        name="HealthChecks"
         component={HealthCheckListScreen}
         options={{
           tabBarLabel: 'Khám',
@@ -43,7 +43,7 @@ const TabNavigatorDoctor = () => {
         }}
       />
       <Tab.Screen
-        name="Blood Donations"
+        name="BloodDonations"
         component={BloodDonationListScreen}
         options={{
           tabBarLabel: 'Hiến máu',
@@ -53,7 +53,7 @@ const TabNavigatorDoctor = () => {
         }}
       />
       <Tab.Screen
-        name="Blood Units"
+        name="BloodUnits"
         component={BloodUnitListScreen}
         options={{
           tabBarLabel: 'Xét nghiệm',

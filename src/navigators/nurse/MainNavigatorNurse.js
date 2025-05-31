@@ -19,7 +19,7 @@ const MainNavigatorNurse = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigatorNurse} />
+      <Stack.Screen name="TabNavigatorNurse" component={TabNavigatorNurse} />
       <Stack.Screen name="GiftDistributionForm" component={GiftDistributionFormScreen} />
       <Stack.Screen name="Scanner" component={ScannerScreen} />
       <Stack.Screen name="HealthCheckCreateFromDonor" component={HealthCheckCreateFromDonorScreen} />

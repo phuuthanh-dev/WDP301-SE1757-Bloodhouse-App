@@ -132,7 +132,12 @@ const HealthCheckDetailScreen = ({ route }) => {
                       text: 'OK',
                       onPress: () => {
                         // Navigate back to HealthCheckList and refresh
-                        navigation.goBack();
+                        navigation.navigate('TabNavigatorNurse', {
+                          screen: 'HealthChecks',
+                          params: {
+                            screen: 'HealthChecks',
+                          },
+                        });
                       }
                     }
                   ]

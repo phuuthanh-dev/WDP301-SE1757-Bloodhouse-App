@@ -18,9 +18,12 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
-import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-// import bloodDonationAPI from "@/apis/bloodDonation";
-import { mockBloodDonationAPI, getMockDataByDate, filterByStatus, searchByName } from "@/mocks/doctorMockData";
+import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
+import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
+ import bloodDonationAPI from "@/apis/bloodDonation";
+
+// Using Mock API for UI testing
+import { mockBloodDonationAPI } from "@/mocks/bloodDonationMock";
 
 export default function BloodDonationListScreen() {
   const [bloodDonations, setBloodDonations] = useState([]);
@@ -28,30 +31,34 @@ export default function BloodDonationListScreen() {
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [bloodGroupFilter, setBloodGroupFilter] = useState('all');
+  const [isDividedFilter, setIsDividedFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Blood group filter options
-  const BLOOD_GROUP_OPTIONS = [
+  // isDivided filter options
+  const DIVIDED_FILTER_OPTIONS = [
     { label: "Tất cả", value: "all" },
-    { label: "A+", value: "A+" },
-    { label: "A-", value: "A-" },
-    { label: "B+", value: "B+" },
-    { label: "B-", value: "B-" },
-    { label: "AB+", value: "AB+" },
-    { label: "AB-", value: "AB-" },
-    { label: "O+", value: "O+" },
-    { label: "O-", value: "O-" },
+    { label: "Đã phân chia", value: "true" },
+    { label: "Chưa phân chia", value: "false" },
   ];
 
   const fetchBloodDonations = async () => {
     setLoading(true);
     try {
-      // Using mock API instead of real API
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        '?page=1&limit=100&status=confirmed',
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+        status: 'completed', 
+      });
+
+      // Add isDivided filter if not "all"
+      if (isDividedFilter !== 'all') {
+        params.append('isDivided', isDividedFilter);
+      }
+
+      const response = await bloodDonationAPI.HandleBloodDonation(
+        `/doctor?${params.toString()}`,
         null,
         'get'
       );
@@ -75,24 +82,19 @@ export default function BloodDonationListScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchBloodDonations();
-  }, [bloodGroupFilter, searchText]);
-
   // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
       fetchBloodDonations();
-    }, [])
+    }, [isDividedFilter, searchText])
   );
 
   // Filter blood donations by selected date and search text
   const filteredBloodDonations = bloodDonations.filter((donation) => {
-    const donationDate = new Date(donation.donationDate);
-    const matchDate =
-      donationDate.getFullYear() === selectedDate.getFullYear() &&
-      donationDate.getMonth() === selectedDate.getMonth() &&
-      donationDate.getDate() === selectedDate.getDate();
+    const donationDate = formatDate(new Date(donation.donationDate));
+    const selectedDateStr = formatDate(selectedDate);
+  
+    const matchDate = donationDate === selectedDateStr;
     
     const matchName = donation.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
     return matchDate && matchName;
@@ -114,25 +116,37 @@ export default function BloodDonationListScreen() {
   };
 
   const getStatusInfo = (donation) => {
-    if (donation.status === 'confirmed') {
-      return { label: 'Đã xác nhận', color: '#2ED573', icon: 'check-circle' };
-    } else if (donation.status === 'pending') {
-      return { label: 'Chờ xử lý', color: '#4A90E2', icon: 'clock-outline' };
+    if (donation.isDivided) {
+      return { label: 'Đã phân chia', color: '#2ED573', icon: 'check-circle' };
     } else {
-      return { label: 'Đã hủy', color: '#FF4757', icon: 'close-circle' };
+      return { label: 'Chưa phân chia', color: '#FF6B6B', icon: 'clock-outline' };
     }
+  };
+
+  const canBeDivided = (donation) => {
+    // Tất cả các loại máu đều có thể phân chia
+    return Object.values(BLOOD_COMPONENT).includes(donation.bloodComponent);
   };
 
   const renderBloodDonationItem = ({ item }) => {
     const statusInfo = getStatusInfo(item);
+    const isDividable = canBeDivided(item);
 
     return (
       <TouchableOpacity
-        style={styles.donationCard}
-        onPress={() => navigation.navigate('BloodUnitSplit', { 
-          donationId: item._id,
-          donationData: item
-        })}
+        style={[
+          styles.donationCard,
+          !isDividable && styles.donationCardDisabled
+        ]}
+        onPress={() => {
+          if (isDividable) {
+            navigation.navigate('BloodUnitSplit', { 
+              donationId: item._id,
+              donationData: item
+            });
+          }
+        }}
+        disabled={!isDividable}
       >
         <View style={styles.cardHeader}>
           <View style={styles.donorInfo}>
@@ -160,7 +174,7 @@ export default function BloodDonationListScreen() {
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
                 <Text style={styles.details}>
-                  {item.quantity || 0}ml • {item.bloodComponent || 'Máu toàn phần'}
+                  {item.quantity || 0}ml • {item.bloodComponent || 'N/A'}
                 </Text>
               </View>
             </View>
@@ -177,9 +191,12 @@ export default function BloodDonationListScreen() {
             <Text style={styles.summaryLabel}>Mã hiến máu:</Text>
             <Text style={styles.summaryValue}>{item.code || item._id.slice(-8)}</Text>
           </View>
+         
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Đơn vị máu:</Text>
-            <Text style={styles.summaryValue}>{item.bloodUnits?.length || 0} đơn vị</Text>
+            <Text style={styles.summaryLabel}>Có thể phân chia:</Text>
+            <Text style={[styles.summaryValue, { color: isDividable ? '#2ED573' : '#FF4757' }]}>
+              {isDividable ? 'Có' : 'Không'}
+            </Text>
           </View>
           {item.notes && (
             <View style={styles.notesPreview}>
@@ -190,16 +207,23 @@ export default function BloodDonationListScreen() {
         </View>
         
         <View style={styles.cardFooter}>
-          <TouchableOpacity 
-            style={styles.manageBtn}
-            onPress={() => navigation.navigate('BloodUnitSplit', { 
-              donationId: item._id,
-              donationData: item
-            })}
-          >
-            <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
-            <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
-          </TouchableOpacity>
+          {isDividable ? (
+            <TouchableOpacity 
+              style={styles.manageBtn}
+              onPress={() => navigation.navigate('BloodUnitSplit', { 
+                donationId: item._id,
+                donationData: item
+              })}
+            >
+              <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
+              <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.disabledBtn}>
+              <MaterialCommunityIcons name="block-helper" size={18} color="#95A5A6" />
+              <Text style={styles.disabledText}>Không thể phân chia</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -208,7 +232,7 @@ export default function BloodDonationListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Hiến Máu</Text>
+        <Text style={styles.headerTitle}>Máu đã hiến - Phân Chia</Text>
         <View style={styles.headerBadge}>
           <Text style={styles.headerCount}>{filteredBloodDonations.length}</Text>
         </View>
@@ -217,13 +241,13 @@ export default function BloodDonationListScreen() {
       {/* Filter & Search Row */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
-          {BLOOD_GROUP_OPTIONS.map((option) => (
+          {DIVIDED_FILTER_OPTIONS.map((option) => (
             <TouchableOpacity
               key={option.value}
-              style={[styles.filterChip, bloodGroupFilter === option.value && styles.filterChipActive]}
-              onPress={() => setBloodGroupFilter(option.value)}
+              style={[styles.filterChip, isDividedFilter === option.value && styles.filterChipActive]}
+              onPress={() => setIsDividedFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, bloodGroupFilter === option.value && styles.filterChipTextActive]}>
+              <Text style={[styles.filterChipText, isDividedFilter === option.value && styles.filterChipTextActive]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -234,7 +258,7 @@ export default function BloodDonationListScreen() {
             <MaterialCommunityIcons name="magnify" size={20} color="#A0AEC0" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Tìm kiếm tên người hiến..."
+              placeholder="Tìm kiếm ..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
@@ -527,6 +551,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0F0F0",
   },
+  donationCardDisabled: {
+    opacity: 0.6,
+    borderColor: "#E0E0E0",
+  },
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -649,6 +677,20 @@ const styles = StyleSheet.create({
   manageText: {
     fontSize: 14,
     color: "#FF6B6B",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  disabledBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  disabledText: {
+    fontSize: 14,
+    color: "#95A5A6",
     fontWeight: "600",
     marginLeft: 6,
   },

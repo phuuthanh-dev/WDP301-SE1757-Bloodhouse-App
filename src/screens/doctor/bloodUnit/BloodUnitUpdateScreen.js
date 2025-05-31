@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { mockBloodDonationAPI } from '@/mocks/doctorMockData';
+import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
+import bloodUnitAPI from '@/apis/bloodUnit';
+import bloodInventoryAPI from '@/apis/bloodInventoryAPI';
 import { toast } from 'sonner-native';
 
 const BloodUnitUpdateScreen = () => {
@@ -99,23 +101,19 @@ const BloodUnitUpdateScreen = () => {
     { value: 'positive', label: 'Dương tính', color: '#FF4757', icon: 'alert-circle' },
   ];
 
-  // Blood component options - phù hợp với backend enum
-  const BLOOD_COMPONENTS = [
-    'whole_blood',
-    'red_blood_cells', 
-    'platelets',
-    'plasma',
-    'white_blood_cells',
-    'cryoprecipitate'
-  ];
+  // Blood component options - sử dụng constants từ backend enum
+  const BLOOD_COMPONENTS = Object.values(BLOOD_COMPONENT);
 
   const COMPONENT_LABELS = {
-    'whole_blood': 'Máu toàn phần',
-    'red_blood_cells': 'Hồng cầu',
-    'platelets': 'Tiểu cầu', 
-    'plasma': 'Plasma',
-    'white_blood_cells': 'Bạch cầu',
-    'cryoprecipitate': 'Cryoprecipitate'
+    [BLOOD_COMPONENT.WHOLE]: 'Máu toàn phần',
+    [BLOOD_COMPONENT.RED_CELLS]: 'Hồng cầu',
+    [BLOOD_COMPONENT.PLASMA]: 'Huyết tương',
+    [BLOOD_COMPONENT.PLATELETS]: 'Tiểu cầu',
+  };
+
+  // Helper function để lấy label của component
+  const getComponentLabel = (component) => {
+    return COMPONENT_LABELS[component] || component;
   };
 
   useEffect(() => {
@@ -126,8 +124,9 @@ const BloodUnitUpdateScreen = () => {
     try {
       setLoading(true);
       
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        `/blood-units/${bloodUnitId}`,
+      // Gọi API backend để lấy chi tiết blood unit
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        `/${bloodUnitId}`,
         null,
         'get'
       );
@@ -135,7 +134,7 @@ const BloodUnitUpdateScreen = () => {
       if (response.data) {
         setBloodUnit(response.data);
         setFormData({
-          component: response.data.component || 'whole_blood',
+          component: response.data.component || BLOOD_COMPONENT.WHOLE,
           quantity: response.data.quantity?.toString() || '',
           expiresAt: response.data.expiresAt ? new Date(response.data.expiresAt).toISOString().split('T')[0] : '',
           status: response.data.status || 'testing',
@@ -182,12 +181,12 @@ const BloodUnitUpdateScreen = () => {
         expiresAt: new Date(formData.expiresAt).toISOString(),
         status: formData.status,
         testResults: formData.testResults,
-        processedAt: formData.status !== 'testing' ? new Date().toISOString() : null,
-        approvedAt: formData.status === 'available' ? new Date().toISOString() : null
+        notes: formData.testResults.notes
       };
 
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        `/blood-units/${bloodUnitId}`,
+      // Gọi API PATCH để update blood unit
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        `/${bloodUnitId}`,
         updateData,
         'patch'
       );
@@ -262,33 +261,18 @@ const BloodUnitUpdateScreen = () => {
         expiresAt: new Date(formData.expiresAt).toISOString(),
         status: newStatus,
         testResults: formData.testResults,
-        processedAt: new Date().toISOString(),
-        approvedAt: newStatus === 'available' ? new Date().toISOString() : null
+        notes: formData.testResults.notes
       };
 
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        `/blood-units/${bloodUnitId}`,
+      // Gọi API PATCH để update status
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        `/${bloodUnitId}`,
         updateData,
         'patch'
       );
 
       if (response.data) {
         if (newStatus === 'available') {
-          // Also create inventory record
-          const inventoryData = {
-            bloodUnitId: bloodUnitId,
-            facilityId: 'current_facility_id', // Should be from user context
-            quantity: parseFloat(formData.quantity),
-            status: 'available',
-            location: 'Kho máu chính'
-          };
-
-          await mockBloodDonationAPI.HandleBloodDonation(
-            '/blood-inventory',
-            inventoryData,
-            'post'
-          );
-
           toast.success('✅ Đơn vị máu đã được lưu vào kho thành công!');
         } else {
           toast.success('❌ Đơn vị máu đã bị từ chối do kết quả xét nghiệm dương tính');
@@ -560,11 +544,23 @@ const BloodUnitUpdateScreen = () => {
             <Text style={styles.infoLabel}>Mã đơn vị:</Text>
             <Text style={styles.infoValue}>{bloodUnit?.code || bloodUnit?._id?.slice(-8)}</Text>
           </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Thành phần máu:</Text>
+            <Text style={styles.infoValue}>{getComponentLabel(bloodUnit?.component)}</Text>
+          </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Ngày tạo:</Text>
             <Text style={styles.infoValue}>
               {bloodUnit?.createdAt ? new Date(bloodUnit.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Ngày thu thập:</Text>
+            <Text style={styles.infoValue}>
+              {bloodUnit?.collectedAt ? new Date(bloodUnit.collectedAt).toLocaleDateString('vi-VN') : 'N/A'}
             </Text>
           </View>
         </View>
@@ -593,7 +589,7 @@ const BloodUnitUpdateScreen = () => {
                       styles.componentChipText,
                       formData.component === component && styles.componentChipTextActive
                     ]}>
-                      {COMPONENT_LABELS[component]}
+                      {getComponentLabel(component)}
                     </Text>
                   </TouchableOpacity>
                 ))}
