@@ -24,13 +24,13 @@ export default function ReceiveRequestCard({
 }) {
   const [showApproveModal, setShowApproveModal] = useState(false);
 
-  const renderCampaignStatus = () => {
-    if (request.hasCampaign) {
+  const renderRequestStats = () => {
+    if (request.needsSupport) {
       return (
         <View style={styles.infoRow}>
-          <MaterialIcons name="campaign" size={16} color="#1E90FF" />
+          <MaterialIcons name="volunteer-activism" size={16} color="#1E90FF" />
           <Text style={[styles.infoText, { color: "#1E90FF" }]}>
-            Đã tạo chiến dịch khẩn cấp
+            Đã tạo chiến dịch hỗ trợ
           </Text>
         </View>
       );
@@ -107,7 +107,7 @@ export default function ReceiveRequestCard({
             </View>
           )}
 
-          {renderCampaignStatus()}
+          {renderRequestStats()}
           {renderFulfillStatus()}
 
           <View style={styles.infoRow}>
@@ -152,7 +152,7 @@ export default function ReceiveRequestCard({
             </Text>
           </TouchableOpacity>
 
-          {request.status === "pending_approval" && !request.hasCampaign && (
+          {request.status === "pending_approval" && (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.approveButton]}
@@ -176,7 +176,7 @@ export default function ReceiveRequestCard({
             </>
           )}
 
-          {request.status === "approved" && !request.hasCampaign && !request.isFullfill && (
+          {request.status === "approved" && !request.isFullfill && (
             <TouchableOpacity
               style={[styles.button, styles.startButton]}
               onPress={() => onDistributionSuccess(request._id)}

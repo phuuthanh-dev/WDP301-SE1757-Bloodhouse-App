@@ -145,7 +145,7 @@ export default function ManageRequestsScreen({ navigation }) {
     );
   };
 
-  const handleApproveReceive = (requestId, scheduleDate) => {
+  const handleApproveReceive = (requestId, scheduledDeliveryDate) => {
     Alert.alert(
       "Xác nhận duyệt",
       "Bạn có chắc chắn muốn duyệt yêu cầu nhận máu này?",
@@ -164,7 +164,7 @@ export default function ManageRequestsScreen({ navigation }) {
                   `/facility/${facilityId}/${requestId}/status`,
                   {
                     status: "approved",
-                    scheduleDate: scheduleDate,
+                    scheduledDeliveryDate: scheduledDeliveryDate,
                     staffId: user._id,
                   },
                   "patch"

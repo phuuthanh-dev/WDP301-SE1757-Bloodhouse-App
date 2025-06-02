@@ -77,19 +77,19 @@ export const getStatusReceiveBloodName = (status) => {
 export const getStatusReceiveBloodColor = (status) => {
   switch (status) {
     case RECEIVE_BLOOD_STATUS.PENDING_APPROVAL:
-      return "#95A5A6";
+      return "#FBBF24";
     case RECEIVE_BLOOD_STATUS.REJECTED_REGISTRATION:
-      return "#FF4757";
+      return "#EF4444";
     case RECEIVE_BLOOD_STATUS.APPROVED:
-      return "#FFA502";
+      return "#3B82F6";
     case RECEIVE_BLOOD_STATUS.ASSIGNED:
-      return "#FFA502";
+      return "#6366F1";
     case RECEIVE_BLOOD_STATUS.READY_FOR_HANDOVER:
-      return "#1E90FF";
+      return "#0EA5E9";
     case RECEIVE_BLOOD_STATUS.COMPLETED:
-      return "#2ED573";
+      return "#B98173";
     case RECEIVE_BLOOD_STATUS.CANCELLED:
-      return "#FF6B6B";
+      return "#F87171";
     default:
       return "#FFC107";
   }

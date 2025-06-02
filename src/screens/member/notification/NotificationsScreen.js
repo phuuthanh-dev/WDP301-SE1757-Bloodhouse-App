@@ -16,12 +16,6 @@ import notificationAPI from "@/apis/notification";
 const NotificationItem = ({ notification }) => {
   const getNotificationStyle = (type) => {
     switch (type) {
-      case "emergencyCampaign":
-        return {
-          icon: "campaign",
-          color: "#FF5252", // Emergency red
-          bgColor: "rgba(255, 82, 82, 0.1)",
-        };
       case "reminder":
         return {
           icon: "alarm",

@@ -77,7 +77,7 @@ export default function BloodTypeListScreen({ navigation }) {
       <TouchableOpacity
         key={group?._id}
         style={styles.bloodTypeCard}
-        onPress={() => navigation.navigate("BloodTypeDetail", { group })}
+        onPress={() => navigation.navigate("BloodTypeDetail", { groupId: group?._id })}
       >
         <View style={styles.bloodTypeHeader}>
           <View style={styles.typeContainer}>
