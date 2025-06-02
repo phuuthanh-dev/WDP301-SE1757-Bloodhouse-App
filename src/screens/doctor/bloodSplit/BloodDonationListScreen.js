@@ -16,73 +16,65 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
-import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
-import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
+import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
+import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
+ import bloodDonationAPI from "@/apis/bloodDonation";
+
+// Using Mock API for UI testing
+import { mockBloodDonationAPI } from "@/mocks/bloodDonationMock";
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function DonorListScreen({ route }) {
-  const [donors, setDonors] = useState([]);
+export default function BloodDonationListScreen() {
+  const [bloodDonations, setBloodDonations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [isDividedFilter, setIsDividedFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Định nghĩa các filter status cho trang này - chỉ 2 trạng thái
-  const FILTER_OPTIONS = [
+  // isDivided filter options
+  const DIVIDED_FILTER_OPTIONS = [
     { label: "Tất cả", value: "all" },
-    { label: getStatusName(DONATION_STATUS.REGISTERED), value: DONATION_STATUS.REGISTERED },
-    { label: getStatusName(DONATION_STATUS.CHECKED_IN), value: DONATION_STATUS.CHECKED_IN },
+    { label: "Đã phân chia", value: "true" },
+    { label: "Chưa phân chia", value: "false" },
   ];
 
-  const fetchDonors = async () => {
+  const fetchBloodDonations = async () => {
     setLoading(true);
     try {
-      // Build query params
       const params = new URLSearchParams({
         page: '1',
-        limit: '100', // Lấy nhiều để có thể filter local theo ngày
+        limit: '100',
+        status: 'completed', 
       });
 
-      // Nếu không phải "Tất cả", thêm status filter
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
+      // Add isDivided filter if not "all"
+      if (isDividedFilter !== 'all') {
+        params.append('isDivided', isDividedFilter);
       }
 
-      // Thêm search term nếu có
-      if (searchText.trim()) {
-        params.append('search', searchText.trim());
-      }
-
-      const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
-        `/staff/assigned?${params.toString()}`
+      const response = await bloodDonationAPI.HandleBloodDonation(
+        `/doctor?${params.toString()}`,
+        null,
+        'get'
       );
       
-      
       if (response.data && response.data.data) {
-        // Nếu statusFilter là 'all', filter chỉ 2 status cho phép
-        let filteredData = response.data.data;
-        if (statusFilter === 'all') {
-          filteredData = response.data.data.filter(donor => 
-            [DONATION_STATUS.REGISTERED, DONATION_STATUS.CHECKED_IN].includes(donor.status)
-          );
-        }
-        setDonors(filteredData);
+        setBloodDonations(response.data.data);
       } else {
-        setDonors([]);
+        setBloodDonations([]);
       }
     } catch (error) {
-      console.error("Error fetching donors:", error);
-      setDonors([]);
+      console.error("Error fetching blood donations:", error);
+      setBloodDonations([]);
     } finally {
       setLoading(false);
     }
@@ -90,48 +82,29 @@ export default function DonorListScreen({ route }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchDonors();
+    await fetchBloodDonations();
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchDonors();
-  }, [statusFilter, searchText]);
-
-  // Handle refresh parameter from navigation
-  useEffect(() => {
-    if (route.params?.refresh) {
-      fetchDonors();
-      // Clear the refresh parameter to prevent infinite refresh
-      navigation.setParams({ refresh: undefined });
-    }
-  }, [route.params?.refresh]);
-
-  // Refresh when tab is focused (when returning from health check creation)
+  // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchDonors();
-    }, [])
+      fetchBloodDonations();
+    }, [isDividedFilter, searchText])
   );
 
-  const handleScanDonor = (donorId) => {
-    navigation.navigate("Scanner", { mode: "donor", donorId });
-  };
-
-  // Lọc donors theo ngày đã chọn và tên
-  const filteredDonors = donors.filter((donor) => {
-    const donorDate = new Date(donor.preferredDate);
-    const matchDate =
-      donorDate.getFullYear() === selectedDate.getFullYear() &&
-      donorDate.getMonth() === selectedDate.getMonth() &&
-      donorDate.getDate() === selectedDate.getDate();
+  // Filter blood donations by selected date and search text
+  const filteredBloodDonations = bloodDonations.filter((donation) => {
+    const donationDate = formatDate(new Date(donation.donationDate));
+    const selectedDateStr = formatDate(selectedDate);
+  
+    const matchDate = donationDate === selectedDateStr;
     
-    const matchName = donor.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
-    
+    const matchName = donation.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
     return matchDate && matchName;
   });
 
-  // Chuyển tuần
+  // Navigation functions
   const handlePrevWeek = () => {
     const prev = new Date(currentWeekStart);
     prev.setDate(prev.getDate() - 7);
@@ -146,74 +119,116 @@ export default function DonorListScreen({ route }) {
     setSelectedDate(next);
   };
 
-  const renderDonorItem = ({ item }) => {
-    // Lấy thông tin trạng thái
-    const statusLabel = getStatusName(item.status);
-    const statusColor = getStatusColor(item.status);
+  const getStatusInfo = (donation) => {
+    if (donation.isDivided) {
+      return { label: 'Đã phân chia', color: '#2ED573', icon: 'check-circle' };
+    } else {
+      return { label: 'Chưa phân chia', color: '#FF6B6B', icon: 'clock-outline' };
+    }
+  };
 
-    // Điều hướng tạo khám y tế
-    const handleCreateHealthCheck = () => {
-      navigation.navigate("HealthCheckCreateFromDonor", { registrationId: item._id });
-    };
+  const canBeDivided = (donation) => {
+    // Tất cả các loại máu đều có thể phân chia
+    return Object.values(BLOOD_COMPONENT).includes(donation.bloodComponent);
+  };
 
-    const handleCheckIn = () => {
-      if (item.status === DONATION_STATUS.REGISTERED) {
-        navigation.navigate("Scanner", { mode: "checkin", registrationId: item._id });
-      }
-    };
+  const renderBloodDonationItem = ({ item }) => {
+    const statusInfo = getStatusInfo(item);
+    const isDividable = canBeDivided(item);
 
     return (
       <TouchableOpacity
-        style={styles.donorCard}
+        style={[
+          styles.donationCard,
+          !isDividable && styles.donationCardDisabled
+        ]}
         onPress={() => {
-          if (item.status === DONATION_STATUS.REGISTERED) {
-            handleCheckIn();
-          } else if (item.status === DONATION_STATUS.CHECKED_IN) {
-            handleCreateHealthCheck();
+          if (isDividable) {
+            navigation.navigate('BloodUnitSplit', { 
+              donationId: item._id,
+              donationData: item
+            });
           }
         }}
+        disabled={!isDividable}
       >
-        <View style={styles.donorInfo}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{ 
-                uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
-              }}
-              style={styles.avatar}
-            />
-            <View style={styles.bloodTypeBadge}>
-              <Text style={styles.bloodTypeText}>{item.bloodGroupId?.name || item.bloodGroupId?.type}</Text>
+        <View style={styles.cardHeader}>
+          <View style={styles.donorInfo}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ 
+                  uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+                }}
+                style={styles.avatar}
+              />
+              <View style={styles.bloodTypeBadge}>
+                <Text style={styles.bloodTypeText}>
+                  {item.bloodGroupId?.name || item.bloodGroupId?.type || 'N/A'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.donorName}>{item.userId?.fullName || 'N/A'}</Text>
+              <View style={styles.detailsRow}>
+                <MaterialCommunityIcons name="calendar" size={16} color="#4A90E2" />
+                <Text style={styles.details}>
+                  {formatDateTime(new Date(item.donationDate))}
+                </Text>
+              </View>
+              <View style={styles.detailsRow}>
+                <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
+                <Text style={styles.details}>
+                  {item.quantity || 0}ml • {item.bloodComponent || 'N/A'}
+                </Text>
+              </View>
             </View>
           </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.name}>{item.userId?.fullName || "N/A"}</Text>
-            <View style={styles.detailsRow}>
-              <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
-              <Text style={styles.details}>
-                {formatDateTime(new Date(item.preferredDate))}
-              </Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor }]}> 
-              <MaterialCommunityIcons name="clock-check-outline" size={14} color="#FFF" />
-              <Text style={styles.statusText}>{statusLabel}</Text>
-            </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+            <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#FFF" />
+            <Text style={styles.statusText}>{statusInfo.label}</Text>
           </View>
         </View>
         
-        {/* Button thao tác chính */}
-        {item.status === DONATION_STATUS.REGISTERED && (
-          <TouchableOpacity style={styles.scanButton} onPress={handleCheckIn}>
-            <MaterialCommunityIcons name="qrcode-scan" size={22} color="#FFF" />
-            <Text style={styles.scanText}>Check-in</Text>
-          </TouchableOpacity>
-        )}
+        {/* Donation Summary */}
+        <View style={styles.donationSummary}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Mã hiến máu:</Text>
+            <Text style={styles.summaryValue}>{item.code || item._id.slice(-8)}</Text>
+          </View>
+         
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Có thể phân chia:</Text>
+            <Text style={[styles.summaryValue, { color: isDividable ? '#2ED573' : '#FF4757' }]}>
+              {isDividable ? 'Có' : 'Không'}
+            </Text>
+          </View>
+          {item.notes && (
+            <View style={styles.notesPreview}>
+              <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
+              <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+            </View>
+          )}
+        </View>
         
-        {item.status === DONATION_STATUS.CHECKED_IN && (
-          <TouchableOpacity style={[styles.scanButton, { backgroundColor: "#2ED573" }]} onPress={handleCreateHealthCheck}>
-            <MaterialCommunityIcons name="stethoscope" size={22} color="#FFF" />
-            <Text style={styles.scanText}>Khám y tế</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.cardFooter}>
+          {isDividable ? (
+            <TouchableOpacity 
+              style={styles.manageBtn}
+              onPress={() => navigation.navigate('BloodUnitSplit', { 
+                donationId: item._id,
+                donationData: item
+              })}
+            >
+              <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
+              <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.disabledBtn}>
+              <MaterialCommunityIcons name="block-helper" size={18} color="#95A5A6" />
+              <Text style={styles.disabledText}>Không thể phân chia</Text>
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -348,14 +363,34 @@ export default function DonorListScreen({ route }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh Sách Người Hiến</Text>
+        <Text style={styles.headerTitle}>Máu đã hiến - Phân Chia</Text>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerCount}>{filteredDonors.length}</Text>
+          <Text style={styles.headerCount}>{filteredBloodDonations.length}</Text>
         </View>
       </View>
-      
+
       {/* Compact Filter & Search Section */}
-      <View style={styles.compactFilterSection}>        
+      <View style={styles.compactFilterSection}>
+        {/* Filter Chips Row */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.compactFilterChips}
+          style={styles.compactFilterScrollView}
+        >
+          {DIVIDED_FILTER_OPTIONS.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.compactFilterChip, isDividedFilter === option.value && styles.compactFilterChipActive]}
+              onPress={() => setIsDividedFilter(option.value)}
+            >
+              <Text style={[styles.compactFilterChipText, isDividedFilter === option.value && styles.compactFilterChipTextActive]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
         {/* Search Row */}
         <View style={styles.compactSearchRow}>
           <View style={styles.compactSearchContainer}>
@@ -386,10 +421,10 @@ export default function DonorListScreen({ route }) {
           </Text>
         </View>
       </View>
-      
+
       {/* Enhanced Date Picker Modal */}
       <CustomDatePicker />
-      
+
       {/* Calendar Bar */}
       <View style={styles.calendarBar}>
         <TouchableOpacity onPress={handlePrevWeek} style={styles.weekNavBtn}>
@@ -419,11 +454,11 @@ export default function DonorListScreen({ route }) {
           <MaterialCommunityIcons name="chevron-right" size={28} color="#FF6B6B" />
         </TouchableOpacity>
       </View>
-      
-      {/* Danh sách người hiến máu */}
+
+      {/* Blood Donation List */}
       <FlatList
-        data={filteredDonors}
-        renderItem={renderDonorItem}
+        data={filteredBloodDonations}
+        renderItem={renderBloodDonationItem}
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
@@ -436,9 +471,9 @@ export default function DonorListScreen({ route }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="qrcode-scan" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons name="water" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              {loading ? "Đang tải dữ liệu..." : "Không có người hiến máu nào trong ngày được chọn"}
+              {loading ? "Đang tải dữ liệu..." : "Không có lần hiến máu nào trong ngày này"}
             </Text>
           </View>
         }
@@ -486,119 +521,78 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  listContainer: {
-    padding: 16,
+  compactFilterSection: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  donorCard: {
-    backgroundColor: "#FFFFFF",
+  compactFilterScrollView: {
+    marginBottom: 10,
+  },
+  compactFilterChips: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 2,
+  },
+  compactFilterChip: {
+    backgroundColor: '#F8F9FA',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: '#E2E8F0',
   },
-  donorInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+  compactFilterChipActive: {
+    backgroundColor: '#FF6B6B',
+    borderColor: '#FF6B6B',
+  },
+  compactFilterChipText: {
+    color: '#4A5568',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  compactFilterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  compactSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  compactSearchContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  avatarContainer: {
-    position: "relative",
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: "#FF6B6B",
-    backgroundColor: "#F8F9FA",
-  },
-  bloodTypeBadge: {
-    position: "absolute",
-    bottom: -5,
-    right: -5,
-    backgroundColor: "#FF6B6B",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-  },
-  bloodTypeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  textContainer: {
+  compactSearchInput: {
     flex: 1,
-    marginLeft: 16,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#2D3748",
-    marginBottom: 4,
-  },
-  detailsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  details: {
     fontSize: 14,
-    color: "#4A5568",
+    color: '#2D3748',
     marginLeft: 6,
+    paddingVertical: 0,
   },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2ED573",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  statusText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "500",
-    marginLeft: 4,
-  },
-  scanButton: {
-    backgroundColor: "#FF6B6B",
-    borderRadius: 12,
+  compactCalendarButton: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
     padding: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 100,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
   },
-  scanText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 6,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-    marginTop: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#718096",
-    textAlign: "center",
-    marginTop: 16,
-    lineHeight: 24,
+  compactDateText: {
+    fontSize: 12,
+    color: '#718096',
+    fontWeight: '500',
+    minWidth: 70,
+    textAlign: 'center',
   },
   calendarBar: {
     flexDirection: "row",
@@ -657,65 +651,177 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-  medicalCheckBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+  listContainer: {
+    padding: 16,
+  },
+  donationCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  donationCardDisabled: {
+    opacity: 0.6,
+    borderColor: "#E0E0E0",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  donorInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  avatarContainer: {
+    position: "relative",
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "#FF6B6B",
+  },
+  bloodTypeBadge: {
+    position: "absolute",
+    bottom: -5,
+    right: -5,
+    backgroundColor: "#FF6B6B",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  bloodTypeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  textContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  donorName: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#2D3748",
+    marginBottom: 4,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  details: {
+    fontSize: 14,
+    color: "#4A5568",
+    marginLeft: 6,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4A90E2",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    borderRadius: 12,
   },
-  medicalCheckText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  compactFilterSection: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  compactSearchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  compactSearchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  compactSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#2D3748',
-    marginLeft: 6,
-    paddingVertical: 0,
-  },
-  compactCalendarButton: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
-  },
-  compactDateText: {
+  statusText: {
+    color: "#FFFFFF",
     fontSize: 12,
-    color: '#718096',
-    fontWeight: '500',
-    minWidth: 70,
-    textAlign: 'center',
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  donationSummary: {
+    backgroundColor: "#F8F9FA",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: "#636E72",
+    fontWeight: "500",
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: "#2D3748",
+    fontWeight: "600",
+  },
+  notesPreview: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F0F8FF",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  notesText: {
+    fontSize: 13,
+    color: "#636E72",
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  manageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEAEA",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  manageText: {
+    fontSize: 14,
+    color: "#FF6B6B",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  disabledBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  disabledText: {
+    fontSize: 14,
+    color: "#95A5A6",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    marginTop: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#718096",
+    textAlign: "center",
+    marginTop: 16,
+    lineHeight: 24,
   },
   dateModalOverlay: {
     flex: 1,
@@ -795,4 +901,4 @@ const styles = StyleSheet.create({
   selectedDateText: {
     color: '#FFFFFF',
   },
-});
+}); 

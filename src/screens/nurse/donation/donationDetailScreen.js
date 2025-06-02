@@ -323,8 +323,12 @@ const DonationDetailScreen = ({ route }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => {
-          // Navigate back and refresh the donation list
-          navigation.goBack();
+          navigation.navigate('TabNavigatorNurse', {
+            screen: 'Donations',
+            params: {
+              screen: 'Donations',
+            },
+          });
         }}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>

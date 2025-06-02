@@ -11,8 +11,6 @@ import {
   Platform,
   ScrollView,
   TextInput,
-  Modal,
-  Dimensions,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
@@ -20,30 +18,20 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
-import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
+import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import healthCheckAPI from "@/apis/healthCheckAPI";
 
-const { width: screenWidth } = Dimensions.get('window');
-
-export default function HealthCheckList() {
+export default function HealthCheckListScreen() {
   const [healthChecks, setHealthChecks] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Filter options for nurse health checks - 4 statuses
-  const FILTER_OPTIONS = [
-    { label: "Tất cả", value: "all" },
-    { label: "Chờ khám", value: "pending" },
-    { label: "Đã khám", value: "completed" },
-    { label: "Không đủ điều kiện", value: "cancelled" },
-    { label: "Đã hiến máu", value: "donated" },
-  ];
+
 
   const fetchHealthChecks = async () => {
     setLoading(true);
@@ -54,18 +42,12 @@ export default function HealthCheckList() {
         limit: '100',
       });
 
-      // Add search term if available
-      if (searchText.trim()) {
-        params.append('search', searchText.trim());
-      }
 
       // Add status filter if not "all"
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
+      params.append('status', 'pending');
 
       const response = await healthCheckAPI.HandleHealthCheck(
-        `/nurse?${params.toString()}`,
+        `/doctor?${params.toString()}`, 
         null,
         'get'
       );
@@ -89,23 +71,26 @@ export default function HealthCheckList() {
     setRefreshing(false);
   };
 
-  // Refresh when screen is focused (when returning from detail screen)
+  // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
       fetchHealthChecks();
-    }, [statusFilter, searchText])
+    }, [searchText, selectedDate])
   );
 
-  // Filter health checks by selected date and search text
+ 
+
+  // Filter health checks by selected date, search text, and status
   const filteredHealthChecks = healthChecks.filter((healthCheck) => {
-    const checkDate = new Date(healthCheck.checkDate);
-    const matchDate =
-      checkDate.getFullYear() === selectedDate.getFullYear() &&
-      checkDate.getMonth() === selectedDate.getMonth() &&
-      checkDate.getDate() === selectedDate.getDate();
-    
-    const matchName = healthCheck.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
-    return matchDate && matchName;
+    const checkDateStr = formatDate(new Date(healthCheck.checkDate));
+    const selectedDateStr = formatDate(selectedDate);
+  
+    const matchDate = checkDateStr === selectedDateStr;
+
+  const matchName =
+    healthCheck.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
+
+  return matchDate && matchName;
   });
 
   // Navigation functions
@@ -127,12 +112,6 @@ export default function HealthCheckList() {
     switch (healthCheck.status) {
       case 'pending':
         return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
-      case 'completed':
-        return { label: 'Đã khám', color: '#2ED573', icon: 'check-circle' };
-      case 'cancelled':
-        return { label: 'Không đủ điều kiện', color: '#FF4757', icon: 'close-circle' };
-      case 'donated':
-        return { label: 'Đã hiến máu', color: '#9B59B6', icon: 'heart' };
       default:
         return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
     }
@@ -144,7 +123,7 @@ export default function HealthCheckList() {
     return (
       <TouchableOpacity
         style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckDetail', { 
+        onPress={() => navigation.navigate('HealthCheckUpdate', { 
           healthCheckId: item._id,
           registrationId: item.registrationId?._id || item.registrationId
         })}
@@ -173,9 +152,9 @@ export default function HealthCheckList() {
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="stethoscope" size={16} color="#636E72" />
+                <MaterialCommunityIcons name="account-tie" size={16} color="#636E72" />
                 <Text style={styles.details}>
-                  BS: {item.doctorId?.userId?.fullName || 'Chưa phân công'}
+                  Y tá: {item.staffId?.userId?.fullName || 'N/A'}
                 </Text>
               </View>
             </View>
@@ -186,7 +165,6 @@ export default function HealthCheckList() {
           </View>
         </View>
         
-        {/* Health Check Summary */}
         {item.status !== 'pending' && (
           <View style={styles.healthSummary}>
             <View style={styles.summaryRow}>
@@ -210,211 +188,73 @@ export default function HealthCheckList() {
         
         <View style={styles.cardFooter}>
           <TouchableOpacity 
-            style={styles.viewDetailBtn}
-            onPress={() => navigation.navigate('HealthCheckDetail', { 
+            style={styles.updateBtn}
+            onPress={() => navigation.navigate('HealthCheckUpdate', { 
               healthCheckId: item._id,
               registrationId: item.registrationId?._id || item.registrationId
             })}
           >
-            <MaterialIcons name="visibility" size={18} color="#FF6B6B" />
-            <Text style={styles.viewDetailText}>Xem chi tiết</Text>
+            <MaterialIcons name="edit" size={18} color="#FF6B6B" />
+            <Text style={styles.updateText}>
+              {item.status === 'pending' ? 'Khám bệnh' : 'Cập nhật'}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Custom Date Picker Component
-  const CustomDatePicker = () => {
-    const [tempDate, setTempDate] = useState(selectedDate);
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
-    const months = Array.from({length: 12}, (_, i) => i + 1);
-    const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
-    const days = Array.from({length: getDaysInMonth(tempDate.getFullYear(), tempDate.getMonth() + 1)}, (_, i) => i + 1);
-
-    const handleConfirmDate = () => {
-      setSelectedDate(tempDate);
-      setCurrentWeekStart(getStartOfWeek(tempDate));
-      setCalendarVisible(false);
-    };
-
-    return (
-      <Modal
-        transparent={true}
-        animationType="slide"
-        visible={calendarVisible}
-        onRequestClose={() => setCalendarVisible(false)}
-      >
-        <View style={styles.dateModalOverlay}>
-          <View style={styles.dateModalContent}>
-            <View style={styles.dateModalHeader}>
-              <TouchableOpacity onPress={() => setCalendarVisible(false)}>
-                <Text style={styles.dateModalCancel}>Hủy</Text>
-              </TouchableOpacity>
-              <Text style={styles.dateModalTitle}>Chọn ngày</Text>
-              <TouchableOpacity onPress={handleConfirmDate}>
-                <Text style={styles.dateModalDone}>Xong</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.datePickerBody}>
-              <View style={styles.datePickerColumns}>
-                {/* Day Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Ngày</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {days.map(day => (
-                      <TouchableOpacity
-                        key={day}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getDate() === day && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setDate(day);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getDate() === day && styles.selectedDateText
-                        ]}>
-                          {day.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Month Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Tháng</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {months.map(month => (
-                      <TouchableOpacity
-                        key={month}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getMonth() + 1 === month && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setMonth(month - 1);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getMonth() + 1 === month && styles.selectedDateText
-                        ]}>
-                          {month.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Year Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Năm</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {years.map(year => (
-                      <TouchableOpacity
-                        key={year}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getFullYear() === year && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setFullYear(year);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getFullYear() === year && styles.selectedDateText
-                        ]}>
-                          {year}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh Sách Khám Sức Khỏe</Text>
+        <Text style={styles.headerTitle}>Danh sách chờ khám sức khỏe</Text>
         <View style={styles.headerBadge}>
           <Text style={styles.headerCount}>{filteredHealthChecks.length}</Text>
         </View>
       </View>
 
-      {/* Compact Filter & Search Section */}
-      <View style={styles.compactFilterSection}>
-        {/* Filter Chips Row */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.compactFilterChips}
-          style={styles.compactFilterScrollView}
-        >
-          {FILTER_OPTIONS.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[styles.compactFilterChip, statusFilter === option.value && styles.compactFilterChipActive]}
-              onPress={() => setStatusFilter(option.value)}
-            >
-              <Text style={[styles.compactFilterChipText, statusFilter === option.value && styles.compactFilterChipTextActive]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        {/* Search Row */}
-        <View style={styles.compactSearchRow}>
-          <View style={styles.compactSearchContainer}>
-            <MaterialCommunityIcons name="magnify" size={16} color="#A0AEC0" />
+      <View style={styles.filterRow}>
+        <View style={styles.searchWrap}>
+          <View style={styles.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#A0AEC0" />
             <TextInput
-              style={styles.compactSearchInput}
-              placeholder="Tìm kiếm bệnh nhân..."
+              style={styles.searchInput}
+              placeholder="Tìm kiếm tên bệnh nhân..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
             />
-            {searchText ? (
-              <TouchableOpacity onPress={() => setSearchText('')}>
-                <MaterialCommunityIcons name="close-circle" size={16} color="#A0AEC0" />
-              </TouchableOpacity>
-            ) : null}
           </View>
-          
-          <TouchableOpacity 
-            style={styles.compactCalendarButton} 
-            onPress={() => setCalendarVisible(true)}
-          >
-            <MaterialCommunityIcons name="calendar" size={18} color="#FF6B6B" />
+          <TouchableOpacity style={styles.calendarBtn} onPress={() => setCalendarVisible(true)}>
+            <MaterialCommunityIcons name="calendar" size={24} color="#FF6B6B" />
           </TouchableOpacity>
-          
-          <Text style={styles.compactDateText}>
-            {format(selectedDate, 'dd/MM/yyyy', { locale: viLocale })}
-          </Text>
         </View>
       </View>
 
-      {/* Enhanced Date Picker Modal */}
-      <CustomDatePicker />
+      {/* Calendar Modal */}
+      {calendarVisible && (
+        <View style={styles.calendarModalWrap}>
+          <TouchableOpacity style={styles.calendarModalBg} onPress={() => setCalendarVisible(false)} />
+          <View style={styles.calendarModal}>
+            <Calendar
+              onDayPress={day => {
+                const pickedDate = new Date(day.dateString);
+                setSelectedDate(pickedDate);
+                setCurrentWeekStart(getStartOfWeek(pickedDate));
+                setCalendarVisible(false);
+              }}
+              markedDates={{
+                [format(selectedDate, 'yyyy-MM-dd')]: { selected: true, selectedColor: '#FF6B6B' },
+              }}
+              theme={{
+                todayTextColor: '#FF6B6B',
+                selectedDayBackgroundColor: '#FF6B6B',
+                arrowColor: '#FF6B6B',
+              }}
+            />
+          </View>
+        </View>
+      )}
 
       {/* Calendar Bar */}
       <View style={styles.calendarBar}>
@@ -446,7 +286,7 @@ export default function HealthCheckList() {
         </TouchableOpacity>
       </View>
 
-      {/* Danh sách phiếu khám sức khỏe */}
+      {/* Health Check List */}
       <FlatList
         data={filteredHealthChecks}
         renderItem={renderHealthCheckItem}
@@ -462,7 +302,7 @@ export default function HealthCheckList() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="medical-bag" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons name="stethoscope" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
               {loading ? "Đang tải dữ liệu..." : "Không có phiếu khám sức khỏe nào trong ngày này"}
             </Text>
@@ -486,11 +326,6 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 20 : 40,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   headerTitle: {
     fontSize: 20,
@@ -512,78 +347,99 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  compactFilterSection: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  compactFilterScrollView: {
-    marginBottom: 10,
-  },
-  compactFilterChips: {
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 2,
-  },
-  compactFilterChip: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  compactFilterChipActive: {
-    backgroundColor: '#FF6B6B',
-    borderColor: '#FF6B6B',
-  },
-  compactFilterChipText: {
-    color: '#4A5568',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  compactFilterChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  compactSearchRow: {
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: '#fff',
+    zIndex: 2,
+    width: '100%',
   },
-  compactSearchContainer: {
-    flex: 1,
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginRight: 8,
+  },
+  filterChip: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginRight: 4,
+  },
+  filterChipActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  filterChipText: {
+    color: '#4A5568',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    gap: 4,
+    width: '100%',
+  },
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    height: 38,
+    minWidth: '90%',
+    marginRight: 4,
   },
-  compactSearchInput: {
+  searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#2D3748',
     marginLeft: 6,
     paddingVertical: 0,
   },
-  compactCalendarButton: {
-    backgroundColor: '#F8F9FA',
+  calendarBtn: {
+    backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 10,
+    padding: 6,
     borderWidth: 1,
     borderColor: '#FF6B6B',
   },
-  compactDateText: {
-    fontSize: 12,
-    color: '#718096',
-    fontWeight: '500',
-    minWidth: 70,
-    textAlign: 'center',
+  calendarModalWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarModalBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  calendarModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    minWidth: 340,
   },
   calendarBar: {
     flexDirection: "row",
@@ -765,11 +621,26 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     flex: 1,
   },
+  notesPreview: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F0F8FF",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  notesText: {
+    fontSize: 13,
+    color: "#636E72",
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
+  },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
-  viewDetailBtn: {
+  updateBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFEAEA",
@@ -777,7 +648,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  viewDetailText: {
+  updateText: {
     fontSize: 14,
     color: "#FF6B6B",
     fontWeight: "600",
@@ -796,92 +667,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 24,
   },
-  notesPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  notesText: {
-    fontSize: 14,
-    color: "#636E72",
-    marginLeft: 6,
-  },
-  dateModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  dateModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-  },
-  dateModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  dateModalCancel: {
-    fontSize: 16,
-    color: '#636E72',
-    fontWeight: '600',
-  },
-  dateModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3748',
-  },
-  dateModalDone: {
-    fontSize: 16,
-    color: '#FF6B6B',
-    fontWeight: '600',
-  },
-  datePickerBody: {
-    padding: 20,
-  },
-  datePickerColumns: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  dateColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  columnTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  dateScrollView: {
-    maxHeight: 200,
-    width: '100%',
-  },
-  dateItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginVertical: 2,
-    borderRadius: 8,
-    backgroundColor: '#F8F9FA',
-    alignItems: 'center',
-  },
-  selectedDateItem: {
-    backgroundColor: '#FF6B6B',
-  },
-  dateItemText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3748',
-    textAlign: 'center',
-  },
-  selectedDateText: {
-    color: '#FFFFFF',
-  },
-});
+}); 

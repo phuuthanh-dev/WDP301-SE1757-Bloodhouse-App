@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Image,
   SafeAreaView,
   Platform,
   ScrollView,
@@ -15,69 +14,89 @@ import {
   Dimensions,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { format } from "date-fns";
-import viLocale from "date-fns/locale/vi";
-import { Calendar } from 'react-native-calendars';
-import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-import healthCheckAPI from "@/apis/healthCheckAPI";
+import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
+import { 
+  BLOOD_UNIT_STATUS_OPTIONS, 
+  getStatusInfo, 
+  getTestResultColor, 
+  getTestResultLabel 
+} from '@/constants/bloodUnitStatus';
+import bloodUnitAPI from '@/apis/bloodUnit';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function HealthCheckList() {
-  const [healthChecks, setHealthChecks] = useState([]);
+export default function BloodUnitListScreen() {
+  const [bloodUnits, setBloodUnits] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('testing');
   const [searchText, setSearchText] = useState('');
-  const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    limit: 10
+  });
 
-  // Filter options for nurse health checks - 4 statuses
-  const FILTER_OPTIONS = [
-    { label: "Tất cả", value: "all" },
-    { label: "Chờ khám", value: "pending" },
-    { label: "Đã khám", value: "completed" },
-    { label: "Không đủ điều kiện", value: "cancelled" },
-    { label: "Đã hiến máu", value: "donated" },
-  ];
+  // Filter options for blood unit status - sử dụng constants từ backend
+  const FILTER_OPTIONS = BLOOD_UNIT_STATUS_OPTIONS.map(status => ({
+    label: status.label,
+    value: status.value
+  }));
 
-  const fetchHealthChecks = async () => {
+  const fetchBloodUnits = async () => {
     setLoading(true);
     try {
-      // Build query params for health checks
       const params = new URLSearchParams({
         page: '1',
-        limit: '100',
+        limit: '50',
       });
-
-      // Add search term if available
-      if (searchText.trim()) {
-        params.append('search', searchText.trim());
-      }
 
       // Add status filter if not "all"
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
 
-      const response = await healthCheckAPI.HandleHealthCheck(
-        `/nurse?${params.toString()}`,
+      // Add search if exists
+      if (searchText.trim()) {
+        params.append('search', searchText.trim());
+      }
+
+      // Gọi API backend để lấy blood units do doctor hiện tại xử lý
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        `/processed-by/me?${params.toString()}`,
         null,
         'get'
       );
       
       if (response.data && response.data.data) {
-        setHealthChecks(response.data.data);
+        setBloodUnits(response.data.data);
+        setPagination(response.data.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: response.data.data.length,
+          limit: 50
+        });
       } else {
-        setHealthChecks([]);
+        setBloodUnits([]);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 0,
+          limit: 50
+        });
       }
     } catch (error) {
-      console.error("Error fetching health checks:", error);
-      setHealthChecks([]);
+      console.error("Error fetching blood units:", error);
+      setBloodUnits([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        limit: 50
+      });
     } finally {
       setLoading(false);
     }
@@ -85,99 +104,72 @@ export default function HealthCheckList() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchHealthChecks();
+    await fetchBloodUnits();
     setRefreshing(false);
   };
 
-  // Refresh when screen is focused (when returning from detail screen)
+  // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchHealthChecks();
+      fetchBloodUnits();
     }, [statusFilter, searchText])
   );
 
-  // Filter health checks by selected date and search text
-  const filteredHealthChecks = healthChecks.filter((healthCheck) => {
-    const checkDate = new Date(healthCheck.checkDate);
-    const matchDate =
-      checkDate.getFullYear() === selectedDate.getFullYear() &&
-      checkDate.getMonth() === selectedDate.getMonth() &&
-      checkDate.getDate() === selectedDate.getDate();
-    
-    const matchName = healthCheck.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
-    return matchDate && matchName;
-  });
-
-  // Navigation functions
-  const handlePrevWeek = () => {
-    const prev = new Date(currentWeekStart);
-    prev.setDate(prev.getDate() - 7);
-    setCurrentWeekStart(prev);
-    setSelectedDate(prev);
-  };
-  
-  const handleNextWeek = () => {
-    const next = new Date(currentWeekStart);
-    next.setDate(next.getDate() + 7);
-    setCurrentWeekStart(next);
-    setSelectedDate(next);
+  const getComponentLabel = (component) => {
+    const labels = {
+      [BLOOD_COMPONENT.WHOLE]: 'Máu toàn phần',
+      [BLOOD_COMPONENT.RED_CELLS]: 'Hồng cầu',
+      [BLOOD_COMPONENT.PLASMA]: 'Huyết tương',
+      [BLOOD_COMPONENT.PLATELETS]: 'Tiểu cầu',
+    };
+    return labels[component] || component || 'Máu toàn phần';
   };
 
-  const getStatusInfo = (healthCheck) => {
-    switch (healthCheck.status) {
-      case 'pending':
-        return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
-      case 'completed':
-        return { label: 'Đã khám', color: '#2ED573', icon: 'check-circle' };
-      case 'cancelled':
-        return { label: 'Không đủ điều kiện', color: '#FF4757', icon: 'close-circle' };
-      case 'donated':
-        return { label: 'Đã hiến máu', color: '#9B59B6', icon: 'heart' };
-      default:
-        return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
-    }
-  };
-
-  const renderHealthCheckItem = ({ item }) => {
-    const statusInfo = getStatusInfo(item);
+  const renderBloodUnitItem = ({ item }) => {
+    const statusInfo = getStatusInfo(item.status);
+    const isExpiringSoon = item.expiresAt && 
+      new Date(item.expiresAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     return (
       <TouchableOpacity
-        style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckDetail', { 
-          healthCheckId: item._id,
-          registrationId: item.registrationId?._id || item.registrationId
+        style={[styles.bloodUnitCard, isExpiringSoon && styles.bloodUnitCardWarning]}
+        onPress={() => navigation.navigate('BloodUnitUpdate', { 
+          bloodUnitId: item._id,
+          donationId: item.donationId?._id
         })}
       >
         <View style={styles.cardHeader}>
-          <View style={styles.patientInfo}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ 
-                  uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
-                }}
-                style={styles.avatar}
-              />
-              <View style={styles.bloodTypeBadge}>
-                <Text style={styles.bloodTypeText}>
-                  {item.userId?.bloodId?.name || item.userId?.bloodId?.type || 'N/A'}
-                </Text>
-              </View>
+          <View style={styles.unitInfo}>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons name="test-tube" size={32} color="#FF6B6B" />
+              {isExpiringSoon && (
+                <View style={styles.warningBadge}>
+                  <MaterialCommunityIcons name="alert" size={12} color="#FFF" />
+                </View>
+              )}
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.patientName}>{item.userId?.fullName || 'N/A'}</Text>
+              <Text style={styles.unitCode}>{item.code || item._id?.slice(-8)}</Text>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
+                <MaterialCommunityIcons name="water" size={16} color="#4A90E2" />
                 <Text style={styles.details}>
-                  {formatDateTime(new Date(item.checkDate))}
+                  {getComponentLabel(item.component)} • {item.quantity || 0}ml
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="stethoscope" size={16} color="#636E72" />
+                <MaterialCommunityIcons name="calendar" size={16} color="#636E72" />
                 <Text style={styles.details}>
-                  BS: {item.doctorId?.userId?.fullName || 'Chưa phân công'}
+                  Hết hạn: {item.expiresAt ? new Date(item.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}
                 </Text>
               </View>
+              {item.donationId?.userId && (
+                <View style={styles.detailsRow}>
+                  <MaterialCommunityIcons name="account" size={16} color="#636E72" />
+                  <Text style={styles.details}>
+                    Người hiến: {item.donationId.userId.fullName}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
@@ -186,56 +178,77 @@ export default function HealthCheckList() {
           </View>
         </View>
         
-        {/* Health Check Summary */}
-        {item.status !== 'pending' && (
-          <View style={styles.healthSummary}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tình trạng:</Text>
-              <Text style={styles.summaryValue}>{item.generalCondition || '-'}</Text>
+        {/* Test Results Summary */}
+        {item.testResults && (
+          <View style={styles.testSummary}>
+            <Text style={styles.testSummaryTitle}>Kết quả xét nghiệm:</Text>
+            <View style={styles.testResultsRow}>
+              <View style={styles.testResultItem}>
+                <Text style={styles.testLabel}>HIV:</Text>
+                <View style={[styles.testBadge, { backgroundColor: getTestResultColor(item.testResults.hiv) }]}>
+                  <Text style={styles.testBadgeText}>{getTestResultLabel(item.testResults.hiv)}</Text>
+                </View>
+              </View>
+              <View style={styles.testResultItem}>
+                <Text style={styles.testLabel}>HBV:</Text>
+                <View style={[styles.testBadge, { backgroundColor: getTestResultColor(item.testResults.hepatitisB) }]}>
+                  <Text style={styles.testBadgeText}>{getTestResultLabel(item.testResults.hepatitisB)}</Text>
+                </View>
+              </View>
+              <View style={styles.testResultItem}>
+                <Text style={styles.testLabel}>HCV:</Text>
+                <View style={[styles.testBadge, { backgroundColor: getTestResultColor(item.testResults.hepatitisC) }]}>
+                  <Text style={styles.testBadgeText}>{getTestResultLabel(item.testResults.hepatitisC)}</Text>
+                </View>
+              </View>
+              <View style={styles.testResultItem}>
+                <Text style={styles.testLabel}>Syphilis:</Text>
+                <View style={[styles.testBadge, { backgroundColor: getTestResultColor(item.testResults.syphilis) }]}>
+                  <Text style={styles.testBadgeText}>{getTestResultLabel(item.testResults.syphilis)}</Text>
+                </View>
+              </View>
             </View>
-            {item.deferralReason && (
-              <View style={styles.deferralReason}>
-                <MaterialCommunityIcons name="alert-circle" size={16} color="#FF4757" />
-                <Text style={styles.deferralText}>{item.deferralReason}</Text>
-              </View>
-            )}
-            {item.notes && (
-              <View style={styles.notesPreview}>
-                <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
-                <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
-              </View>
-            )}
           </View>
         )}
         
         <View style={styles.cardFooter}>
           <TouchableOpacity 
-            style={styles.viewDetailBtn}
-            onPress={() => navigation.navigate('HealthCheckDetail', { 
-              healthCheckId: item._id,
-              registrationId: item.registrationId?._id || item.registrationId
+            style={styles.updateBtn}
+            onPress={() => navigation.navigate('BloodUnitUpdate', { 
+              bloodUnitId: item._id,
+              donationId: item.donationId?._id
             })}
           >
-            <MaterialIcons name="visibility" size={18} color="#FF6B6B" />
-            <Text style={styles.viewDetailText}>Xem chi tiết</Text>
+            <MaterialIcons name="edit" size={18} color="#FF6B6B" />
+            <Text style={styles.updateText}>
+              {item.status === 'testing' ? 'Cập nhật xét nghiệm' : 'Xem chi tiết'}
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {isExpiringSoon && (
+          <View style={styles.warningBanner}>
+            <MaterialCommunityIcons name="alert" size={16} color="#FF4757" />
+            <Text style={styles.warningText}>Sắp hết hạn sử dụng!</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
   // Custom Date Picker Component
   const CustomDatePicker = () => {
-    const [tempDate, setTempDate] = useState(selectedDate);
+    const [tempDate, setTempDate] = useState(new Date());
     const currentYear = new Date().getFullYear();
     const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
     const months = Array.from({length: 12}, (_, i) => i + 1);
     const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
     const days = Array.from({length: getDaysInMonth(tempDate.getFullYear(), tempDate.getMonth() + 1)}, (_, i) => i + 1);
+    const [calendarVisible, setCalendarVisible] = useState(false);
 
     const handleConfirmDate = () => {
-      setSelectedDate(tempDate);
-      setCurrentWeekStart(getStartOfWeek(tempDate));
+      // For BloodUnitListScreen, we don't need to update selectedDate since it doesn't have date filtering
+      // This is just for consistency with other screens
       setCalendarVisible(false);
     };
 
@@ -354,9 +367,9 @@ export default function HealthCheckList() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh Sách Khám Sức Khỏe</Text>
+        <Text style={styles.headerTitle}>Đơn Vị Máu</Text>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerCount}>{filteredHealthChecks.length}</Text>
+          <Text style={styles.headerCount}>{bloodUnits.length}</Text>
         </View>
       </View>
 
@@ -388,7 +401,7 @@ export default function HealthCheckList() {
             <MaterialCommunityIcons name="magnify" size={16} color="#A0AEC0" />
             <TextInput
               style={styles.compactSearchInput}
-              placeholder="Tìm kiếm bệnh nhân..."
+              placeholder="Tìm kiếm đơn vị máu..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
@@ -402,54 +415,21 @@ export default function HealthCheckList() {
           
           <TouchableOpacity 
             style={styles.compactCalendarButton} 
-            onPress={() => setCalendarVisible(true)}
+            onPress={() => fetchBloodUnits()}
           >
-            <MaterialCommunityIcons name="calendar" size={18} color="#FF6B6B" />
+            <MaterialCommunityIcons name="refresh" size={18} color="#FF6B6B" />
           </TouchableOpacity>
           
           <Text style={styles.compactDateText}>
-            {format(selectedDate, 'dd/MM/yyyy', { locale: viLocale })}
+            {bloodUnits.length} đv
           </Text>
         </View>
       </View>
 
-      {/* Enhanced Date Picker Modal */}
-      <CustomDatePicker />
-
-      {/* Calendar Bar */}
-      <View style={styles.calendarBar}>
-        <TouchableOpacity onPress={handlePrevWeek} style={styles.weekNavBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#FF6B6B" />
-        </TouchableOpacity>
-        {getWeekDays(currentWeekStart).map((day, idx) => {
-          const isSelected =
-            day.getFullYear() === selectedDate.getFullYear() &&
-            day.getMonth() === selectedDate.getMonth() &&
-            day.getDate() === selectedDate.getDate();
-          return (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.dayBtn, isSelected && styles.dayBtnSelected]}
-              onPress={() => setSelectedDate(day)}
-            >
-              <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>
-                {format(day, "EEE", { locale: viLocale })}
-              </Text>
-              <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>
-                {format(day, "d")}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-        <TouchableOpacity onPress={handleNextWeek} style={styles.weekNavBtn}>
-          <MaterialCommunityIcons name="chevron-right" size={28} color="#FF6B6B" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Danh sách phiếu khám sức khỏe */}
+      {/* Blood Unit List */}
       <FlatList
-        data={filteredHealthChecks}
-        renderItem={renderHealthCheckItem}
+        data={bloodUnits}
+        renderItem={renderBloodUnitItem}
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
@@ -462,9 +442,12 @@ export default function HealthCheckList() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="medical-bag" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons name="test-tube" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
-              {loading ? "Đang tải dữ liệu..." : "Không có phiếu khám sức khỏe nào trong ngày này"}
+              {loading ? "Đang tải dữ liệu..." : "Không có đơn vị máu nào"}
+            </Text>
+            <Text style={styles.emptySubText}>
+              {!loading && "Các đơn vị máu bạn xử lý sẽ hiển thị ở đây"}
             </Text>
           </View>
         }
@@ -582,70 +565,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#718096',
     fontWeight: '500',
-    minWidth: 70,
+    minWidth: 50,
     textAlign: 'center',
-  },
-  calendarBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-    paddingHorizontal: 2,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderColor: "#F0F0F0",
-    marginBottom: 4,
-    flexShrink: 0,
-  },
-  weekNavBtn: {
-    padding: 4,
-    borderRadius: 8,
-    minWidth: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-  },
-  dayBtn: {
-    alignItems: "center",
-    justifyContent: 'center',
-    width: 44,
-    height: 48,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderRadius: 8,
-    marginHorizontal: 1,
-    backgroundColor: '#fff',
-  },
-  dayBtnSelected: {
-    backgroundColor: "#FF6B6B",
-  },
-  dayLabel: {
-    fontSize: 13,
-    color: "#718096",
-    fontWeight: "500",
-  },
-  dayLabelSelected: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  dayNum: {
-    fontSize: 16,
-    color: "#2D3748",
-    fontWeight: "600",
-  },
-  dayNumSelected: {
-    color: "#fff",
-    fontWeight: "bold",
   },
   listContainer: {
     padding: 16,
   },
-  healthCheckCard: {
+  bloodUnitCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
@@ -664,42 +590,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  patientInfo: {
+  unitInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  avatarContainer: {
+  iconContainer: {
     position: "relative",
+    marginRight: 16,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: "#FF6B6B",
-  },
-  bloodTypeBadge: {
+  warningBadge: {
     position: "absolute",
-    bottom: -5,
+    top: -5,
     right: -5,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#FF4757",
     borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1.5,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
     borderColor: "#FFFFFF",
-  },
-  bloodTypeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
   },
   textContainer: {
     flex: 1,
-    marginLeft: 16,
   },
-  patientName: {
+  unitCode: {
     fontSize: 17,
     fontWeight: "bold",
     color: "#2D3748",
@@ -729,47 +645,49 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
-  healthSummary: {
+  testSummary: {
     backgroundColor: "#F8F9FA",
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  summaryRow: {
+  testSummaryTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2D3748",
+    marginBottom: 8,
+  },
+  testResultsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
   },
-  summaryLabel: {
-    fontSize: 14,
+  testResultItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  testLabel: {
+    fontSize: 12,
     color: "#636E72",
     fontWeight: "500",
+    marginBottom: 4,
   },
-  summaryValue: {
-    fontSize: 14,
-    color: "#2D3748",
-    fontWeight: "600",
-  },
-  deferralReason: {
-    flexDirection: "row",
+  testBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 40,
     alignItems: "center",
-    backgroundColor: "#FFEAEA",
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 6,
   },
-  deferralText: {
-    fontSize: 13,
-    color: "#FF4757",
-    fontWeight: "500",
-    marginLeft: 6,
-    flex: 1,
+  testBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
   },
-  viewDetailBtn: {
+  updateBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFEAEA",
@@ -777,7 +695,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  viewDetailText: {
+  updateText: {
     fontSize: 14,
     color: "#FF6B6B",
     fontWeight: "600",
@@ -796,15 +714,30 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 24,
   },
-  notesPreview: {
+  emptySubText: {
+    fontSize: 14,
+    color: "#718096",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  bloodUnitCardWarning: {
+    borderWidth: 2,
+    borderColor: '#FF4757',
+  },
+  warningBanner: {
+    backgroundColor: '#FFEAEA',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
   },
-  notesText: {
+  warningText: {
     fontSize: 14,
-    color: "#636E72",
-    marginLeft: 6,
+    color: '#FF4757',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   dateModalOverlay: {
     flex: 1,
@@ -884,4 +817,4 @@ const styles = StyleSheet.create({
   selectedDateText: {
     color: '#FFFFFF',
   },
-});
+}); 
