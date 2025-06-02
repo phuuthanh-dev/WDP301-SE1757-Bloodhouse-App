@@ -12,9 +12,15 @@ import {
   TextInput,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { mockBloodDonationAPI } from "@/mocks/doctorMockData";
+import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
+import { 
+  BLOOD_UNIT_STATUS_OPTIONS, 
+  getStatusInfo, 
+  getTestResultColor, 
+  getTestResultLabel 
+} from '@/constants/bloodUnitStatus';
+import bloodUnitAPI from '@/apis/bloodUnit';
 
 export default function BloodUnitListScreen() {
   const [bloodUnits, setBloodUnits] = useState([]);
@@ -23,35 +29,70 @@ export default function BloodUnitListScreen() {
   const [statusFilter, setStatusFilter] = useState('testing');
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    limit: 10
+  });
 
-  // Filter options for blood unit status
-  const FILTER_OPTIONS = [
-    { label: "Đang xét nghiệm", value: "testing" },
-    { label: "Sẵn sàng", value: "available" },
-    { label: "Đã đặt trước", value: "reserved" },
-    { label: "Đã sử dụng", value: "used" },
-    { label: "Hết hạn", value: "expired" },
-    { label: "Từ chối", value: "rejected" },
-  ];
+  // Filter options for blood unit status - sử dụng constants từ backend
+  const FILTER_OPTIONS = BLOOD_UNIT_STATUS_OPTIONS.map(status => ({
+    label: status.label,
+    value: status.value
+  }));
 
   const fetchBloodUnits = async () => {
     setLoading(true);
     try {
-      // Using mock API to get all blood units
-      const response = await mockBloodDonationAPI.HandleBloodDonation(
-        '/blood-units?page=1&limit=100',
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '50',
+      });
+
+      // Add status filter if not "all"
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      // Add search if exists
+      if (searchText.trim()) {
+        params.append('search', searchText.trim());
+      }
+
+      // Gọi API backend để lấy blood units do doctor hiện tại xử lý
+      const response = await bloodUnitAPI.HandleBloodUnit(
+        `/processed-by/me?${params.toString()}`,
         null,
         'get'
       );
       
       if (response.data && response.data.data) {
         setBloodUnits(response.data.data);
+        setPagination(response.data.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: response.data.data.length,
+          limit: 50
+        });
       } else {
         setBloodUnits([]);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 0,
+          limit: 50
+        });
       }
     } catch (error) {
       console.error("Error fetching blood units:", error);
       setBloodUnits([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        limit: 50
+      });
     } finally {
       setLoading(false);
     }
@@ -63,68 +104,34 @@ export default function BloodUnitListScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchBloodUnits();
-  }, [statusFilter, searchText]);
-
   // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
       fetchBloodUnits();
-    }, [])
+    }, [statusFilter, searchText])
   );
-
-  // Filter blood units by status and search text
-  const filteredBloodUnits = bloodUnits.filter((unit) => {
-    const matchStatus = statusFilter === 'all' || unit.status === statusFilter;
-    const matchSearch = unit.barcode?.toLowerCase().includes(searchText.toLowerCase()) || 
-                       unit.bloodComponent?.toLowerCase().includes(searchText.toLowerCase()) ||
-                       false;
-    return matchStatus && matchSearch;
-  });
-
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case 'testing':
-        return { label: 'Đang xét nghiệm', color: '#4A90E2', icon: 'test-tube' };
-      case 'available':
-        return { label: 'Sẵn sàng', color: '#2ED573', icon: 'check-circle' };
-      case 'reserved':
-        return { label: 'Đã đặt trước', color: '#FFA726', icon: 'bookmark' };
-      case 'used':
-        return { label: 'Đã sử dụng', color: '#6C5CE7', icon: 'check-all' };
-      case 'expired':
-        return { label: 'Hết hạn', color: '#95A5A6', icon: 'calendar-remove' };
-      case 'rejected':
-        return { label: 'Từ chối', color: '#FF4757', icon: 'close-circle' };
-      default:
-        return { label: 'Không xác định', color: '#95A5A6', icon: 'help-circle' };
-    }
-  };
 
   const getComponentLabel = (component) => {
     const labels = {
-      'whole_blood': 'Máu toàn phần',
-      'red_blood_cells': 'Hồng cầu',
-      'platelets': 'Tiểu cầu',
-      'plasma': 'Plasma',
-      'white_blood_cells': 'Bạch cầu',
-      'cryoprecipitate': 'Cryoprecipitate'
+      [BLOOD_COMPONENT.WHOLE]: 'Máu toàn phần',
+      [BLOOD_COMPONENT.RED_CELLS]: 'Hồng cầu',
+      [BLOOD_COMPONENT.PLASMA]: 'Huyết tương',
+      [BLOOD_COMPONENT.PLATELETS]: 'Tiểu cầu',
     };
     return labels[component] || component || 'Máu toàn phần';
   };
 
   const renderBloodUnitItem = ({ item }) => {
     const statusInfo = getStatusInfo(item.status);
-    const isExpiringSoon = item.expiryDate && 
-      new Date(item.expiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const isExpiringSoon = item.expiresAt && 
+      new Date(item.expiresAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     return (
       <TouchableOpacity
-        style={styles.bloodUnitCard}
+        style={[styles.bloodUnitCard, isExpiringSoon && styles.bloodUnitCardWarning]}
         onPress={() => navigation.navigate('BloodUnitUpdate', { 
           bloodUnitId: item._id,
-          donationId: item.bloodDonationId
+          donationId: item.donationId?._id
         })}
       >
         <View style={styles.cardHeader}>
@@ -138,19 +145,27 @@ export default function BloodUnitListScreen() {
               )}
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.unitCode}>{item.barcode || item._id?.slice(-8)}</Text>
+              <Text style={styles.unitCode}>{item.code || item._id?.slice(-8)}</Text>
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="water" size={16} color="#4A90E2" />
                 <Text style={styles.details}>
-                  {getComponentLabel(item.bloodComponent)} • {item.volume || 0}ml
+                  {getComponentLabel(item.component)} • {item.quantity || 0}ml
                 </Text>
               </View>
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="calendar" size={16} color="#636E72" />
                 <Text style={styles.details}>
-                  Hết hạn: {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : 'N/A'}
+                  Hết hạn: {item.expiresAt ? new Date(item.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}
                 </Text>
               </View>
+              {item.donationId?.userId && (
+                <View style={styles.detailsRow}>
+                  <MaterialCommunityIcons name="account" size={16} color="#636E72" />
+                  <Text style={styles.details}>
+                    Người hiến: {item.donationId.userId.fullName}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
@@ -197,7 +212,7 @@ export default function BloodUnitListScreen() {
             style={styles.updateBtn}
             onPress={() => navigation.navigate('BloodUnitUpdate', { 
               bloodUnitId: item._id,
-              donationId: item.bloodDonationId
+              donationId: item.donationId?._id
             })}
           >
             <MaterialIcons name="edit" size={18} color="#FF6B6B" />
@@ -206,26 +221,15 @@ export default function BloodUnitListScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {isExpiringSoon && (
+          <View style={styles.warningBanner}>
+            <MaterialCommunityIcons name="alert" size={16} color="#FF4757" />
+            <Text style={styles.warningText}>Sắp hết hạn sử dụng!</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
-  };
-
-  const getTestResultColor = (result) => {
-    switch (result) {
-      case 'negative': return '#2ED573';
-      case 'positive': return '#FF4757';
-      case 'pending': return '#4A90E2';
-      default: return '#95A5A6';
-    }
-  };
-
-  const getTestResultLabel = (result) => {
-    switch (result) {
-      case 'negative': return 'Âm';
-      case 'positive': return 'Dương';
-      case 'pending': return 'Chờ';
-      default: return 'N/A';
-    }
   };
 
   return (
@@ -233,7 +237,7 @@ export default function BloodUnitListScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Đơn Vị Máu</Text>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerCount}>{filteredBloodUnits.length}</Text>
+          <Text style={styles.headerCount}>{bloodUnits.length}</Text>
         </View>
       </View>
 
@@ -256,7 +260,7 @@ export default function BloodUnitListScreen() {
           <MaterialCommunityIcons name="magnify" size={20} color="#A0AEC0" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm kiếm mã đơn vị..."
+            placeholder="Tìm kiếm ..."
             value={searchText}
             onChangeText={setSearchText}
             placeholderTextColor="#A0AEC0"
@@ -266,7 +270,7 @@ export default function BloodUnitListScreen() {
 
       {/* Blood Unit List */}
       <FlatList
-        data={filteredBloodUnits}
+        data={bloodUnits}
         renderItem={renderBloodUnitItem}
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
@@ -283,6 +287,9 @@ export default function BloodUnitListScreen() {
             <MaterialCommunityIcons name="test-tube" size={64} color="#FF6B6B" />
             <Text style={styles.emptyText}>
               {loading ? "Đang tải dữ liệu..." : "Không có đơn vị máu nào"}
+            </Text>
+            <Text style={styles.emptySubText}>
+              {!loading && "Các đơn vị máu bạn xử lý sẽ hiển thị ở đây"}
             </Text>
           </View>
         }
@@ -520,5 +527,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
     lineHeight: 24,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: "#718096",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  bloodUnitCardWarning: {
+    borderWidth: 2,
+    borderColor: '#FF4757',
+  },
+  warningBanner: {
+    backgroundColor: '#FFEAEA',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#FF4757',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 }); 
