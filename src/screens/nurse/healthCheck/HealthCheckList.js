@@ -11,6 +11,8 @@ import {
   Platform,
   ScrollView,
   TextInput,
+  Modal,
+  Dimensions,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { formatDateTime } from "@/utils/formatHelpers";
@@ -20,6 +22,8 @@ import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import healthCheckAPI from "@/apis/healthCheckAPI";
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export default function HealthCheckList() {
   const [healthChecks, setHealthChecks] = useState([]);
@@ -220,6 +224,133 @@ export default function HealthCheckList() {
     );
   };
 
+  // Custom Date Picker Component
+  const CustomDatePicker = () => {
+    const [tempDate, setTempDate] = useState(selectedDate);
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
+    const months = Array.from({length: 12}, (_, i) => i + 1);
+    const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
+    const days = Array.from({length: getDaysInMonth(tempDate.getFullYear(), tempDate.getMonth() + 1)}, (_, i) => i + 1);
+
+    const handleConfirmDate = () => {
+      setSelectedDate(tempDate);
+      setCurrentWeekStart(getStartOfWeek(tempDate));
+      setCalendarVisible(false);
+    };
+
+    return (
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={calendarVisible}
+        onRequestClose={() => setCalendarVisible(false)}
+      >
+        <View style={styles.dateModalOverlay}>
+          <View style={styles.dateModalContent}>
+            <View style={styles.dateModalHeader}>
+              <TouchableOpacity onPress={() => setCalendarVisible(false)}>
+                <Text style={styles.dateModalCancel}>Hủy</Text>
+              </TouchableOpacity>
+              <Text style={styles.dateModalTitle}>Chọn ngày</Text>
+              <TouchableOpacity onPress={handleConfirmDate}>
+                <Text style={styles.dateModalDone}>Xong</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.datePickerBody}>
+              <View style={styles.datePickerColumns}>
+                {/* Day Column */}
+                <View style={styles.dateColumn}>
+                  <Text style={styles.columnTitle}>Ngày</Text>
+                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
+                    {days.map(day => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          styles.dateItem,
+                          tempDate.getDate() === day && styles.selectedDateItem
+                        ]}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setDate(day);
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dateItemText,
+                          tempDate.getDate() === day && styles.selectedDateText
+                        ]}>
+                          {day.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Month Column */}
+                <View style={styles.dateColumn}>
+                  <Text style={styles.columnTitle}>Tháng</Text>
+                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
+                    {months.map(month => (
+                      <TouchableOpacity
+                        key={month}
+                        style={[
+                          styles.dateItem,
+                          tempDate.getMonth() + 1 === month && styles.selectedDateItem
+                        ]}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setMonth(month - 1);
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dateItemText,
+                          tempDate.getMonth() + 1 === month && styles.selectedDateText
+                        ]}>
+                          {month.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Year Column */}
+                <View style={styles.dateColumn}>
+                  <Text style={styles.columnTitle}>Năm</Text>
+                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
+                    {years.map(year => (
+                      <TouchableOpacity
+                        key={year}
+                        style={[
+                          styles.dateItem,
+                          tempDate.getFullYear() === year && styles.selectedDateItem
+                        ]}
+                        onPress={() => {
+                          const newDate = new Date(tempDate);
+                          newDate.setFullYear(year);
+                          setTempDate(newDate);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dateItemText,
+                          tempDate.getFullYear() === year && styles.selectedDateText
+                        ]}>
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -229,62 +360,61 @@ export default function HealthCheckList() {
         </View>
       </View>
 
-      {/* Filter & Search Row */}
-      <View style={styles.filterRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
+      {/* Compact Filter & Search Section */}
+      <View style={styles.compactFilterSection}>
+        {/* Filter Chips Row */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.compactFilterChips}
+          style={styles.compactFilterScrollView}
+        >
           {FILTER_OPTIONS.map((option) => (
             <TouchableOpacity
               key={option.value}
-              style={[styles.filterChip, statusFilter === option.value && styles.filterChipActive]}
+              style={[styles.compactFilterChip, statusFilter === option.value && styles.compactFilterChipActive]}
               onPress={() => setStatusFilter(option.value)}
             >
-              <Text style={[styles.filterChipText, statusFilter === option.value && styles.filterChipTextActive]}>
+              <Text style={[styles.compactFilterChipText, statusFilter === option.value && styles.compactFilterChipTextActive]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <View style={styles.searchWrap}>
-          <View style={styles.searchBox}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#A0AEC0" />
+        
+        {/* Search Row */}
+        <View style={styles.compactSearchRow}>
+          <View style={styles.compactSearchContainer}>
+            <MaterialCommunityIcons name="magnify" size={16} color="#A0AEC0" />
             <TextInput
-              style={styles.searchInput}
-              placeholder="Tìm kiếm tên bệnh nhân..."
+              style={styles.compactSearchInput}
+              placeholder="Tìm kiếm bệnh nhân..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
             />
+            {searchText ? (
+              <TouchableOpacity onPress={() => setSearchText('')}>
+                <MaterialCommunityIcons name="close-circle" size={16} color="#A0AEC0" />
+              </TouchableOpacity>
+            ) : null}
           </View>
-          <TouchableOpacity style={styles.calendarBtn} onPress={() => setCalendarVisible(true)}>
-            <MaterialCommunityIcons name="calendar" size={24} color="#FF6B6B" />
+          
+          <TouchableOpacity 
+            style={styles.compactCalendarButton} 
+            onPress={() => setCalendarVisible(true)}
+          >
+            <MaterialCommunityIcons name="calendar" size={18} color="#FF6B6B" />
           </TouchableOpacity>
+          
+          <Text style={styles.compactDateText}>
+            {format(selectedDate, 'dd/MM/yyyy', { locale: viLocale })}
+          </Text>
         </View>
       </View>
 
-      {/* Calendar Modal */}
-      {calendarVisible && (
-        <View style={styles.calendarModalWrap}>
-          <TouchableOpacity style={styles.calendarModalBg} onPress={() => setCalendarVisible(false)} />
-          <View style={styles.calendarModal}>
-            <Calendar
-              onDayPress={day => {
-                const pickedDate = new Date(day.dateString);
-                setSelectedDate(pickedDate);
-                setCurrentWeekStart(getStartOfWeek(pickedDate));
-                setCalendarVisible(false);
-              }}
-              markedDates={{
-                [format(selectedDate, 'yyyy-MM-dd')]: { selected: true, selectedColor: '#FF6B6B' },
-              }}
-              theme={{
-                todayTextColor: '#FF6B6B',
-                selectedDayBackgroundColor: '#FF6B6B',
-                arrowColor: '#FF6B6B',
-              }}
-            />
-          </View>
-        </View>
-      )}
+      {/* Enhanced Date Picker Modal */}
+      <CustomDatePicker />
 
       {/* Calendar Bar */}
       <View style={styles.calendarBar}>
@@ -356,6 +486,11 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 20 : 40,
     paddingBottom: 16,
     paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerTitle: {
     fontSize: 20,
@@ -377,97 +512,78 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  compactFilterSection: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
-    backgroundColor: '#fff',
-    zIndex: 2,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  filterChips: {
+  compactFilterScrollView: {
+    marginBottom: 10,
+  },
+  compactFilterChips: {
     flexDirection: 'row',
-    gap: 8,
-    marginRight: 8,
+    gap: 6,
+    paddingHorizontal: 2,
   },
-  filterChip: {
+  compactFilterChip: {
     backgroundColor: '#F8F9FA',
     borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginRight: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  filterChipActive: {
+  compactFilterChipActive: {
     backgroundColor: '#FF6B6B',
+    borderColor: '#FF6B6B',
   },
-  filterChipText: {
+  compactFilterChipText: {
     color: '#4A5568',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
-  filterChipTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
+  compactFilterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
-  searchWrap: {
+  compactSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 'auto',
-    gap: 4,
+    gap: 10,
   },
-  searchBox: {
+  compactSearchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    height: 38,
-    minWidth: 160,
-    marginRight: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  searchInput: {
+  compactSearchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: '#2D3748',
     marginLeft: 6,
     paddingVertical: 0,
   },
-  calendarBtn: {
-    backgroundColor: '#fff',
+  compactCalendarButton: {
+    backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    padding: 6,
+    padding: 10,
     borderWidth: 1,
     borderColor: '#FF6B6B',
   },
-  calendarModalWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarModalBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  calendarModal: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    minWidth: 340,
+  compactDateText: {
+    fontSize: 12,
+    color: '#718096',
+    fontWeight: '500',
+    minWidth: 70,
+    textAlign: 'center',
   },
   calendarBar: {
     flexDirection: "row",
@@ -689,5 +805,83 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#636E72",
     marginLeft: 6,
+  },
+  dateModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  dateModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  dateModalCancel: {
+    fontSize: 16,
+    color: '#636E72',
+    fontWeight: '600',
+  },
+  dateModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3748',
+  },
+  dateModalDone: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    fontWeight: '600',
+  },
+  datePickerBody: {
+    padding: 20,
+  },
+  datePickerColumns: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  dateColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  columnTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  dateScrollView: {
+    maxHeight: 200,
+    width: '100%',
+  },
+  dateItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginVertical: 2,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    alignItems: 'center',
+  },
+  selectedDateItem: {
+    backgroundColor: '#FF6B6B',
+  },
+  dateItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2D3748',
+    textAlign: 'center',
+  },
+  selectedDateText: {
+    color: '#FFFFFF',
   },
 });
