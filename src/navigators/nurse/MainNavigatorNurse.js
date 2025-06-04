@@ -6,6 +6,7 @@ import HealthCheckCreateFromDonorScreen from "@/screens/nurse/healthCheck/Health
 import HealthCheckDetailScreen from "@/screens/nurse/healthCheck/HealthCheckDetailScreen";
 import DonationCreateFormScreen from "@/screens/nurse/donation/donationCreateFormScreen";
 import DonationDetailScreen from "@/screens/nurse/donation/donationDetailScreen";
+import DonorStatusScreen from "@/screens/nurse/donation/DonorStatusScreen";
 import ScannerScreen from "@/screens/nurse/ScannerScreen";
 
 const MainNavigatorNurse = () => {
@@ -26,6 +27,7 @@ const MainNavigatorNurse = () => {
       <Stack.Screen name="HealthCheckDetail" component={HealthCheckDetailScreen} />
       <Stack.Screen name="DonationCreateForm" component={DonationCreateFormScreen} />
       <Stack.Screen name="DonationDetail" component={DonationDetailScreen} />
+      <Stack.Screen name="DonorStatus" component={DonorStatusScreen} />
     </Stack.Navigator>
   );
 };
