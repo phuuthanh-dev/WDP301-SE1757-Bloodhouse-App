@@ -283,7 +283,10 @@ const DonationDetailScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody}>
+          <ScrollView 
+            style={styles.modalBody}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Current Information Display */}
             <View style={styles.currentInfoSection}>
               <Text style={styles.currentInfoTitle}>Thông tin hiện tại:</Text>
@@ -319,7 +322,11 @@ const DonationDetailScreen = ({ route }) => {
                     style={[
                       styles.statusOption,
                       updateData.status === option.value && styles.statusOptionActive,
-                      updateData.status === option.value && { borderColor: option.color, backgroundColor: `${option.color}15` }
+                      updateData.status === option.value && { 
+                        borderColor: option.color, 
+                        shadowColor: option.color,
+                        borderWidth: 3,
+                      }
                     ]}
                     onPress={() => setUpdateData(prev => ({ ...prev, status: option.value }))}
                   >
@@ -991,25 +998,25 @@ const styles = StyleSheet.create({
   },
   statusOptions: {
     flexDirection: 'column',
-    gap: 12,
   },
   statusOption: {
     padding: 16,
     borderWidth: 2,
     borderColor: '#E9ECEF',
     borderRadius: 12,
-    backgroundColor: '#F8F9FA',
-    elevation: 1,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    marginBottom: 12,
   },
   statusOptionActive: {
     borderWidth: 2,
-    elevation: 3,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   statusOptionContent: {
     flexDirection: 'row',

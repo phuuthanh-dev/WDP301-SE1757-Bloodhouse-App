@@ -19,7 +19,6 @@ import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
-import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
@@ -47,13 +46,13 @@ export default function DonorListScreen({ route }) {
   const fetchDonors = async () => {
     setLoading(true);
     try {
-      // Build query params
+      // Build query params for getFacilityRegistrations API
       const params = new URLSearchParams({
         page: '1',
         limit: '100', // Lấy nhiều để có thể filter local theo ngày
       });
 
-      // Nếu không phải "Tất cả", thêm status filter
+      // Thêm status filter để chỉ lấy registered và checked_in
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
@@ -63,26 +62,24 @@ export default function DonorListScreen({ route }) {
         params.append('search', searchText.trim());
       }
 
+      // Sử dụng API getFacilityRegistrations - endpoint /facility/all 
+      // để lấy tất cả registrations của facility với trạng thái registered và checked_in
       const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
-        `/staff/assigned?${params.toString()}`
+        `/facility/all?${params.toString()}`
       );
-      console.log("🚀 ~ fetchDonors ~ response:", response)
-      
       
       if (response.data && response.data.data) {
-        // Nếu statusFilter là 'all', filter chỉ 2 status cho phép
-        let filteredData = response.data.data;
-        if (statusFilter === 'all') {
-          filteredData = response.data.data.filter(donor => 
-            [DONATION_STATUS.REGISTERED, DONATION_STATUS.CHECKED_IN].includes(donor.status)
-          );
-        }
+        // Lọc dữ liệu theo các status được phép cho nurse (registered, checked_in)
+        let filteredData = response.data.data.filter(donor => 
+          [DONATION_STATUS.REGISTERED, DONATION_STATUS.CHECKED_IN].includes(donor.status)
+        );
+
         setDonors(filteredData);
       } else {
         setDonors([]);
       }
     } catch (error) {
-      console.error("Error fetching donors:", error);
+      console.error("Error fetching donors with getFacilityRegistrations API:", error);
       setDonors([]);
     } finally {
       setLoading(false);

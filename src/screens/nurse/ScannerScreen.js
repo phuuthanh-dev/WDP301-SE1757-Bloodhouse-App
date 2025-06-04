@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import bloodDonationRegistrationAPI from '@/apis/bloodDonationRegistration';
 import { toast } from 'sonner-native';
 
@@ -18,18 +19,83 @@ export default function ScannerScreen({ route, navigation }) {
   const [scanned, setScanned] = useState(false);
   const [flashMode, setFlashMode] = useState('off');
   const [processing, setProcessing] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   
   const mode = route.params?.mode || 'donor'; // 'donor', 'gift', 'blood', or 'checkin'
   const giftId = route.params?.giftId;
   const giftName = route.params?.giftName;
   const registrationId = route.params?.registrationId;
+  const fromTab = route.params?.fromTab || false; // Kiểm tra xem có được gọi từ tab không
 
+  // Request camera permission khi component mount
   useEffect(() => {
-    (async () => {
+    const requestPermission = async () => {
+      try {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === 'granted');
+      } catch (error) {
+        console.error('Camera permission error:', error);
+        setHasPermission(false);
+      }
+    };
+
+    requestPermission();
+  }, []);
+
+  // Handle screen focus/blur để reset camera states
+  useFocusEffect(
+    React.useCallback(() => {
+      // Khi screen focus
+      
+      // Reset scanner states
+      setScanned(false);
+      setProcessing(false);
+      
+      // Delay nhỏ để đảm bảo camera được mount đúng cách
+      const timer = setTimeout(() => {
+        setIsFocused(true);
+      }, 100);
+      
+      // Cleanup khi screen blur
+      return () => {
+        clearTimeout(timer);
+        setIsFocused(false);
+        setScanned(false);
+        setProcessing(false);
+      };
+    }, [])
+  );
+
+  // Helper function để handle navigation sau khi hoàn thành
+  const handleNavigationAfterSuccess = () => {
+    if (fromTab) {
+      // Nếu từ tab, navigate về DonorList với refresh
+      navigation.navigate('DonorList', { refresh: true });
+    } else {
+      // Nếu từ screen khác, goBack
+      navigation.goBack();
+    }
+  };
+
+  // Retry camera permission
+  const retryCameraPermission = async () => {
+    try {
+      setHasPermission(null); // Set loading state
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-    })();
-  }, []);
+      
+      if (status === 'granted') {
+        // Reset focus state để trigger camera remount
+        setIsFocused(false);
+        setTimeout(() => {
+          setIsFocused(true);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Retry camera permission error:', error);
+      setHasPermission(false);
+    }
+  };
 
   const handleBarCodeScanned = ({ type, data }) => {
     if (processing) return; // Prevent multiple scans
@@ -106,7 +172,7 @@ export default function ScannerScreen({ route, navigation }) {
                         style: 'default',
                         onPress: () => {
                           toast.success('✅ Check-in thành công!');
-                          navigation.goBack();
+                          handleNavigationAfterSuccess();
                         },
                       },
                     ]
@@ -125,7 +191,7 @@ export default function ScannerScreen({ route, navigation }) {
                     {
                       text: '🔙 Quay lại',
                       style: 'cancel',
-                      onPress: () => navigation.goBack(),
+                      onPress: () => handleNavigationAfterSuccess(),
                     },
                     {
                       text: '🔄 Thử lại',
@@ -155,7 +221,7 @@ export default function ScannerScreen({ route, navigation }) {
           {
             text: '🔙 Quay lại',
             style: 'cancel',
-            onPress: () => navigation.goBack(),
+            onPress: () => handleNavigationAfterSuccess(),
           },
           {
             text: '📷 Quét lại',
@@ -188,7 +254,7 @@ export default function ScannerScreen({ route, navigation }) {
           text: 'Xác nhận',
           onPress: () => {
             // TODO: Navigate to donor details or update status
-            navigation.goBack();
+            handleNavigationAfterSuccess();
           },
         },
       ]
@@ -214,7 +280,7 @@ export default function ScannerScreen({ route, navigation }) {
           text: 'Xác nhận',
           onPress: () => {
             // TODO: Update gift distribution record
-            navigation.goBack();
+            handleNavigationAfterSuccess();
           },
         },
       ]
@@ -235,7 +301,7 @@ export default function ScannerScreen({ route, navigation }) {
           text: 'Xác nhận',
           onPress: () => {
             // TODO: Update blood unit tracking
-            navigation.goBack();
+            handleNavigationAfterSuccess();
           },
         },
       ]
@@ -264,7 +330,7 @@ export default function ScannerScreen({ route, navigation }) {
         <Text>Không có quyền truy cập camera</Text>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.goBack()}
+          onPress={() => handleNavigationAfterSuccess()}
         >
           <Text style={styles.buttonText}>Quay lại</Text>
         </TouchableOpacity>
@@ -277,12 +343,14 @@ export default function ScannerScreen({ route, navigation }) {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => handleNavigationAfterSuccess()}
         >
           <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {mode === 'donor'
+          {fromTab 
+            ? 'Quét Mã Check-in' 
+            : mode === 'donor'
             ? 'Quét Mã Người Hiến'
             : mode === 'gift'
             ? 'Quét Mã Phát Quà'
@@ -300,22 +368,54 @@ export default function ScannerScreen({ route, navigation }) {
       </View>
 
       <View style={styles.scannerContainer}>
-        <CameraView
-          style={StyleSheet.absoluteFillObject}
-          enableTorch={flashMode === 'torch'}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'code128', 'code39'],
-          }}
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-        />
-        <View style={styles.overlay}>
-          <View style={styles.scanArea} />
-        </View>
+        {hasPermission && isFocused ? (
+          <>
+            <CameraView
+              style={StyleSheet.absoluteFillObject}
+              enableTorch={flashMode === 'torch'}
+              barcodeScannerSettings={{
+                barcodeTypes: ['qr', 'code128', 'code39'],
+              }}
+              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            />
+            <View style={styles.overlay}>
+              <View style={styles.scanArea} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.cameraPlaceholder}>
+            <MaterialIcons 
+              name={hasPermission === false ? "camera-off" : "camera-alt"} 
+              size={64} 
+              color={hasPermission === false ? "#FF6B6B" : "#FFFFFF"} 
+            />
+            <Text style={styles.placeholderText}>
+              {hasPermission === false 
+                ? 'Không có quyền truy cập camera'
+                : !isFocused 
+                ? 'Đang khởi tạo camera...'
+                : 'Đang tải camera...'}
+            </Text>
+            {hasPermission === false && (
+              <TouchableOpacity 
+                style={styles.retryButton} 
+                onPress={retryCameraPermission}
+              >
+                <MaterialIcons name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>Thử lại</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         
         <View style={styles.guideContainer}>
           <Text style={styles.guideText}>
             {processing 
               ? '🔄 Đang xử lý check-in...'
+              : !hasPermission 
+              ? 'Vui lòng cấp quyền truy cập camera'
+              : !isFocused
+              ? 'Đang khởi tạo camera...'
               : mode === 'donor'
               ? 'Đặt mã định danh người hiến vào khung hình'
               : mode === 'gift'
@@ -326,7 +426,7 @@ export default function ScannerScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {scanned && !processing && (
+        {scanned && !processing && hasPermission && isFocused && (
           <TouchableOpacity
             style={styles.rescanButton}
             onPress={() => setScanned(false)}
@@ -482,5 +582,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#718096',
     textAlign: 'center',
+  },
+  cameraPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+  },
+  placeholderText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 }); 

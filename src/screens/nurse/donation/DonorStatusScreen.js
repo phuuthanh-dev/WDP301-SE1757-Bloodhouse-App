@@ -216,7 +216,6 @@ const DonorStatusScreen = ({ route }) => {
         label: 'Ổn định', 
         icon: 'check-circle', 
         color: '#2ED573',
-        lightColor: '#E8F8F5',
         description: 'Tình trạng sức khỏe bình thường'
       },
       { 
@@ -224,7 +223,6 @@ const DonorStatusScreen = ({ route }) => {
         label: 'Mệt mỏi', 
         icon: 'battery-low', 
         color: '#FFA502',
-        lightColor: '#FFF3CD',
         description: 'Cảm thấy mệt mỏi nhẹ sau hiến máu'
       },
       { 
@@ -232,7 +230,6 @@ const DonorStatusScreen = ({ route }) => {
         label: 'Cần theo dõi', 
         icon: 'heart-pulse', 
         color: '#FF6B6B',
-        lightColor: '#FFEAEA',
         description: 'Cần theo dõi sức khỏe chặt chẽ'
       },
       { 
@@ -240,7 +237,6 @@ const DonorStatusScreen = ({ route }) => {
         label: 'Tình trạng khác', 
         icon: 'alert-circle-outline', 
         color: '#9B59B6',
-        lightColor: '#F4ECFF',
         description: 'Tình trạng đặc biệt khác'
       },
     ];
@@ -254,73 +250,46 @@ const DonorStatusScreen = ({ route }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Enhanced Header */}
+            {/* Header */}
             <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderLeft}>
-                <View style={styles.modalIconContainer}>
-                  <MaterialCommunityIcons name="heart-plus" size={24} color="#FF6B6B" />
-                </View>
-                <View>
-                  <Text style={styles.modalTitle}>Ghi nhận trạng thái</Text>
-                  <Text style={styles.modalSubtitle}>Đánh giá sức khỏe sau hiến máu</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setUpdateModalVisible(false)}>
+              <Text style={styles.modalTitle}>Ghi nhận trạng thái</Text>
+              <TouchableOpacity onPress={() => setUpdateModalVisible(false)}>
                 <MaterialIcons name="close" size={24} color="#636E72" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Enhanced Patient Info */}
-              <View style={styles.patientInfoCard}>
-                <View style={styles.patientInfoHeader}>
-                  <MaterialCommunityIcons name="account-circle" size={20} color="#FF6B6B" />
-                  <Text style={styles.patientInfoTitle}>Thông tin người hiến</Text>
-                </View>
-                <View style={styles.patientInfoContent}>
-                  <View style={styles.patientInfoRow}>
-                    <MaterialCommunityIcons name="account" size={16} color="#636E72" />
-                    <Text style={styles.patientInfoLabel}>Họ tên:</Text>
-                    <Text style={styles.patientInfoValue}>{donationDetail?.donor?.name || 'Không có thông tin'}</Text>
-                  </View>
-                  <View style={styles.patientInfoRow}>
-                    <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
-                    <Text style={styles.patientInfoLabel}>Nhóm máu:</Text>
-                    <Text style={[styles.patientInfoValue, styles.bloodTypeHighlight]}>
-                      {donationDetail?.donor?.bloodType || 'N/A'}
-                    </Text>
-                  </View>
-                  <View style={styles.patientInfoRow}>
-                    <MaterialCommunityIcons name="gender-male-female" size={16} color="#636E72" />
-                    <Text style={styles.patientInfoLabel}>Giới tính:</Text>
-                    <Text style={styles.patientInfoValue}>{donationDetail?.donor?.gender || 'N/A'}</Text>
-                  </View>
-                </View>
+            {/* Body với ScrollView */}
+            <ScrollView 
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Patient Info */}
+              <View style={styles.currentInfoSection}>
+                <Text style={styles.currentInfoTitle}>Thông tin người hiến:</Text>
+                <Text style={styles.currentInfoText}>Họ tên: {donationDetail?.donor?.name || 'N/A'}</Text>
+                <Text style={styles.currentInfoText}>Nhóm máu: {donationDetail?.donor?.bloodType || 'N/A'}</Text>
+                <Text style={styles.currentInfoText}>Giới tính: {donationDetail?.donor?.gender || 'N/A'}</Text>
               </View>
 
-              {/* Enhanced Status Selection */}
-              <View style={styles.statusSection}>
-                <View style={styles.sectionHeader}>
-                  <MaterialCommunityIcons name="heart-pulse" size={20} color="#FF6B6B" />
-                  <Text style={styles.sectionTitle}>Tình trạng sức khỏe</Text>
-                </View>
-                <Text style={styles.sectionDescription}>Chọn tình trạng hiện tại của người hiến máu</Text>
+              {/* Status Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Tình trạng sức khỏe *</Text>
+                <Text style={styles.inputHint}>Chọn tình trạng hiện tại của người hiến máu</Text>
                 
-                <View style={styles.statusOptionsContainer}>
+                <View style={styles.statusOptions}>
                   {statusOptions.map((option) => {
                     const isSelected = updateData.status === option.value;
                     return (
                       <TouchableOpacity
                         key={option.value}
                         style={[
-                          styles.statusOptionCard,
-                          isSelected && {
-                            borderColor: option.color,
-                            backgroundColor: option.lightColor,
+                          styles.statusOption,
+                          isSelected && styles.statusOptionActive,
+                          isSelected && { 
+                            borderColor: option.color, 
+                            // backgroundColor: `rgba(${option.color === '#2ED573' ? '46, 213, 115' : option.color === '#FFA502' ? '255, 165, 2' : option.color === '#FF6B6B' ? '255, 107, 107' : '155, 89, 182'}, 0.15)`,
                             shadowColor: option.color,
-                            shadowOpacity: 0.25,
-                            elevation: 6,
-                            transform: [{ scale: 1.02 }],
+                            borderWidth: 3,
                           }
                         ]}
                         onPress={() => {
@@ -331,17 +300,17 @@ const DonorStatusScreen = ({ route }) => {
                         <View style={styles.statusOptionContent}>
                           <View style={[
                             styles.statusOptionIcon, 
-                            { backgroundColor: isSelected ? option.color : '#F3F4F6' }
+                            { backgroundColor: option.color }
                           ]}>
                             <MaterialCommunityIcons 
                               name={option.icon} 
                               size={20} 
-                              color={isSelected ? '#FFFFFF' : '#636E72'} 
+                              color="#FFFFFF"
                             />
                           </View>
                           <View style={styles.statusOptionTextContainer}>
                             <Text style={[
-                              styles.statusOptionLabel,
+                              styles.statusOptionText,
                               isSelected && { color: option.color, fontWeight: '700' }
                             ]}>
                               {option.label}
@@ -351,7 +320,7 @@ const DonorStatusScreen = ({ route }) => {
                             </Text>
                           </View>
                           {isSelected && (
-                            <View style={[styles.statusSelectedIcon, { backgroundColor: option.color }]}>
+                            <View style={[styles.statusSelectedIndicator, { backgroundColor: option.color }]}>
                               <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
                             </View>
                           )}
@@ -362,59 +331,48 @@ const DonorStatusScreen = ({ route }) => {
                 </View>
               </View>
 
-              {/* Enhanced Notes Input */}
-              <View style={styles.notesSection}>
-                <View style={styles.sectionHeader}>
-                  <MaterialCommunityIcons name="note-text" size={20} color="#FF6B6B" />
-                  <Text style={styles.sectionTitle}>Ghi chú chi tiết</Text>
-                </View>
-                <Text style={styles.sectionDescription}>Mô tả cụ thể về tình trạng sức khỏe</Text>
-                <View style={[
-                  styles.notesInputContainer,
-                  updateData.notes.trim() && { borderColor: '#FF6B6B', borderWidth: 2 }
-                ]}>
-                  <TextInput
-                    style={styles.notesInput}
-                    value={updateData.notes}
-                    onChangeText={(text) => {
-                      setUpdateData(prev => ({ ...prev, notes: text }));
-                    }}
-                    placeholder="Nhập ghi chú về tình trạng sức khỏe của người hiến máu..."
-                    placeholderTextColor="#9CA3AF"
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                </View>
+              {/* Notes Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Ghi chú chi tiết *</Text>
+                <Text style={styles.inputHint}>Mô tả cụ thể về tình trạng sức khỏe</Text>
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    styles.textArea,
+                    updateData.notes.trim() && { borderColor: '#FF6B6B', borderWidth: 2 }
+                  ]}
+                  value={updateData.notes}
+                  onChangeText={(text) => {
+                    setUpdateData(prev => ({ ...prev, notes: text }));
+                  }}
+                  placeholder="Nhập ghi chú về tình trạng sức khỏe của người hiến máu..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={4}
+                />
               </View>
             </ScrollView>
 
-            {/* Enhanced Modal Footer */}
+            {/* Footer */}
             <View style={styles.modalFooter}>
               <TouchableOpacity 
                 style={styles.cancelButton} 
                 onPress={() => setUpdateModalVisible(false)}
               >
-                <MaterialCommunityIcons name="close-circle-outline" size={18} color="#636E72" />
                 <Text style={styles.cancelButtonText}>Hủy bỏ</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[
-                  styles.saveButton,
-                  (!updateData.status || !updateData.notes.trim() || isUpdating) && styles.saveButtonDisabled
+                  styles.updateButton,
+                  (!updateData.status || !updateData.notes.trim() || isUpdating) && styles.updateButtonDisabled
                 ]}
                 onPress={() => {
                   handleUpdateStatus();
                 }}
                 disabled={!updateData.status || !updateData.notes.trim() || isUpdating}
               >
-                <MaterialCommunityIcons 
-                  name={isUpdating ? "loading" : "content-save"} 
-                  size={18} 
-                  color="#FFFFFF" 
-                />
-                <Text style={styles.saveButtonText}>
+                <Text style={styles.updateButtonText}>
                   {isUpdating ? 'Đang lưu...' : 'Lưu kết quả'}
                 </Text>
               </TouchableOpacity>
@@ -914,139 +872,96 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    width: '100%',
-    maxHeight: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxHeight: '85%',
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    marginBottom: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  modalHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  modalIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFEAEA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    borderBottomColor: '#F0F0F0',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2D3436',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#636E72',
-    marginTop: 4,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalBody: {
-    padding: 20,
-    maxHeight: 400,
+    maxHeight: 450,
   },
-  patientInfoCard: {
+  currentInfoSection: {
     backgroundColor: '#F8F9FA',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
+    padding: 20,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  patientInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  currentInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3436',
     marginBottom: 12,
   },
-  patientInfoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    marginLeft: 8,
-  },
-  patientInfoContent: {
-    gap: 8,
-  },
-  patientInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  patientInfoLabel: {
+  currentInfoText: {
     fontSize: 14,
     color: '#636E72',
-    fontWeight: '500',
-    marginLeft: 6,
-    marginRight: 8,
-    minWidth: 70,
+    marginBottom: 6,
+    paddingLeft: 8,
   },
-  patientInfoValue: {
-    fontSize: 14,
-    color: '#2D3436',
-    fontWeight: '600',
-    flex: 1,
+  inputGroup: {
+    marginBottom: 24,
   },
-  bloodTypeHighlight: {
-    color: '#FF6B6B',
-    fontWeight: 'bold',
-  },
-  statusSection: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
+  inputLabel: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginLeft: 8,
+    marginBottom: 10,
   },
-  sectionDescription: {
-    fontSize: 13,
+  inputHint: {
+    fontSize: 12,
     color: '#636E72',
     marginBottom: 16,
-    lineHeight: 18,
+    fontStyle: 'italic',
+    paddingLeft: 4,
   },
-  statusOptionsContainer: {
-    gap: 12,
+  statusOptions: {
+    flexDirection: 'column',
   },
-  statusOptionCard: {
-    width: '100%',
+  statusOption: {
     padding: 16,
     borderWidth: 2,
     borderColor: '#E9ECEF',
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 12,
+  },
+  statusOptionActive: {
+    borderWidth: 2,
+    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   statusOptionContent: {
     flexDirection: 'row',
@@ -1063,96 +978,94 @@ const styles = StyleSheet.create({
   statusOptionTextContainer: {
     flex: 1,
   },
-  statusOptionLabel: {
+  statusOptionText: {
     fontSize: 16,
-    color: '#2D3436',
     fontWeight: '600',
-    marginBottom: 4,
+    color: '#2D3436',
+    marginBottom: 2,
   },
   statusOptionDescription: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: '#636E72',
     lineHeight: 18,
   },
-  statusSelectedIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  statusSelectedIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    top: 8,
-    right: 8,
+    marginLeft: 8,
   },
-  notesSection: {
-    marginBottom: 20,
-  },
-  notesInputContainer: {
-    borderWidth: 1,
+  textInput: {
+    borderWidth: 2,
     borderColor: '#E9ECEF',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    minHeight: 100,
-  },
-  notesInput: {
     padding: 16,
-    fontSize: 14,
+    fontSize: 16,
+    backgroundColor: '#FAFBFC',
     color: '#2D3436',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  textArea: {
+    height: 120,
     textAlignVertical: 'top',
-    minHeight: 100,
+    paddingTop: 16,
   },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    marginTop: 24,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: '#F0F0F0',
     gap: 12,
   },
   cancelButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
+    padding: 16,
+    borderWidth: 2,
     borderColor: '#E9ECEF',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   cancelButtonText: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#636E72',
-    fontWeight: '500',
-    marginLeft: 6,
+    textAlign: 'center',
   },
-  saveButton: {
+  updateButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    padding: 16,
     backgroundColor: '#FF6B6B',
     borderRadius: 12,
+    elevation: 2,
     shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 4,
   },
-  saveButtonDisabled: {
+  updateButtonDisabled: {
     backgroundColor: '#E9ECEF',
-    shadowOpacity: 0,
     elevation: 0,
+    shadowOpacity: 0,
   },
-  saveButtonText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginLeft: 6,
+  updateButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
   },
 });
 
