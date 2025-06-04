@@ -41,7 +41,7 @@ export default function BloodInventoryScreen({ navigation }) {
       const response = await bloodInventoryAPI.HandleBloodInventory(
         `/facility/${facilityId}`
       );
-      setBloodInventory(response.data);
+      setBloodInventory(response.data.data);
     } catch (error) {
       console.log(error);
     } finally {

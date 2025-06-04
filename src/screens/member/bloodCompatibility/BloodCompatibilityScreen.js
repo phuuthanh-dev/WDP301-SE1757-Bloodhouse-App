@@ -3,154 +3,15 @@ import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Platform,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodCompatibilityAPI from "@/apis/bloodCompatibility";
 import bloodGroupAPI from "@/apis/bloodGroup";
 import bloodComponentAPI from "@/apis/bloodComponent";
-
-const bloodCompatibility = {
-  wholeBlood: {
-    "A+": {
-      canGiveTo: ["A+", "AB+"],
-      canReceiveFrom: ["A+", "A-", "O+", "O-"],
-    },
-    "A-": {
-      canGiveTo: ["A+", "A-", "AB+", "AB-"],
-      canReceiveFrom: ["A-", "O-"],
-    },
-    "B+": {
-      canGiveTo: ["B+", "AB+"],
-      canReceiveFrom: ["B+", "B-", "O+", "O-"],
-    },
-    "B-": {
-      canGiveTo: ["B+", "B-", "AB+", "AB-"],
-      canReceiveFrom: ["B-", "O-"],
-    },
-    "AB+": {
-      canGiveTo: ["AB+"],
-      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-    },
-    "AB-": {
-      canGiveTo: ["AB+", "AB-"],
-      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
-    },
-    "O+": {
-      canGiveTo: ["A+", "B+", "AB+", "O+"],
-      canReceiveFrom: ["O+", "O-"],
-    },
-    "O-": {
-      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      canReceiveFrom: ["O-"],
-    },
-  },
-  redBloodCells: {
-    "A+": {
-      canGiveTo: ["A+", "AB+"],
-      canReceiveFrom: ["A+", "A-", "O+", "O-"],
-    },
-    "A-": {
-      canGiveTo: ["A+", "A-", "AB+", "AB-"],
-      canReceiveFrom: ["A-", "O-"],
-    },
-    "B+": {
-      canGiveTo: ["B+", "AB+"],
-      canReceiveFrom: ["B+", "B-", "O+", "O-"],
-    },
-    "B-": {
-      canGiveTo: ["B+", "B-", "AB+", "AB-"],
-      canReceiveFrom: ["B-", "O-"],
-    },
-    "AB+": {
-      canGiveTo: ["AB+"],
-      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-    },
-    "AB-": {
-      canGiveTo: ["AB+", "AB-"],
-      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
-    },
-    "O+": {
-      canGiveTo: ["A+", "B+", "AB+", "O+"],
-      canReceiveFrom: ["O+", "O-"],
-    },
-    "O-": {
-      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      canReceiveFrom: ["O-"],
-    },
-  },
-  plasma: {
-    "A+": {
-      canGiveTo: ["A+", "AB+"],
-      canReceiveFrom: ["A+", "A-"],
-    },
-    "A-": {
-      canGiveTo: ["A+", "A-", "AB+", "AB-"],
-      canReceiveFrom: ["A-"],
-    },
-    "B+": {
-      canGiveTo: ["B+", "AB+"],
-      canReceiveFrom: ["B+", "B-"],
-    },
-    "B-": {
-      canGiveTo: ["B+", "B-", "AB+", "AB-"],
-      canReceiveFrom: ["B-"],
-    },
-    "AB+": {
-      canGiveTo: ["AB+"],
-      canReceiveFrom: ["AB+", "AB-"],
-    },
-    "AB-": {
-      canGiveTo: ["AB+", "AB-"],
-      canReceiveFrom: ["AB-"],
-    },
-    "O+": {
-      canGiveTo: ["A+", "B+", "AB+", "O+"],
-      canReceiveFrom: ["O+", "O-"],
-    },
-    "O-": {
-      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      canReceiveFrom: ["O-"],
-    },
-  },
-  platelets: {
-    "A+": {
-      canGiveTo: ["A+", "AB+"],
-      canReceiveFrom: ["A+", "A-", "O+", "O-"],
-    },
-    "A-": {
-      canGiveTo: ["A+", "A-", "AB+", "AB-"],
-      canReceiveFrom: ["A-", "O-"],
-    },
-    "B+": {
-      canGiveTo: ["B+", "AB+"],
-      canReceiveFrom: ["B+", "B-", "O+", "O-"],
-    },
-    "B-": {
-      canGiveTo: ["B+", "B-", "AB+", "AB-"],
-      canReceiveFrom: ["B-", "O-"],
-    },
-    "AB+": {
-      canGiveTo: ["AB+"],
-      canReceiveFrom: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-    },
-    "AB-": {
-      canGiveTo: ["AB+", "AB-"],
-      canReceiveFrom: ["A-", "B-", "AB-", "O-"],
-    },
-    "O+": {
-      canGiveTo: ["A+", "B+", "AB+", "O+"],
-      canReceiveFrom: ["O+", "O-"],
-    },
-    "O-": {
-      canGiveTo: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      canReceiveFrom: ["O-"],
-    },
-  },
-};
 
 export default function BloodCompatibilityScreen({ navigation }) {
   const [selectedBloodType, setSelectedBloodType] = useState(null);
@@ -158,10 +19,12 @@ export default function BloodCompatibilityScreen({ navigation }) {
   const [bloodGroup, setBloodGroup] = useState(null);
   const [bloodComponent, setBloodComponent] = useState(null);
   const [bloodCompatibility, setBloodCompatibility] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const [bloodGroupData, bloodComponentData] = await Promise.all([
           bloodGroupAPI.HandleBloodGroup(),
           bloodComponentAPI.HandleBloodComponent(),
@@ -170,6 +33,8 @@ export default function BloodCompatibilityScreen({ navigation }) {
         setBloodComponent(bloodComponentData.data);
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -180,6 +45,7 @@ export default function BloodCompatibilityScreen({ navigation }) {
     const fetchCompatibility = async () => {
       if (selectedBloodType && selectedComponent) {
         try {
+          setIsLoading(true)
           const response = await bloodCompatibilityAPI.HandleBloodCompatibility(
             "?bloodGroupId=" +
               selectedBloodType +
@@ -191,6 +57,8 @@ export default function BloodCompatibilityScreen({ navigation }) {
         } catch (error) {
           console.error("Error fetching compatibility:", error);
           setBloodCompatibility(null);
+        } finally {
+          setIsLoading(false);
         }
       }
     };
@@ -221,42 +89,59 @@ export default function BloodCompatibilityScreen({ navigation }) {
   const renderCompatibilityInfo = () => {
     if (!selectedBloodType || !selectedComponent || !bloodCompatibility)
       return null;
-    return (
-      <View style={styles.compatibilityContainer}>
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityTitle}>Có thể cho máu cho</Text>
-          <View style={styles.bloodTypeGrid}>
-            {bloodCompatibility?.canDonateTo?.map((type) => (
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("BloodTypeDetail", { groupId: type._id })
-                }
-                key={type._id}
-                style={styles.compatibleType}
-              >
-                <Text style={styles.compatibleTypeText}>{type.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+    if (isLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
-
-        <View style={styles.compatibilitySection}>
-          <Text style={styles.compatibilityTitle}>Có thể nhận máu từ</Text>
-          <View style={styles.bloodTypeGrid}>
-            {bloodCompatibility?.canReceiveFrom?.map((type) => (
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("BloodTypeDetail", { groupId: type._id })
-                }
-                key={type._id}
-                style={styles.compatibleType}
-              >
-                <Text style={styles.compatibleTypeText}>{type.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+      );
+    }
+    return isLoading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B6B" />
       </View>
+    ) : (
+      <>
+        <View style={styles.compatibilityContainer}>
+          <View style={styles.compatibilitySection}>
+            <Text style={styles.compatibilityTitle}>Có thể cho máu cho</Text>
+            <View style={styles.bloodTypeGrid}>
+              {bloodCompatibility?.canDonateTo?.map((type) => (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("BloodTypeDetail", {
+                      groupId: type._id,
+                    })
+                  }
+                  key={type._id}
+                  style={styles.compatibleType}
+                >
+                  <Text style={styles.compatibleTypeText}>{type.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.compatibilitySection}>
+            <Text style={styles.compatibilityTitle}>Có thể nhận máu từ</Text>
+            <View style={styles.bloodTypeGrid}>
+              {bloodCompatibility?.canReceiveFrom?.map((type) => (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("BloodTypeDetail", {
+                      groupId: type._id,
+                    })
+                  }
+                  key={type._id}
+                  style={styles.compatibleType}
+                >
+                  <Text style={styles.compatibleTypeText}>{type.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </>
     );
   };
 
@@ -443,5 +328,10 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

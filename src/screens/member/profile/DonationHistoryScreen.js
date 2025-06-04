@@ -228,10 +228,12 @@ export default function DonationHistoryScreen({ navigation }) {
             Nhóm máu: {request.groupId.name} • {request.quantity}ml
           </Text>
         </View>
-        <View style={styles.infoRow}>
-          <MaterialIcons name="info" size={20} color="#636E72" />
-          <Text style={styles.infoText}>Lý do: {request.note} </Text>
-        </View>
+        {request.note && (
+          <View style={styles.infoRow}>
+            <MaterialIcons name="info" size={20} color="#636E72" />
+            <Text style={styles.infoText}>Lý do: {request.note} </Text>
+          </View>
+        )}
       </View>
       <View style={styles.cardFooter}>
         <TouchableOpacity

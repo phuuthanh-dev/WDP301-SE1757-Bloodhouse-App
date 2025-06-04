@@ -5,6 +5,7 @@ import {
   Image,
   StyleSheet,
   Platform,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { formatDateTime } from "@/utils/formatHelpers";
@@ -14,6 +15,8 @@ import {
 } from "@/constants/receiveBloodStatus";
 import { useState } from "react";
 import ApproveBloodRequestModal from "./ApproveBloodRequestModal";
+import SelectBloodComponentModal from "./SelectBloodComponentModal";
+import Toast from "react-native-toast-message";
 
 export default function ReceiveRequestCard({
   request,
@@ -21,8 +24,11 @@ export default function ReceiveRequestCard({
   onViewDetails,
   onApproveSuccess,
   onDistributionSuccess,
+  onUpdateComponentSuccess,
 }) {
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showComponentModal, setShowComponentModal] = useState(false);
+  const isUnknownComponent = !request.componentId || request.componentId === "";
 
   const renderRequestStats = () => {
     if (request.needsSupport) {
@@ -52,9 +58,25 @@ export default function ReceiveRequestCard({
     return null;
   };
 
+  const renderUnknownComponentWarning = () => {
+    if (isUnknownComponent) {
+      return (
+        <View style={styles.warningContainer}>
+          <MaterialIcons name="warning" size={16} color="#FFA000" />
+          <Text style={styles.warningText}>
+            Cần xác định thành phần máu trước khi xử lý yêu cầu
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
-      <View style={styles.card}>
+      <View
+        style={[styles.card, isUnknownComponent && styles.unknownComponentCard]}
+      >
         <View style={styles.cardHeader}>
           <View style={styles.headerLeft}>
             <Text style={styles.name}>
@@ -67,8 +89,19 @@ export default function ReceiveRequestCard({
               </Text>
             </View>
             <View style={styles.bloodTypeContainer}>
-              <MaterialIcons name="bloodtype" size={16} color="#FF6B6B" />
-              <Text style={styles.bloodType}>{request?.componentId?.name}</Text>
+              <MaterialIcons
+                name="bloodtype"
+                size={16}
+                color={isUnknownComponent ? "#FFA000" : "#FF6B6B"}
+              />
+              <Text
+                style={[
+                  styles.bloodType,
+                  isUnknownComponent && styles.unknownComponentText,
+                ]}
+              >
+                {request?.componentId?.name || "Chưa rõ thành phần máu"}
+              </Text>
             </View>
           </View>
           <View
@@ -92,6 +125,7 @@ export default function ReceiveRequestCard({
         </View>
 
         <View style={styles.cardContent}>
+          {renderUnknownComponentWarning()}
           {request.isUrgent && (
             <View style={styles.infoRow}>
               <MaterialIcons
@@ -131,6 +165,13 @@ export default function ReceiveRequestCard({
             </Text>
           </View>
 
+          {request.reason && (
+            <View style={styles.infoRow}>
+              <MaterialIcons name="info" size={16} color="#636E72" />
+              <Text style={styles.infoText}>Lý do: {request.reason}</Text>
+            </View>
+          )}
+
           {request.note && (
             <View style={styles.infoRow}>
               <MaterialIcons name="notes" size={16} color="#636E72" />
@@ -152,7 +193,7 @@ export default function ReceiveRequestCard({
             </Text>
           </TouchableOpacity>
 
-          {request.status === "pending_approval" && (
+          {request.status === "pending_approval" && !isUnknownComponent && (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.approveButton]}
@@ -176,6 +217,18 @@ export default function ReceiveRequestCard({
             </>
           )}
 
+          {request.status === "pending_approval" && isUnknownComponent && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.selectComponentButton]}
+              onPress={() => setShowComponentModal(true)}
+            >
+              <MaterialIcons name="edit" size={16} color="#FFA000" />
+              <Text style={[styles.actionText, { color: "#FFA000" }]}>
+                Chọn thành phần
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {request.status === "approved" && !request.isFullfill && (
             <TouchableOpacity
               style={[styles.button, styles.startButton]}
@@ -195,6 +248,14 @@ export default function ReceiveRequestCard({
         onClose={() => setShowApproveModal(false)}
         request={request}
         onApproveSuccess={onApproveSuccess}
+      />
+
+      <SelectBloodComponentModal
+        requestId={request._id}
+        visible={showComponentModal}
+        onClose={() => setShowComponentModal(false)}
+        onSelect={onUpdateComponentSuccess}
+        currentComponentId={request.componentId}
       />
     </>
   );
@@ -409,5 +470,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     marginLeft: 8,
+  },
+  unknownComponentCard: {
+    borderColor: "#FFA000",
+    borderWidth: 1,
+  },
+  unknownComponentText: {
+    color: "#FFA000",
+    fontWeight: "bold",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3E0",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  warningText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#FFA000",
+    flex: 1,
+  },
+  selectComponentButton: {
+    backgroundColor: "#FFF3E0",
   },
 });

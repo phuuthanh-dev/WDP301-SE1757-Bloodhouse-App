@@ -20,6 +20,7 @@ import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import ReceiveRequestCard from "@/components/ReceiveRequestCard";
 import { useSelector } from "react-redux";
 import { authSelector } from "@/redux/reducers/authReducer";
+import Toast from "react-native-toast-message";
 
 export default function ManageRequestsScreen({ navigation }) {
   const { facilityId } = useFacility();
@@ -196,6 +197,28 @@ export default function ManageRequestsScreen({ navigation }) {
     console.log("Reject");
   };
 
+  const handleUpdateComponentSuccess = async (requestId, componentId) => {
+    try {
+      const response = await bloodRequestAPI.HandleBloodRequest(
+        `/facility/${facilityId}/${requestId}/component`,
+        { componentId },
+        "patch"
+      );
+      if (response.status === 200) {
+        Toast.show({
+          type: "success",
+          text1: "Cập nhật thành phần máu thành công",
+        });
+        fetchReceiveRequests();
+      }
+    } catch (error) {
+      Alert.alert(
+        "Lỗi",
+        "Không thể cập nhật thành phần máu. Vui lòng thử lại sau."
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -320,9 +343,12 @@ export default function ManageRequestsScreen({ navigation }) {
                 request={request}
                 handleReject={() => handleRejectReceive(request._id)}
                 onViewDetails={() =>
-                  navigation.navigate("ReceiveRequestDetailScreen", { request })
+                  navigation.navigate("ReceiveRequestDetailScreen", {
+                    requestId: request._id,
+                  })
                 }
                 onApproveSuccess={handleApproveReceive}
+                onUpdateComponentSuccess={handleUpdateComponentSuccess}
               />
             ))
           : receiveRequests.map((request) => (
@@ -331,9 +357,12 @@ export default function ManageRequestsScreen({ navigation }) {
                 request={request}
                 handleReject={() => handleRejectReceive(request._id)}
                 onViewDetails={() =>
-                  navigation.navigate("ReceiveRequestDetailScreen", { request })
+                  navigation.navigate("ReceiveRequestDetailScreen", {
+                    requestId: request._id,
+                  })
                 }
                 onApproveSuccess={() => handleApproveReceive(request._id)}
+                onUpdateComponentSuccess={handleUpdateComponentSuccess}
               />
             ))}
       </ScrollView>
