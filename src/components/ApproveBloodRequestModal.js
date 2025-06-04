@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import { useSelector } from "react-redux";
 import { authSelector } from "@/redux/reducers/authReducer";
+import bloodUnitAPI from "@/apis/bloodUnit";
 
 export default function ApproveBloodRequestModal({
   visible,
@@ -41,10 +42,12 @@ export default function ApproveBloodRequestModal({
   const fetchAvailableUnits = async () => {
     try {
       setLoading(true);
+      console.log(request.groupId._id, request.componentId._id);
       const response = await bloodInventoryAPI.HandleBloodInventory(
         `/facility/${facilityId}/available?groupId=${request.groupId._id}&componentId=${request.componentId._id}`
       );
       if (response.status === 200) {
+        
         setAvailableUnits(response.data.totalQuantity || 0);
       }
     } catch (error) {
@@ -85,7 +88,7 @@ export default function ApproveBloodRequestModal({
     if (availableUnits < request.quantity) {
       Alert.alert(
         "Không đủ máu",
-        `Hiện chỉ có ${availableUnits} đơn vị máu ${request.componentId.name} nhóm ${request.groupId.name}. Bạn có muốn đánh dấu cần người hỗ trợ không?`,
+        `Hiện chỉ có ${availableUnits} đơn vị máu ${request?.componentId?.name} nhóm ${request?.groupId?.name}. Bạn có muốn đánh dấu cần người hỗ trợ không?`,
         [
           {
             text: "Hủy",
@@ -132,12 +135,16 @@ export default function ApproveBloodRequestModal({
                 </View>
                 <View style={styles.infoRow}>
                   <Text style={styles.label}>Nhóm máu:</Text>
-                  <Text style={styles.value}>{request.groupId.name}</Text>
+                  <Text style={styles.value}>{request?.groupId?.name}</Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Thành phần máu:</Text>
-                  <Text style={styles.value}>{request.componentId.name}</Text>
-                </View>
+                {request?.componentId?.name && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.label}>Thành phần máu:</Text>
+                    <Text style={styles.value}>
+                      {request?.componentId?.name}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.infoRow}>
                   <Text style={styles.label}>Số lượng yêu cầu:</Text>
                   <Text style={styles.value}>{request.quantity} đơn vị</Text>
@@ -211,10 +218,7 @@ export default function ApproveBloodRequestModal({
                 <Text style={styles.buttonText}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.approveButton,
-                ]}
+                style={[styles.button, styles.approveButton]}
                 onPress={handleApprove}
               >
                 <Text style={[styles.buttonText, styles.approveButtonText]}>

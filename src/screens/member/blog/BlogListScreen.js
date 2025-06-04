@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,22 +8,35 @@ import {
   Image,
   StatusBar,
   Platform,
-} from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import contentAPI from '@/apis/contentAPI';
-import { formatDateTime } from '@/utils/formatHelpers';
+  RefreshControl,
+} from "react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import contentAPI from "@/apis/contentAPI";
+import { formatDateTime } from "@/utils/formatHelpers";
+import Toast from "react-native-toast-message";
 
 export default function BlogListScreen({ navigation }) {
   const [blogPosts, setBlogPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchBlogPosts = async () => {
-      const response = await contentAPI.HandleContent();
-      setBlogPosts(response.data);
-    };
     fetchBlogPosts();
   }, []);
-  
+
+  const fetchBlogPosts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await contentAPI.HandleContent("?page=1&limit=10");
+      setBlogPosts(response.data.data);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi khi tải bài viết",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   // Mock data for blog posts
   // const blogPosts = [
   //   {
@@ -71,23 +84,27 @@ export default function BlogListScreen({ navigation }) {
       onPress={() => navigation.navigate("BlogDetail", { blog })}
       activeOpacity={0.9}
     >
-      <Image 
-        source={{ uri: blog?.image }} 
+      <Image
+        source={{ uri: blog?.image }}
         style={styles.blogImage}
         resizeMode="cover"
       />
       <View style={styles.blogContent}>
         <View style={styles.categoryContainer}>
-          <Text style={styles.categoryText}>{blog?.categoryId?.name?.replace('_', ' ').toUpperCase()}</Text>
+          <Text style={styles.categoryText}>
+            {blog?.categoryId?.name?.replace("_", " ").toUpperCase()}
+          </Text>
         </View>
-        <Text style={styles.blogTitle} numberOfLines={2}>{blog?.title}</Text>
+        <Text style={styles.blogTitle} numberOfLines={2}>
+          {blog?.title}
+        </Text>
         <Text style={styles.blogPreview} numberOfLines={2}>
           {blog?.preview}
         </Text>
         <View style={styles.blogMeta}>
           <View style={styles.authorInfo}>
-            <Image 
-              source={{ uri: blog?.authorId?.avatar }} 
+            <Image
+              source={{ uri: blog?.authorId?.avatar }}
               style={styles.authorAvatar}
               // defaultSource={require("../../assets/default-avatar.png")}
             />
@@ -95,7 +112,9 @@ export default function BlogListScreen({ navigation }) {
               <Text style={styles.blogAuthor}>{blog?.authorId?.fullName}</Text>
               <View style={styles.readTimeContainer}>
                 <MaterialIcons name="access-time" size={12} color="#95A5A6" />
-                <Text style={styles.blogDate}>{formatDateTime(blog?.createdAt)}</Text>
+                <Text style={styles.blogDate}>
+                  {formatDateTime(blog?.createdAt)}
+                </Text>
               </View>
             </View>
           </View>
@@ -109,7 +128,6 @@ export default function BlogListScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -122,10 +140,13 @@ export default function BlogListScreen({ navigation }) {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={fetchBlogPosts} />
+        }
       >
         {blogPosts?.map(renderBlogPost)}
       </ScrollView>
@@ -136,26 +157,26 @@ export default function BlogListScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    backgroundColor: '#FF6B6B',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    backgroundColor: "#FF6B6B",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   placeholder: {
     width: 40,
@@ -168,20 +189,20 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   blogCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   blogImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -190,78 +211,78 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   categoryContainer: {
-    backgroundColor: '#FFE8E8',
+    backgroundColor: "#FFE8E8",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 12,
   },
   categoryText: {
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   blogTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D3436',
+    fontWeight: "bold",
+    color: "#2D3436",
     marginBottom: 8,
     lineHeight: 28,
   },
   blogPreview: {
     fontSize: 14,
-    color: '#636E72',
+    color: "#636E72",
     marginBottom: 16,
     lineHeight: 20,
   },
   blogMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   authorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   authorAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FF6B6B",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#2D3436',
+    borderColor: "#2D3436",
   },
   authorInitial: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   blogAuthor: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#2D3436',
+    fontWeight: "600",
+    color: "#2D3436",
     marginBottom: 4,
   },
   readTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   blogDate: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: "#95A5A6",
     marginLeft: 4,
   },
   readMoreButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFF0F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
-}); 
+});

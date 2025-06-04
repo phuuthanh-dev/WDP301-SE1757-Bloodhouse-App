@@ -109,7 +109,9 @@ export default function ManageDistributionScreen({ navigation }) {
               <ReceiveRequestCard
                 request={request}
                 onViewDetails={() =>
-                  navigation.navigate("ReceiveRequestDetailScreen", { request })
+                  navigation.navigate("ReceiveRequestDetailScreen", {
+                    requestId: request._id,
+                  })
                 }
                 onDistributionSuccess={handleCompleteDistribution}
               />

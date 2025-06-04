@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { toast } from "sonner-native";
@@ -60,6 +61,13 @@ export default function RegisterScreen({ navigation }) {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("@/assets/images/onboarding1.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
         <View style={styles.header}>
           <Text style={styles.title}>Đăng ký</Text>
           <Text style={styles.subtitle}>Tạo tài khoản mới</Text>
@@ -158,7 +166,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 40,
+    marginBottom: 30,
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
@@ -218,5 +227,14 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 20,
+  },
+  logo: {
+    width: 150,
+    height: 150,
   },
 });

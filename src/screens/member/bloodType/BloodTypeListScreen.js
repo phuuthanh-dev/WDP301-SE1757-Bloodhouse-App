@@ -8,21 +8,30 @@ import {
   StatusBar,
   Platform,
   SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodGroupAPI from "@/apis/bloodGroup";
 
 export default function BloodTypeListScreen({ navigation }) {
-  // Mock data for blood type information
   const [bloodGroupList, setBloodGroupList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBloodGroupList = async () => {
-      const response = await bloodGroupAPI.HandleBloodGroup();
-      setBloodGroupList(response.data);
-    };
     fetchBloodGroupList();
   }, []);
+
+  const fetchBloodGroupList = async () => {
+    try {
+      setLoading(true);
+      const response = await bloodGroupAPI.HandleBloodGroup();
+      setBloodGroupList(response.data);
+    } catch (error) {
+      console.error("Error fetching blood group list:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const bloodCompatibility = [
     {
@@ -134,6 +143,9 @@ export default function BloodTypeListScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchBloodGroupList} />
+        }
       >
         {bloodGroupList?.map(renderBloodTypeCard)}
       </ScrollView>
