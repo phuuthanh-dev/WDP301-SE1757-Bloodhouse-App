@@ -5,16 +5,19 @@ const formatPrice = (price) => {
   });
 };
 
+// Format datetime với local time (dd/MM/yyyy HH:mm)
 const formatDateTime = (date) => {
   const d = new Date(date);
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 };
 
+// Format date với local time (dd/MM/yyyy)
 const formatDate = (date) => {
   const d = new Date(date);
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')}/${d.getFullYear()}`;
 };
 
+// Format time với local time (HH:mm)
 const formatTime = (time) => {
   const d = new Date(time);
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;

@@ -24,8 +24,6 @@ import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
  import bloodDonationAPI from "@/apis/bloodDonation";
 
-// Using Mock API for UI testing
-import { mockBloodDonationAPI } from "@/mocks/bloodDonationMock";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -196,12 +194,12 @@ export default function BloodDonationListScreen() {
             <Text style={styles.summaryValue}>{item.code || item._id.slice(-8)}</Text>
           </View>
          
-          <View style={styles.summaryRow}>
+          {/* <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Có thể phân chia:</Text>
             <Text style={[styles.summaryValue, { color: isDividable ? '#2ED573' : '#FF4757' }]}>
               {isDividable ? 'Có' : 'Không'}
             </Text>
-          </View>
+          </View> */}
           {item.notes && (
             <View style={styles.notesPreview}>
               <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />

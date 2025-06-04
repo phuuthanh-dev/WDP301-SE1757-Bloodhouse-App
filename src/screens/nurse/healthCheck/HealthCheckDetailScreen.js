@@ -6,21 +6,52 @@ import healthCheckAPI from '@/apis/healthCheckAPI';
 import bloodDonationAPI from '@/apis/bloodDonation';
 import { useSelector } from 'react-redux';
 import { authSelector } from '@/redux/reducers/authReducer';
-import { DONATION_STATUS, getStatusName, getStatusColor } from '@/constants/donationStatus';
 
-function getStatusLabel(registrationStatus, isEligible) {
-  if (registrationStatus === DONATION_STATUS.IN_CONSULT) return 'Chờ khám';
-  if (registrationStatus === DONATION_STATUS.REJECTED) return 'Không đảm bảo';
-  if (registrationStatus === DONATION_STATUS.WAITING_DONATION) return 'Đảm bảo sức khỏe';
-  return 'Chưa xác định';
-}
+// Health Check Status mapping
+const HEALTH_CHECK_STATUS = {
+  PENDING: "pending",
+  COMPLETED: "completed", 
+  CANCELLED: "cancelled",
+  DONATED: "donated",
+};
 
-function getStatusColorFromRegistration(registrationStatus, isEligible) {
-  if (registrationStatus === DONATION_STATUS.IN_CONSULT) return '#4A90E2';
-  if (registrationStatus === DONATION_STATUS.REJECTED) return '#FF4757';
-  if (registrationStatus === DONATION_STATUS.WAITING_DONATION) return '#2ED573';
-  return '#95A5A6';
-}
+// Registration Status mapping
+const DONATION_STATUS = {
+  PENDING_APPROVAL: "pending_approval",
+  REGISTERED: "registered", 
+  CHECKED_IN: "checked_in",
+  IN_CONSULT: "in_consult",
+  REJECTED: "rejected",
+  WAITING_DONATION: "waiting_donation",
+  DONATING: "donating",
+  DONATED: "donated",
+  COMPLETED: "completed",
+};
+
+// Status styling functions
+const getHealthCheckStatusInfo = (status) => {
+  switch (status) {
+    case HEALTH_CHECK_STATUS.PENDING:
+      return { label: 'Chờ khám', color: '#FFA502', bgColor: '#FFF4E6', icon: 'clock-outline' };
+    case HEALTH_CHECK_STATUS.COMPLETED:
+      return { label: 'Hoàn thành', color: '#2ED573', bgColor: '#E8F5E8', icon: 'check-circle' };
+    case HEALTH_CHECK_STATUS.CANCELLED:
+      return { label: 'Đã hủy', color: '#FF4757', bgColor: '#FFE8E8', icon: 'close-circle' };
+    case HEALTH_CHECK_STATUS.DONATED:
+      return { label: 'Đã hiến máu', color: '#3742FA', bgColor: '#E6E8FF', icon: 'heart' };
+    default:
+      return { label: 'Chưa xác định', color: '#95A5A6', bgColor: '#F8F9FA', icon: 'help-circle' };
+  }
+};
+
+const getEligibilityInfo = (isEligible) => {
+  if (isEligible === true) {
+    return { label: 'Đủ điều kiện', color: '#2ED573', bgColor: '#E8F5E8', icon: 'check-circle' };
+  } else if (isEligible === false) {
+    return { label: 'Không đủ điều kiện', color: '#FF4757', bgColor: '#FFE8E8', icon: 'close-circle' };
+  }
+  return { label: 'Chưa đánh giá', color: '#95A5A6', bgColor: '#F8F9FA', icon: 'help-circle' };
+};
 
 const HealthCheckDetailScreen = ({ route }) => {
   const [registrationData, setRegistrationData] = useState(null);
@@ -40,7 +71,6 @@ const HealthCheckDetailScreen = ({ route }) => {
         return;
       }
 
-      // Sử dụng API mới để lấy thông tin theo registration ID
       const response = await healthCheckAPI.HandleHealthCheck(
         `/registration/${registrationId}`,
         null,
@@ -83,7 +113,6 @@ const HealthCheckDetailScreen = ({ route }) => {
     };
   }, [registrationId]);
 
-  // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
       fetchHealthCheckDetail();
@@ -91,8 +120,8 @@ const HealthCheckDetailScreen = ({ route }) => {
   );
 
   const handleCreateBloodDonation = async () => {
-    if (!registrationData) {
-      Alert.alert('Lỗi', 'Không tìm thấy thông tin đăng ký');
+    if (!registrationData || !healthCheckData) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin đăng ký hoặc khám sức khỏe');
       return;
     }
 
@@ -100,10 +129,7 @@ const HealthCheckDetailScreen = ({ route }) => {
       'Tiến hành hiến máu',
       `Xác nhận tiến hành hiến máu cho ${registrationData.userId?.fullName}?`,
       [
-        { 
-          text: 'Hủy', 
-          style: 'cancel' 
-        },
+        { text: 'Hủy', style: 'cancel' },
         {
           text: 'Xác nhận',
           onPress: async () => {
@@ -131,12 +157,9 @@ const HealthCheckDetailScreen = ({ route }) => {
                     {
                       text: 'OK',
                       onPress: () => {
-                        // Navigate back to HealthCheckList and refresh
                         navigation.navigate('TabNavigatorNurse', {
                           screen: 'HealthChecks',
-                          params: {
-                            screen: 'HealthChecks',
-                          },
+                          params: { screen: 'HealthChecks' },
                         });
                       }
                     }
@@ -167,184 +190,234 @@ const HealthCheckDetailScreen = ({ route }) => {
     );
   }
 
-  // Determine status and eligibility from registration data
-  const isEligible = registrationData.status === DONATION_STATUS.WAITING_DONATION;
-  const statusLabel = getStatusLabel(registrationData.status, isEligible);
-  const statusColor = getStatusColorFromRegistration(registrationData.status, isEligible);
+  // Get status info
+  const healthCheckStatusInfo = healthCheckData 
+    ? getHealthCheckStatusInfo(healthCheckData.status)
+    : { label: 'Chưa khám', color: '#95A5A6', bgColor: '#F8F9FA', icon: 'stethoscope' };
+  
+  const eligibilityInfo = healthCheckData 
+    ? getEligibilityInfo(healthCheckData.isEligible)
+    : { label: 'Chưa đánh giá', color: '#95A5A6', bgColor: '#F8F9FA', icon: 'help-circle' };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header: Avatar, tên, trạng thái */}
+      {/* Compact Header with Code and Status */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack?.()}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <View style={styles.avatarContainer}>
-            <Image 
-              source={{ 
-                uri: registrationData.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
-              }} 
-              style={styles.avatar} 
-            />
-            <View style={styles.bloodTypeBadge}>
-              <Text style={styles.bloodTypeText}>{registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type}</Text>
-            </View>
-          </View>
-          <Text style={styles.userName}>{registrationData.userId?.fullName || 'N/A'}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}> 
+        
+        <View style={styles.headerContent}>
+          <Text style={styles.headerCode}>
+            Đơn khám sức khoẻ
+          </Text>
+          <Text style={styles.headerCode}>
+            {healthCheckData?.code ||  `#${registrationData?._id?.slice(-6)}`}
+          </Text>
+          <View style={[styles.headerStatusBadge, { backgroundColor: healthCheckStatusInfo.bgColor }]}>
             <MaterialCommunityIcons 
-              name={isEligible ? 'check-circle' : registrationData.status === DONATION_STATUS.REJECTED ? 'close-circle' : 'clock'} 
-              size={16} 
-              color="#fff" 
+              name={healthCheckStatusInfo.icon} 
+              size={14} 
+              color={healthCheckStatusInfo.color} 
             />
-            <Text style={styles.statusBadgeText}>{statusLabel}</Text>
+            <Text style={[styles.headerStatusText, { color: healthCheckStatusInfo.color }]}>
+              {healthCheckStatusInfo.label}
+            </Text>
           </View>
         </View>
+
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Thông tin bệnh nhân */}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Patient Info Card */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="account-heart" size={24} color="#FF6B6B" />
-            <Text style={styles.cardTitle}>Thông tin người hiến</Text>
-          </View>
-          <View style={styles.patientInfoGrid}>
-            <InfoCard icon="account" label="Họ tên" value={registrationData.userId?.fullName} color="#4A90E2" />
-            <InfoCard icon="calendar" label="Ngày sinh" value={registrationData.userId?.yob ? new Date(registrationData.userId.yob).toLocaleDateString('vi-VN') : 'N/A'} color="#9B59B6" />
-            <InfoCard icon="human-male-female" label="Giới tính" value={registrationData.userId?.sex === 'male' ? 'Nam' : registrationData.userId?.sex === 'female' ? 'Nữ' : 'N/A'} color="#E74C3C" />
-            <InfoCard icon="water" label="Nhóm máu" value={registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type} color="#FF6B6B" />
-          </View>
-          <View style={styles.contactInfo}>
-            <InfoRow icon="phone" label="Số điện thoại" value={registrationData.userId?.phone} />
-            <InfoRow icon="email" label="Email" value={registrationData.userId?.email} />
-          </View>
-        </View>
-
-        {/* Thông tin chi tiết health check */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="stethoscope" size={24} color="#FF6B6B" />
-            <Text style={styles.cardTitle}>Thông tin khám sức khỏe</Text>
-          </View>
-          
-          <View style={styles.healthCheckInfo}>
-            <InfoRow icon="identifier" label="Mã đăng ký" value={registrationData.code || registrationData._id} />
-            <InfoRow icon="calendar-clock" label="Ngày khám" value={new Date(registrationData.preferredDate).toLocaleString('vi-VN')} />
-            <InfoRow icon="hospital-building" label="Cơ sở" value={registrationData.facilityId?.name} />
-            <InfoRow icon="account-tie" label="Y tá hỗ trợ" value={registrationData.staffId?.userId?.fullName || 'Chưa phân công'} />
-            <InfoRow icon="doctor" label="Bác sĩ khám" value={healthCheckData?.doctorId?.userId?.fullName || 'Chưa phân công'} />
-            
-            <View style={styles.eligibilityRow}>
-              <MaterialCommunityIcons name="clipboard-check" size={18} color="#636E72" />
-              <Text style={styles.infoLabel}>Đủ điều kiện:</Text>
-              <View style={[
-                styles.eligibilityBadge, 
-                { backgroundColor: isEligible ? '#2ED573' : registrationData.status === DONATION_STATUS.REJECTED ? '#FF4757' : '#95A5A6' }
-              ]}>
-                <MaterialCommunityIcons 
-                  name={isEligible ? 'check' : registrationData.status === DONATION_STATUS.REJECTED ? 'close' : 'help'} 
-                  size={14} 
-                  color="#fff" 
-                />
-                <Text style={styles.eligibilityText}>
-                  {isEligible ? 'Đủ' : registrationData.status === DONATION_STATUS.REJECTED ? 'Không đủ' : 'Chưa xác định'}
+          <View style={styles.patientHeader}>
+            <View style={styles.avatarSection}>
+              <Image 
+                source={{ 
+                  uri: registrationData.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+                }} 
+                style={styles.avatar} 
+              />
+              <View style={styles.bloodTypeBadge}>
+                <Text style={styles.bloodTypeText}>
+                  {registrationData.bloodGroupId?.name || registrationData.bloodGroupId?.type}
                 </Text>
               </View>
             </View>
+            
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>{registrationData.userId?.fullName}</Text>
+              <Text style={styles.patientSubInfo}>
+                {registrationData.userId?.sex === 'male' ? ' Nam' : ' Nữ'} • {' '}
+                {registrationData.userId?.yob ? new Date().getFullYear() - new Date(registrationData.userId.yob).getFullYear() + ' tuổi' : 'N/A'}
+              </Text>
+              <Text style={styles.patientContact}>📞 {registrationData.userId?.phone}</Text>
+            </View>
           </View>
-          
-          {/* Health check details if available */}
-          {healthCheckData && (
-            <View style={styles.vitalSignsSection}>
-              <Text style={styles.subSectionTitle}>📊 Chỉ số sinh hiệu</Text>
-              <View style={styles.vitalSignsGrid}>
-                {healthCheckData.bloodPressure && (
-                  <VitalCard icon="heart-pulse" label="Huyết áp" value={healthCheckData.bloodPressure + ' mmHg'} color="#E74C3C" />
-                )}
-                {healthCheckData.hemoglobin && (
-                  <VitalCard icon="water-percent" label="Hemoglobin" value={healthCheckData.hemoglobin + ' g/dL'} color="#9B59B6" />
-                )}
-                {healthCheckData.weight && (
-                  <VitalCard icon="weight" label="Cân nặng" value={healthCheckData.weight + ' kg'} color="#F39C12" />
-                )}
-                {healthCheckData.pulse && (
-                  <VitalCard icon="heart" label="Nhịp tim" value={healthCheckData.pulse + ' bpm'} color="#FF6B6B" />
-                )}
-                {healthCheckData.temperature && (
-                  <VitalCard icon="thermometer" label="Nhiệt độ" value={healthCheckData.temperature + ' °C'} color="#3498DB" />
-                )}
-                {healthCheckData.generalCondition && (
-                  <VitalCard icon="account-check" label="Tình trạng" value={healthCheckData.generalCondition} color="#2ED573" />
-                )}
-              </View>
-              
-              {healthCheckData.deferralReason && (
-                <View style={styles.deferralSection}>
-                  <MaterialCommunityIcons name="alert-circle" size={20} color="#FF4757" />
-                  <Text style={styles.deferralTitle}>Lý do không đủ điều kiện:</Text>
-                  <Text style={styles.deferralText}>{healthCheckData.deferralReason}</Text>
-                </View>
+
+          {/* Eligibility Status */}
+          <View style={[styles.eligibilityCard, { backgroundColor: eligibilityInfo.bgColor }]}>
+            <MaterialCommunityIcons 
+              name={eligibilityInfo.icon} 
+              size={20} 
+              color={eligibilityInfo.color} 
+            />
+            <Text style={[styles.eligibilityText, { color: eligibilityInfo.color }]}>
+              {eligibilityInfo.label}
+            </Text>
+          </View>
+        </View>
+
+        {/* Registration Info */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Thông tin đăng ký</Text>
+          <View style={styles.infoGrid}>
+            <InfoItem icon="calendar" label="Ngày khám" value={new Date(healthCheckData.checkDate).toLocaleString('vi-VN')} />
+            <InfoItem icon="hospital-building" label="Cơ sở" value={registrationData.facilityId?.name} />
+            <InfoItem icon="account-tie" label="Y tá hỗ trợ" value={registrationData.staffId?.userId?.fullName || 'Chưa phân công'} />
+            <InfoItem icon="heart-plus" label="Thành phần" value={registrationData.bloodComponent || 'Máu toàn phần'} />
+          </View>
+        </View>
+
+        {/* Health Check Results */}
+        {healthCheckData ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Kết quả khám sức khỏe</Text>
+            
+            <View style={styles.doctorInfo}>
+              <MaterialCommunityIcons name="doctor" size={20} color="#4A90E2" />
+              <Text style={styles.doctorText}>
+                BS. {healthCheckData.doctorId?.userId?.fullName || 'Chưa phân công'}
+              </Text>
+            </View>
+
+            {/* Vital Signs Grid */}
+            <View style={styles.vitalSignsGrid}>
+              {healthCheckData.bloodPressure && (
+                <VitalCard 
+                  icon="heart-pulse" 
+                  label="Huyết áp" 
+                  value={healthCheckData.bloodPressure + ' mmHg'} 
+                  color="#E74C3C" 
+                />
               )}
-              
-              {healthCheckData.notes && (
-                <View style={styles.notesSection}>
-                  <MaterialCommunityIcons name="note-text" size={20} color="#636E72" />
-                  <Text style={styles.notesTitle}>Ghi chú bác sĩ:</Text>
-                  <Text style={styles.notesText}>{healthCheckData.notes}</Text>
-                </View>
+              {healthCheckData.pulse && (
+                <VitalCard 
+                  icon="heart" 
+                  label="Nhịp tim" 
+                  value={healthCheckData.pulse + ' bpm'} 
+                  color="#FF6B6B" 
+                />
+              )}
+              {healthCheckData.temperature && (
+                <VitalCard 
+                  icon="thermometer" 
+                  label="Nhiệt độ" 
+                  value={healthCheckData.temperature + ' °C'} 
+                  color="#3498DB" 
+                />
+              )}
+              {healthCheckData.weight && (
+                <VitalCard 
+                  icon="weight" 
+                  label="Cân nặng" 
+                  value={healthCheckData.weight + ' kg'} 
+                  color="#F39C12" 
+                />
+              )}
+              {healthCheckData.hemoglobin && (
+                <VitalCard 
+                  icon="water-percent" 
+                  label="Hemoglobin" 
+                  value={healthCheckData.hemoglobin + ' g/dL'} 
+                  color="#9B59B6" 
+                />
+              )}
+              {healthCheckData.generalCondition && (
+                <VitalCard 
+                  icon="account-check" 
+                  label="Tình trạng" 
+                  value={healthCheckData.generalCondition} 
+                  color="#2ED573" 
+                />
               )}
             </View>
-          )}
 
-          {/* Hiển thị thông báo nếu chưa có health check */}
-          {!healthCheckData && (
-            <View style={styles.noHealthCheckSection}>
-              <MaterialCommunityIcons name="clipboard-text-outline" size={48} color="#95A5A6" />
-              <Text style={styles.noHealthCheckTitle}>Chưa có thông tin khám sức khỏe</Text>
-              <Text style={styles.noHealthCheckText}>
+            {/* Deferral Reason */}
+            {healthCheckData.deferralReason && (
+              <View style={styles.warningCard}>
+                <MaterialCommunityIcons name="alert-circle" size={20} color="#FF4757" />
+                <View style={styles.warningContent}>
+                  <Text style={styles.warningTitle}>Lý do không đủ điều kiện</Text>
+                  <Text style={styles.warningText}>{healthCheckData.deferralReason}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Doctor Notes */}
+            {healthCheckData.notes && (
+              <View style={styles.notesCard}>
+                <MaterialCommunityIcons name="note-text" size={18} color="#636E72" />
+                <View style={styles.notesContent}>
+                  <Text style={styles.notesTitle}>Ghi chú bác sĩ</Text>
+                  <Text style={styles.notesText}>{healthCheckData.notes}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <View style={styles.noDataCard}>
+              <MaterialCommunityIcons name="stethoscope" size={48} color="#95A5A6" />
+              <Text style={styles.noDataTitle}>Chưa có thông tin khám sức khỏe</Text>
+              <Text style={styles.noDataText}>
                 {registrationData.status === DONATION_STATUS.CHECKED_IN 
                   ? 'Người hiến đã check-in, đang chờ tạo phiếu khám sức khỏe'
                   : 'Thông tin khám sức khỏe sẽ được cập nhật sau khi bác sĩ thực hiện khám'
                 }
               </Text>
             </View>
-          )}
-          
-          {registrationData.notes && (
-            <View style={styles.registrationNotesSection}>
-              <MaterialCommunityIcons name="clipboard-text" size={20} color="#636E72" />
-              <Text style={styles.notesTitle}>Ghi chú đăng ký:</Text>
-              <Text style={styles.notesText}>{registrationData.notes}</Text>
+          </View>
+        )}
+
+        {/* Registration Notes */}
+        {registrationData.notes && (
+          <View style={styles.card}>
+            <View style={styles.notesCard}>
+              <MaterialCommunityIcons name="clipboard-text" size={18} color="#4A90E2" />
+              <View style={styles.notesContent}>
+                <Text style={styles.notesTitle}>Ghi chú đăng ký</Text>
+                <Text style={styles.notesText}>{registrationData.notes}</Text>
+              </View>
             </View>
-          )}
-        </View>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Footer: Action buttons */}
+      {/* Action Footer */}
       <View style={styles.footer}>
         {registrationData.status === DONATION_STATUS.IN_CONSULT ? (
           <View style={styles.pendingContainer}>
-            <MaterialCommunityIcons name="clock-outline" size={24} color="#4A90E2" />
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#4A90E2" />
             <Text style={styles.pendingText}>Đang chờ bác sĩ khám</Text>
           </View>
-        ) : registrationData.status === DONATION_STATUS.WAITING_DONATION && isEligible ? (
+        ) : registrationData.status === DONATION_STATUS.WAITING_DONATION && healthCheckData?.isEligible ? (
           <TouchableOpacity
-            style={[styles.donationButton, isCreatingDonation && styles.donationButtonDisabled]}
+            style={[styles.actionButton, styles.donationButton, isCreatingDonation && styles.buttonDisabled]}
             onPress={handleCreateBloodDonation}
             disabled={isCreatingDonation}
           >
-            <MaterialCommunityIcons name="heart-plus" size={24} color="#fff" />
-            <Text style={styles.donationButtonText}>
+            <MaterialCommunityIcons name="heart-plus" size={20} color="#fff" />
+            <Text style={styles.actionButtonText}>
               {isCreatingDonation ? 'Đang tạo...' : 'Tiến hành hiến máu'}
             </Text>
           </TouchableOpacity>
-        ) : registrationData.status === DONATION_STATUS.REJECTED ? (
-          <View style={styles.notEligibleContainer}>
-            <MaterialCommunityIcons name="close-circle" size={24} color="#FF4757" />
-            <Text style={styles.notEligibleText}>Không đủ điều kiện hiến máu</Text>
+        ) : registrationData.status === DONATION_STATUS.REJECTED || healthCheckData?.isEligible === false ? (
+          <View style={styles.rejectedContainer}>
+            <MaterialCommunityIcons name="close-circle" size={20} color="#FF4757" />
+            <Text style={styles.rejectedText}>Không đủ điều kiện hiến máu</Text>
           </View>
         ) : null}
       </View>
@@ -352,31 +425,24 @@ const HealthCheckDetailScreen = ({ route }) => {
   );
 };
 
-const InfoRow = ({ icon, label, value }) => (
-  <View style={styles.infoRow}>
-    <MaterialCommunityIcons name={icon} size={20} color="#636E72" />
-    <Text style={styles.infoLabel}>{label}:</Text>
-    <Text style={styles.infoValue}>{value || '-'}</Text>
-  </View>
-);
-
-const InfoCard = ({ icon, label, value, color }) => (
-  <View style={styles.infoCard}>
-    <View style={[styles.infoCardIcon, { backgroundColor: color }]}>
-      <MaterialCommunityIcons name={icon} size={20} color="#fff" />
+// Helper Components
+const InfoItem = ({ icon, label, value }) => (
+  <View style={styles.infoItem}>
+    <MaterialCommunityIcons name={icon} size={16} color="#636E72" />
+    <View style={styles.infoContent}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value || '-'}</Text>
     </View>
-    <Text style={styles.infoCardLabel}>{label}</Text>
-    <Text style={styles.infoCardValue}>{value}</Text>
   </View>
 );
 
 const VitalCard = ({ icon, label, value, color }) => (
   <View style={styles.vitalCard}>
-    <View style={[styles.vitalCardIcon, { backgroundColor: color }]}>
-      <MaterialCommunityIcons name={icon} size={18} color="#fff" />
+    <View style={[styles.vitalIcon, { backgroundColor: color }]}>
+      <MaterialCommunityIcons name={icon} size={16} color="#fff" />
     </View>
-    <Text style={styles.vitalCardLabel}>{label}</Text>
-    <Text style={styles.vitalCardValue}>{value}</Text>
+    <Text style={styles.vitalLabel}>{label}</Text>
+    <Text style={styles.vitalValue}>{value}</Text>
   </View>
 );
 
@@ -395,400 +461,347 @@ const styles = StyleSheet.create({
     color: '#636E72',
     marginTop: 12,
   },
+  
+  // Header Styles
   header: {
     backgroundColor: '#FF6B6B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 20 : 40,
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerCenter: {
+  headerContent: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  avatarContainer: {
-    position: 'relative',
+  headerCode: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  headerStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  headerStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  // Scroll Container
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
+  },
+
+  // Card Styles
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  // Patient Info
+  patientHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarSection: {
+    position: 'relative',
+    marginRight: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: '#fff',
-    backgroundColor: '#fff',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F0F0F0',
   },
   bloodTypeBadge: {
     position: 'absolute',
     bottom: -4,
     right: -4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: '#FF6B6B',
   },
   bloodTypeText: {
-    color: '#FF6B6B',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 4,
-  },
-  statusBadgeText: {
-    color: '#fff',
+    fontSize: 10,
     fontWeight: 'bold',
-    fontSize: 14,
-    marginLeft: 6,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    marginLeft: 12,
-  },
-  patientInfoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  contactInfo: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  infoCard: {
-    width: '48%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  infoCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoCardLabel: {
-    fontSize: 12,
-    color: '#636E72',
-    textAlign: 'center',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  infoCardValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    textAlign: 'center',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 4,
-  },
-  infoLabel: {
-    color: '#636E72',
-    fontSize: 15,
-    width: 120,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  infoValue: {
-    color: '#2D3436',
-    fontSize: 15,
-    fontWeight: '600',
+  patientInfo: {
     flex: 1,
   },
-  healthCheckInfo: {
-    marginBottom: 20,
+  patientName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 4,
   },
-  eligibilityRow: {
+  patientSubInfo: {
+    fontSize: 14,
+    color: '#636E72',
+    marginBottom: 2,
+  },
+  patientContact: {
+    fontSize: 14,
+    color: '#636E72',
+  },
+
+  // Eligibility Card
+  eligibilityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-  },
-  eligibilityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 'auto',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
   },
   eligibilityText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 4,
+    marginLeft: 8,
   },
-  vitalSignsSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  subSectionTitle: {
+
+  // Section Title
+  sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2D3436',
-    marginBottom: 16,
+    color: '#2D3748',
+    marginBottom: 12,
+  },
+
+  // Info Grid
+  infoGrid: {
+    gap: 8,
+  },
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8,
   },
+  infoContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#636E72',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D3748',
+  },
+
+  // Doctor Info
+  doctorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F8FF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  doctorText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
+    marginLeft: 8,
+  },
+
+  // Vital Signs
   vitalSignsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 16,
   },
   vitalCard: {
     width: '48%',
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E9ECEF',
   },
-  vitalCardIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  vitalIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
   },
-  vitalCardLabel: {
+  vitalLabel: {
     fontSize: 11,
     color: '#636E72',
     textAlign: 'center',
     marginBottom: 2,
-    fontWeight: '500',
   },
-  vitalCardValue: {
-    fontSize: 13,
+  vitalValue: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#2D3436',
+    color: '#2D3748',
     textAlign: 'center',
   },
-  deferralSection: {
+
+  // Warning Card
+  warningCard: {
     backgroundColor: '#FFEAEA',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderLeftWidth: 4,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    borderLeftWidth: 3,
     borderLeftColor: '#FF4757',
   },
-  deferralTitle: {
-    fontSize: 15,
+  warningContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FF4757',
-    marginLeft: 8,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  deferralText: {
-    color: '#2D3436',
-    fontSize: 14,
-    lineHeight: 20,
-    paddingLeft: 28,
+  warningText: {
+    fontSize: 13,
+    color: '#2D3748',
+    lineHeight: 18,
   },
-  notesSection: {
+
+  // Notes Card
+  notesCard: {
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderLeftWidth: 4,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderLeftWidth: 3,
     borderLeftColor: '#636E72',
   },
+  notesContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
   notesTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#2D3436',
-    marginLeft: 8,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#2D3748',
+    marginBottom: 4,
   },
   notesText: {
-    color: '#2D3436',
-    fontSize: 14,
-    lineHeight: 20,
-    paddingLeft: 28,
+    fontSize: 13,
+    color: '#636E72',
+    lineHeight: 18,
     fontStyle: 'italic',
   },
-  registrationNotesSection: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
-  },
-  footer: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  donationButton: {
-    backgroundColor: '#2ED573',
-    height: 56,
-    borderRadius: 16,
-    flexDirection: 'row',
+
+  // No Data Card
+  noDataCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#2ED573',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    padding: 24,
   },
-  donationButtonDisabled: {
-    opacity: 0.7,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  donationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  pendingContainer: {
-    height: 56,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F8FF',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-  },
-  pendingText: {
-    color: '#4A90E2',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  notEligibleContainer: {
-    height: 56,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFEAEA',
-    borderWidth: 2,
-    borderColor: '#FF4757',
-  },
-  notEligibleText: {
-    color: '#FF4757',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  noHealthCheckSection: {
-    alignItems: 'center',
-    padding: 32,
-    marginTop: 20,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  noHealthCheckTitle: {
-    fontSize: 18,
+  noDataTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#636E72',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 6,
     textAlign: 'center',
   },
-  noHealthCheckText: {
+  noDataText: {
     fontSize: 14,
     color: '#95A5A6',
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Footer
+  footer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  donationButton: {
+    backgroundColor: '#2ED573',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  pendingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+  },
+  pendingText: {
+    color: '#4A90E2',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  rejectedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#FFEAEA',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FF4757',
+  },
+  rejectedText: {
+    color: '#FF4757',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
 
