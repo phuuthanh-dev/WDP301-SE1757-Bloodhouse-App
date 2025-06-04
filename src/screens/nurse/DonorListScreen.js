@@ -66,6 +66,7 @@ export default function DonorListScreen({ route }) {
       const response = await bloodDonationRegistrationAPI.HandleBloodDonationRegistration(
         `/staff/assigned?${params.toString()}`
       );
+      console.log("🚀 ~ fetchDonors ~ response:", response)
       
       
       if (response.data && response.data.data) {
