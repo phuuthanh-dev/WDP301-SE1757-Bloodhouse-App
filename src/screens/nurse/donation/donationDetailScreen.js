@@ -16,10 +16,12 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { formatDateTime } from '@/utils/formatHelpers';
 import bloodDonationAPI from '@/apis/bloodDonation';
+import donorStatusLogAPI from '@/apis/donorStatusLog';
 import { DONATION_STATUS, getStatusName, getStatusColor } from '@/constants/donationStatus';
 
 const DonationDetailScreen = ({ route }) => {
   const [donationDetail, setDonationDetail] = useState(null);
+  const [donorStatusLog, setDonorStatusLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
@@ -28,6 +30,7 @@ const DonationDetailScreen = ({ route }) => {
     notes: '',
     status: '',
   });
+  const [isCreatingRestingLog, setIsCreatingRestingLog] = useState(false);
   
   const navigation = useNavigation();
   const donationId = route?.params?.donationId;
@@ -100,19 +103,38 @@ const DonationDetailScreen = ({ route }) => {
     } catch (error) {
       console.error('Error fetching donation detail:', error);
       Alert.alert('Lỗi', 'Không thể tải thông tin chi tiết hiến máu');
+    }
+  };
+
+  const fetchDonorStatusLog = async () => {
+    try {
+      const response = await donorStatusLogAPI.HandleDonorStatusLog(
+        `/donation/${donationId}`,
+        null,
+        'get'
+      );
+
+      if (response.data && response.data.data && response.data.data.length > 0) {
+        setDonorStatusLog(response.data.data[0]);
+      } else {
+        setDonorStatusLog(null);
+      }
+    } catch (error) {
+      console.error('Error fetching donor status log:', error);
+      setDonorStatusLog(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDonationDetail();
+    Promise.all([fetchDonationDetail(), fetchDonorStatusLog()]);
   }, [donationId]);
 
   // Refresh when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchDonationDetail();
+      Promise.all([fetchDonationDetail(), fetchDonorStatusLog()]);
     }, [donationId])
   );
 
@@ -156,6 +178,8 @@ const DonationDetailScreen = ({ route }) => {
                 setUpdateModalVisible(false);
                 // Reload the detail page to show updated information
                 fetchDonationDetail();
+                // Refetch donor status log to update button display
+                fetchDonorStatusLog();
               }
             }
           ]
@@ -168,6 +192,66 @@ const DonationDetailScreen = ({ route }) => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCreateRestingLog = async () => {
+    if (!donationDetail) return;
+    
+    Alert.alert(
+      'Xác nhận',
+      'Bạn có chắc chắn muốn chuyển người hiến máu sang giai đoạn nghỉ ngơi?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            setIsCreatingRestingLog(true);
+            try {
+              const response = await donorStatusLogAPI.HandleDonorStatusLog(
+                '/',
+                {
+                  donationId: donationDetail.id,
+                  userId: donationDetail.donor.id,
+                },
+                'post'
+              );
+
+              if (response.data) {
+                Alert.alert(
+                  'Thành công',
+                  'Đã chuyển người hiến máu sang giai đoạn nghỉ ngơi!',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        // Reload the detail page and donor status log
+                        fetchDonationDetail();
+                        fetchDonorStatusLog();
+                      }
+                    }
+                  ]
+                );
+              }
+            } catch (error) {
+              console.error('Error creating resting log:', error);
+              const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi chuyển trạng thái';
+              Alert.alert('Lỗi', errorMessage);
+            } finally {
+              setIsCreatingRestingLog(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleNavigateToDonorStatus = () => {
+    navigation.navigate('DonorStatus', {
+      donationId: donationDetail.id,
+    });
   };
 
   const getStatusInfo = (status) => {
@@ -444,6 +528,75 @@ const DonationDetailScreen = ({ route }) => {
             </View>
             <View style={styles.notesContainer}>
               <Text style={styles.notesText}>{donationDetail.notes}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Post-Donation Action Card - Show when donation is completed */}
+        {donationDetail.status === 'completed' && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons 
+                name={donorStatusLog ? "check-circle" : "bed"} 
+                size={24} 
+                color="#2ED573" 
+              />
+              <Text style={styles.cardTitle}>
+                {donorStatusLog ? "Theo dõi sau hiến" : "Giai đoạn nghỉ ngơi"}
+              </Text>
+              {donorStatusLog && (
+                <View style={styles.statusIndicatorBadge}>
+                  <MaterialCommunityIcons name="check-circle" size={16} color="#2ED573" />
+                  <Text style={styles.statusIndicatorText}>
+                    {donorStatusLog.recordedAt ? "Đã hoàn tất" : "Đang theo dõi"}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.restingActionContainer}>
+              {donorStatusLog ? (
+                <>
+                  <Text style={styles.restingDescription}>
+                    {donorStatusLog.recordedAt 
+                      ? "Đã hoàn tất theo dõi sau hiến máu. Bạn có thể xem chi tiết hoặc cập nhật thông tin nếu cần."
+                      : "Người hiến máu đang trong giai đoạn nghỉ ngơi. Bạn có thể xem và cập nhật tình trạng sức khỏe."
+                    }
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.viewStatusButton}
+                    onPress={handleNavigateToDonorStatus}
+                  >
+                    <MaterialCommunityIcons 
+                      name="heart-plus" 
+                      size={20} 
+                      color="#fff" 
+                    />
+                    <Text style={styles.viewStatusButtonText}>
+                      {donorStatusLog.recordedAt ? "Xem chi tiết theo dõi" : "Xem và cập nhật trạng thái"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.restingDescription}>
+                    Người hiến máu đã hoàn thành quá trình hiến máu. Hãy chuyển họ sang giai đoạn nghỉ ngơi để theo dõi sức khỏe.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.restingButton, isCreatingRestingLog && styles.restingButtonDisabled]}
+                    onPress={handleCreateRestingLog}
+                    disabled={isCreatingRestingLog}
+                  >
+                    <MaterialCommunityIcons 
+                      name="bed" 
+                      size={20} 
+                      color="#fff" 
+                    />
+                    <Text style={styles.restingButtonText}>
+                      {isCreatingRestingLog ? 'Đang xử lý...' : 'Chuyển sang nghỉ ngơi'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         )}
@@ -942,6 +1095,73 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+  },
+  restingActionContainer: {
+    padding: 16,
+  },
+  restingDescription: {
+    fontSize: 14,
+    color: '#636E72',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  restingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: '#2ED573',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#2ED573',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  restingButtonDisabled: {
+    backgroundColor: '#E9ECEF',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  restingButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  statusIndicatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F8F5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 'auto',
+  },
+  statusIndicatorText: {
+    fontSize: 12,
+    color: '#2ED573',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  viewStatusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#4A90E2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  viewStatusButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
   },
 });
 

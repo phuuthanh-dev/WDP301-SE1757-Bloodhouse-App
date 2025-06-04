@@ -221,46 +221,66 @@ export default function DonationListScreen() {
           </View>
         </View>    
         <View style={styles.cardFooter}>
-          <TouchableOpacity 
-            style={styles.actionBtn}
-            onPress={() => {
-              // Handle action based on status
-              if (item.originalData?.status === 'donating') {
-                // Monitor/Update donation - Navigate to update form
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'update'
-                });
-              } else if (item.originalData?.status === 'completed') {
-                // View donation details
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'view'
-                });
-              } else {
-                // Default view mode for other statuses
-                navigation.navigate('DonationDetail', { 
-                  donationId: item.id,
-                  mode: 'view'
-                });
-              }
-            }}
-          >
-            <MaterialIcons 
-              name={
-                item.originalData?.status === 'donating' ? 'edit' : 
-                item.originalData?.status === 'completed' ? 'visibility' : 
-                'info'
-              } 
-              size={18} 
-              color="#FF6B6B" 
-            />
-            <Text style={styles.actionText}>
-              {item.originalData?.status === 'donating' ? 'Cập nhật thông tin' : 
-               item.originalData?.status === 'completed' ? 'Xem chi tiết' : 
-               'Chi tiết'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity 
+              style={[styles.actionBtn, styles.primaryActionBtn]}
+              onPress={() => {
+                // Handle action based on status
+                if (item.originalData?.status === 'donating') {
+                  // Monitor/Update donation - Navigate to update form
+                  navigation.navigate('DonationDetail', { 
+                    donationId: item.id,
+                    mode: 'update'
+                  });
+                } else if (item.originalData?.status === 'completed') {
+                  // View donation details
+                  navigation.navigate('DonationDetail', { 
+                    donationId: item.id,
+                    mode: 'view'
+                  });
+                } else {
+                  // Default view mode for other statuses
+                  navigation.navigate('DonationDetail', { 
+                    donationId: item.id,
+                    mode: 'view'
+                  });
+                }
+              }}
+            >
+              <MaterialIcons 
+                name={
+                  item.originalData?.status === 'donating' ? 'edit' : 
+                  item.originalData?.status === 'completed' ? 'visibility' : 
+                  'info'
+                } 
+                size={18} 
+                color="#FF6B6B" 
+              />
+              <Text style={styles.actionText}>
+                {item.originalData?.status === 'donating' ? 'Cập nhật thông tin' : 
+                 item.originalData?.status === 'completed' ? 'Xem chi tiết' : 
+                 'Chi tiết'}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Show post-donation care button for completed donations */}
+            {item.originalData?.status === 'completed' && (
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.secondaryActionBtn]}
+                onPress={() => {
+                  navigation.navigate('DonorStatus', { 
+                    donationId: item.id,
+                    mode: 'update'
+                  });
+                }}
+              >
+                <MaterialCommunityIcons name="medical-bag" size={18} color="#2ED573" />
+                <Text style={[styles.actionText, styles.secondaryActionText]}>
+                  Kiểm tra sau hiến
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -851,9 +871,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
   },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FFEAEA",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  primaryActionBtn: {
     backgroundColor: "#FFEAEA",
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -864,6 +895,16 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     fontWeight: "600",
     marginLeft: 6,
+  },
+  secondaryActionBtn: {
+    backgroundColor: "#E8F7E8",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  secondaryActionText: {
+    color: "#2ED573",
+    fontWeight: "600",
   },
   emptyContainer: {
     alignItems: "center",
