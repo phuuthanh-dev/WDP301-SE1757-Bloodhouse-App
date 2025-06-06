@@ -21,8 +21,7 @@ import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
-import { BLOOD_COMPONENT } from '@/constants/bloodComponents';
- import bloodDonationAPI from "@/apis/bloodDonation";
+import bloodDonationAPI from "@/apis/bloodDonation";
 
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -125,30 +124,18 @@ export default function BloodDonationListScreen() {
     }
   };
 
-  const canBeDivided = (donation) => {
-    // Tất cả các loại máu đều có thể phân chia
-    return Object.values(BLOOD_COMPONENT).includes(donation.bloodComponent);
-  };
-
   const renderBloodDonationItem = ({ item }) => {
     const statusInfo = getStatusInfo(item);
-    const isDividable = canBeDivided(item);
 
     return (
       <TouchableOpacity
-        style={[
-          styles.donationCard,
-          !isDividable && styles.donationCardDisabled
-        ]}
+        style={styles.donationCard}
         onPress={() => {
-          if (isDividable) {
-            navigation.navigate('BloodUnitSplit', { 
-              donationId: item._id,
-              donationData: item
-            });
-          }
+          navigation.navigate('BloodUnitSplit', { 
+            donationId: item._id,
+            donationData: item
+          });
         }}
-        disabled={!isDividable}
       >
         <View style={styles.cardHeader}>
           <View style={styles.donorInfo}>
@@ -176,7 +163,7 @@ export default function BloodDonationListScreen() {
               <View style={styles.detailsRow}>
                 <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
                 <Text style={styles.details}>
-                  {item.quantity || 0}ml • {item.bloodComponent || 'N/A'}
+                  {item.quantity || 0}ml • Máu toàn phần
                 </Text>
               </View>
             </View>
@@ -194,12 +181,6 @@ export default function BloodDonationListScreen() {
             <Text style={styles.summaryValue}>{item.code || item._id.slice(-8)}</Text>
           </View>
          
-          {/* <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Có thể phân chia:</Text>
-            <Text style={[styles.summaryValue, { color: isDividable ? '#2ED573' : '#FF4757' }]}>
-              {isDividable ? 'Có' : 'Không'}
-            </Text>
-          </View> */}
           {item.notes && (
             <View style={styles.notesPreview}>
               <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
@@ -209,23 +190,16 @@ export default function BloodDonationListScreen() {
         </View>
         
         <View style={styles.cardFooter}>
-          {isDividable ? (
-            <TouchableOpacity 
-              style={styles.manageBtn}
-              onPress={() => navigation.navigate('BloodUnitSplit', { 
-                donationId: item._id,
-                donationData: item
-              })}
-            >
-              <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
-              <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.disabledBtn}>
-              <MaterialCommunityIcons name="block-helper" size={18} color="#95A5A6" />
-              <Text style={styles.disabledText}>Không thể phân chia</Text>
-            </View>
-          )}
+          <TouchableOpacity 
+            style={styles.manageBtn}
+            onPress={() => navigation.navigate('BloodUnitSplit', { 
+              donationId: item._id,
+              donationData: item
+            })}
+          >
+            <MaterialCommunityIcons name="test-tube" size={18} color="#FF6B6B" />
+            <Text style={styles.manageText}>Quản lý đơn vị máu</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -665,10 +639,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0F0F0",
   },
-  donationCardDisabled: {
-    opacity: 0.6,
-    borderColor: "#E0E0E0",
-  },
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -791,20 +761,6 @@ const styles = StyleSheet.create({
   manageText: {
     fontSize: 14,
     color: "#FF6B6B",
-    fontWeight: "600",
-    marginLeft: 6,
-  },
-  disabledBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  disabledText: {
-    fontSize: 14,
-    color: "#95A5A6",
     fontWeight: "600",
     marginLeft: 6,
   },

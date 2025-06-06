@@ -738,7 +738,7 @@ const BloodUnitUpdateScreen = () => {
             <View style={styles.infoRowItem}>
               <Text style={styles.compactLabel}>Thành phần</Text>
               <Text style={styles.compactValue}>
-                {bloodUnit?.component ? getComponentLabel(bloodUnit.component) : 'Đang tải...'}
+                {bloodUnit?.componentId?.name ? bloodUnit.componentId.name : 'Đang tải...'}
               </Text>
             </View>
           </View>
