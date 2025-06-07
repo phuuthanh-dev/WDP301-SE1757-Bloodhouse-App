@@ -7,6 +7,7 @@ import MainNavigatorMember from "./member/MainNavigatorMember";
 import MainNavigatorManager from "./manager/MainNavigatorManager";
 import MainNavigatorDoctor from "./doctor/MainNavigatorDoctor";
 import MainNavigatorNurse from "./nurse/MainNavigatorNurse";
+import MainNavigatorTransporter from "./transporter/MainNavigatorTransporter";
 
 export default function AppRouters() {
   const auth = useSelector(authSelector);
@@ -34,7 +35,8 @@ export default function AppRouters() {
   if (auth.user.role === "MEMBER") return <MainNavigatorMember />;
   if (auth.user.role === "NURSE") return <MainNavigatorNurse />;
   if (auth.user.role === "MANAGER") return <MainNavigatorManager />;
-  if (auth.user.role === "DOCTOR") return <MainNavigatorDoctor />
+  if (auth.user.role === "DOCTOR") return <MainNavigatorDoctor />;
+  if (auth.user.role === "TRANSPORTER") return <MainNavigatorTransporter />;
 
   return <AuthNavigator />;
 }

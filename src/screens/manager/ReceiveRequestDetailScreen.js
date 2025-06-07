@@ -9,7 +9,6 @@ import {
   Platform,
   Linking,
   Alert,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity,
   Platform,
   RefreshControl,
 } from "react-native";
@@ -13,15 +12,18 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useFacility } from "@/contexts/FacilityContext";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import ReceiveRequestCard from "@/components/ReceiveRequestCard";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ManageDistributionScreen({ navigation }) {
   const { facilityId } = useFacility();
   const [assignedRequests, setAssignedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAssignedRequests();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchAssignedRequests();
+    }, [])
+  );
 
   const fetchAssignedRequests = async () => {
     try {
