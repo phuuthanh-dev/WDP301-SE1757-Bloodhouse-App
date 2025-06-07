@@ -17,7 +17,6 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { formatDateTime } from '@/utils/formatHelpers';
 import bloodDonationAPI from '@/apis/bloodDonation';
 import donorStatusLogAPI from '@/apis/donorStatusLog';
-import { DONATION_STATUS, getStatusName, getStatusColor } from '@/constants/donationStatus';
 
 const DonationDetailScreen = ({ route }) => {
   const [donationDetail, setDonationDetail] = useState(null);
@@ -77,7 +76,6 @@ const DonationDetailScreen = ({ route }) => {
             type: donation.bloodGroupId?.name || "N/A",
           },
           code: donation.code || "N/A",
-          bloodComponent: donation.bloodComponent || "Máu toàn phần",
           quantity: donation.quantity || 0,
           donationDate: donation.donationDate,
           donationStartAt: donation.donationDate,
@@ -248,6 +246,16 @@ const DonationDetailScreen = ({ route }) => {
     );
   };
 
+  const handleOpenUpdateModal = () => {
+    // Set default values when opening modal, with 'completed' as default status
+    setUpdateData({
+      quantity: donationDetail.quantity?.toString() || '',
+      notes: donationDetail.notes || '',
+      status: 'completed', // Default to completed status
+    });
+    setUpdateModalVisible(true);
+  };
+
   const handleNavigateToDonorStatus = () => {
     navigation.navigate('DonorStatus', {
       donationId: donationDetail.id,
@@ -292,7 +300,7 @@ const DonationDetailScreen = ({ route }) => {
               <Text style={styles.currentInfoTitle}>Thông tin hiện tại:</Text>
               <Text style={styles.currentInfoText}>Người hiến: {donationDetail.donor.name}</Text>
               <Text style={styles.currentInfoText}>Nhóm máu: {donationDetail.donor.bloodType}</Text>
-              <Text style={styles.currentInfoText}>Loại máu: {donationDetail.bloodComponent}</Text>
+              <Text style={styles.currentInfoText}>Thể tích hiến: {donationDetail.quantity > 0 ? `${donationDetail.quantity} ml` : 'Chưa cập nhật'}</Text>
               <Text style={styles.currentInfoText}>Trạng thái: {getStatusInfo(donationDetail.status).label}</Text>
             </View>
 
@@ -433,7 +441,7 @@ const DonationDetailScreen = ({ route }) => {
         {mode === 'update' && donationDetail?.status === 'donating' ? (
           <TouchableOpacity 
             style={styles.updateHeaderButton} 
-            onPress={() => setUpdateModalVisible(true)}
+            onPress={handleOpenUpdateModal}
           >
             <MaterialIcons name="edit" size={24} color="#fff" />
           </TouchableOpacity>
@@ -444,181 +452,176 @@ const DonationDetailScreen = ({ route }) => {
 
       {/* Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Donor Information Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="account-heart" size={24} color="#FF6B6B" />
-            <Text style={styles.cardTitle}>Thông tin người hiến</Text>
-          </View>
-          <View style={styles.donorInfoContainer}>
-            <Image source={{ uri: donationDetail.donor.avatar }} style={styles.donorAvatar} />
-            <View style={styles.donorDetails}>
-              <Text style={styles.donorName}>{donationDetail.donor.name}</Text>
-              <View style={styles.donorMetaContainer}>
-                <View style={styles.donorMeta}>
-                  <MaterialCommunityIcons name="water" size={16} color="#FF6B6B" />
-                  <Text style={styles.donorMetaText}>{donationDetail.donor.bloodType}</Text>
+        {/* Main Info Card - Compact donor + hero stats */}
+        <View style={styles.mainCard}>
+          {/* Donor Header */}
+          <View style={styles.donorHeader}>
+            <Image source={{ uri: donationDetail.donor.avatar }} style={styles.compactAvatar} />
+            <View style={styles.donorInfo}>
+              <Text style={styles.compactDonorName}>{donationDetail.donor.name}</Text>
+              <View style={styles.donorMetaRow}>
+                <View style={styles.bloodTypeChip}>
+                  <MaterialCommunityIcons name="water" size={16} color="#fff" />
+                  <Text style={styles.bloodTypeText}>{donationDetail.donor.bloodType}</Text>
                 </View>
-                <View style={styles.donorMeta}>
-                  <MaterialCommunityIcons name="account" size={16} color="#636E72" />
-                  <Text style={styles.donorMetaText}>{donationDetail.donor.gender}</Text>
+                <View style={styles.genderChip}>
+                  <MaterialCommunityIcons name="account" size={14} color="#636E72" />
+                  <Text style={styles.chipText}>{donationDetail.donor.gender}</Text>
                 </View>
+              </View>
+              <View style={styles.contactRow}>
+                <MaterialCommunityIcons name="phone" size={14} color="#636E72" />
+                <Text style={styles.contactText}>{donationDetail.donor.phone}</Text>
+                <MaterialCommunityIcons name="email" size={14} color="#636E72" style={{ marginLeft: 16 }} />
+                <Text style={styles.contactText}>{donationDetail.donor.email}</Text>
               </View>
             </View>
           </View>
-          <View style={styles.donorContactInfo}>
-            <InfoRow icon="phone" label="Số điện thoại" value={donationDetail.donor.phone} />
-            <InfoRow icon="email" label="Email" value={donationDetail.donor.email} />
-            <InfoRow icon="calendar" label="Ngày sinh" value={donationDetail.donor.dob} />
+
+          {/* Hero Metrics Row */}
+          <View style={styles.heroMetricsRow}>
+            <View style={styles.compactHeroCard}>
+              <View style={styles.compactHeroIcon}>
+                <MaterialCommunityIcons name="water" size={24} color="#fff" />
+              </View>
+              <View style={styles.compactHeroContent}>
+                <Text style={styles.compactHeroLabel}>NHÓM MÁU</Text>
+                <Text style={styles.compactHeroValue}>{donationDetail.donor.bloodType}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.compactHeroCard, styles.volumeCard]}>
+              <View style={[styles.compactHeroIcon, styles.volumeIcon]}>
+                <MaterialCommunityIcons name="beaker" size={24} color="#fff" />
+              </View>
+              <View style={styles.compactHeroContent}>
+                <Text style={styles.compactHeroLabel}>THỂ TÍCH</Text>
+                <Text style={styles.compactHeroValue}>
+                  {donationDetail.quantity > 0 ? `${donationDetail.quantity} ml` : 'Chưa cập nhật'}
+                </Text>
+              </View>
+              {donationDetail.quantity > 0 && (
+                <View style={styles.compactProgressBar}>
+                  <View 
+                    style={[
+                      styles.compactProgress, 
+                      { width: `${Math.min((donationDetail.quantity / 450) * 100, 100)}%` }
+                    ]} 
+                  />
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* Donation Information Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="heart-pulse" size={24} color="#FF6B6B" />
-            <Text style={styles.cardTitle}>Thông tin hiến máu</Text>
+        {/* Process Details Card */}
+        <View style={styles.processCard}>
+          <View style={styles.processHeader}>
+            <MaterialCommunityIcons name="heart-pulse" size={20} color="#FF6B6B" />
+            <Text style={styles.processTitle}>Chi tiết quy trình</Text>
+            <View style={[styles.statusChip, { backgroundColor: statusInfo.color }]}>
+              <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#fff" />
+              <Text style={styles.statusChipText}>{statusInfo.label}</Text>
+            </View>
           </View>
-          <View style={styles.donationInfoGrid}>
-            <InfoCard 
-              icon="identifier" 
-              label="Mã hiến máu" 
-              value={donationDetail.code}
-              color="#4A90E2"
-            />
-            <InfoCard 
-              icon="identifier" 
-              label="Mã đăng ký" 
-              value={donationDetail.registrationCode}
-              color="#9B59B6"
-            />
-            <InfoCard 
-              icon="water-outline" 
-              label="Loại máu" 
-              value={donationDetail.bloodComponent}
-              color="#E74C3C"
-            />
-            <InfoCard 
-              icon="beaker" 
-              label="Thể tích" 
-              value={donationDetail.quantity > 0 ? `${donationDetail.quantity} ml` : 'Chưa cập nhật'}
-              color="#F39C12"
-            />
+
+          {/* Process Info Grid */}
+          <View style={styles.processGrid}>
+            <View style={styles.processItem}>
+              <MaterialCommunityIcons name="identifier" size={16} color="#4A90E2" />
+              <Text style={styles.processLabel}>Mã hiến máu</Text>
+              <Text style={styles.processValue}>{donationDetail.code}</Text>
+            </View>
+            <View style={styles.processItem}>
+              <MaterialCommunityIcons name="identifier" size={16} color="#9B59B6" />
+              <Text style={styles.processLabel}>Mã đăng ký</Text>
+              <Text style={styles.processValue}>{donationDetail.registrationCode}</Text>
+            </View>
+            <View style={styles.processItem}>
+              <MaterialCommunityIcons name="account-tie" size={16} color="#2ED573" />
+              <Text style={styles.processLabel}>Y tá</Text>
+              <Text style={styles.processValue}>{donationDetail.staff.name}</Text>
+            </View>
+            <View style={styles.processItem}>
+              <MaterialCommunityIcons name="hospital-building" size={16} color="#F39C12" />
+              <Text style={styles.processLabel}>Cơ sở</Text>
+              <Text style={styles.processValue}>{donationDetail.facility.name}</Text>
+            </View>
           </View>
-          
-          <View style={styles.donationDetails}>
-            <InfoRow icon="clock-outline" label="Thời gian bắt đầu" value={formatDateTime(new Date(donationDetail.donationStartAt))} />
+
+          {/* Time Info */}
+          <View style={styles.timeInfo}>
+            <View style={styles.timeItem}>
+              <MaterialCommunityIcons name="clock-outline" size={16} color="#636E72" />
+              <Text style={styles.timeLabel}>Bắt đầu</Text>
+              <Text style={styles.timeValue}>{formatDateTime(new Date(donationDetail.donationStartAt))}</Text>
+            </View>
             {donationDetail.donationEndAt && donationDetail.status === 'completed' && (
-              <InfoRow icon="clock-check-outline" label="Thời gian kết thúc" value={formatDateTime(new Date(donationDetail.donationEndAt))} />
-            )}
-            <InfoRow icon="account-tie" label="Y tá phụ trách" value={donationDetail.staff.name} />
-            <InfoRow icon="hospital-building" label="Cơ sở y tế" value={donationDetail.facility.name} />
-            
-            {/* Status with enhanced styling */}
-            <View style={styles.statusRow}>
-              <MaterialCommunityIcons name="information" size={18} color="#636E72" />
-              <Text style={styles.infoLabel}>Trạng thái:</Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-                <MaterialCommunityIcons name={statusInfo.icon} size={16} color="#fff" />
-                <Text style={styles.statusBadgeText}>{statusInfo.label}</Text>
+              <View style={styles.timeItem}>
+                <MaterialCommunityIcons name="clock-check-outline" size={16} color="#636E72" />
+                <Text style={styles.timeLabel}>Kết thúc</Text>
+                <Text style={styles.timeValue}>{formatDateTime(new Date(donationDetail.donationEndAt))}</Text>
               </View>
-            </View>
+            )}
           </View>
         </View>
 
-        {/* Notes Card */}
+        {/* Notes Card - Compact */}
         {donationDetail.notes && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <MaterialCommunityIcons name="note-text" size={24} color="#FF6B6B" />
-              <Text style={styles.cardTitle}>Ghi chú</Text>
+          <View style={styles.notesCard}>
+            <View style={styles.notesHeader}>
+              <MaterialCommunityIcons name="note-text" size={18} color="#FF6B6B" />
+              <Text style={styles.notesTitle}>Ghi chú</Text>
             </View>
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesText}>{donationDetail.notes}</Text>
-            </View>
+            <Text style={styles.compactNotesText}>{donationDetail.notes}</Text>
           </View>
         )}
 
-        {/* Post-Donation Action Card - Show when donation is completed */}
+        {/* Post-Donation Action Card - Compact */}
         {donationDetail.status === 'completed' && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
+          <View style={styles.actionCard}>
+            <View style={styles.actionHeader}>
               <MaterialCommunityIcons 
                 name={donorStatusLog ? "check-circle" : "bed"} 
-                size={24} 
+                size={18} 
                 color="#2ED573" 
               />
-              <Text style={styles.cardTitle}>
+              <Text style={styles.actionTitle}>
                 {donorStatusLog ? "Theo dõi sau hiến" : "Giai đoạn nghỉ ngơi"}
               </Text>
               {donorStatusLog && (
-                <View style={styles.statusIndicatorBadge}>
-                  <MaterialCommunityIcons name="check-circle" size={16} color="#2ED573" />
-                  <Text style={styles.statusIndicatorText}>
-                    {donorStatusLog.recordedAt ? "Đã hoàn tất" : "Đang theo dõi"}
+                <View style={styles.actionStatus}>
+                  <Text style={styles.actionStatusText}>
+                    {donorStatusLog.recordedAt ? "Hoàn tất" : "Đang theo dõi"}
                   </Text>
                 </View>
               )}
             </View>
-            <View style={styles.restingActionContainer}>
-              {donorStatusLog ? (
-                <>
-                  <Text style={styles.restingDescription}>
-                    {donorStatusLog.recordedAt 
-                      ? "Đã hoàn tất theo dõi sau hiến máu. Bạn có thể xem chi tiết hoặc cập nhật thông tin nếu cần."
-                      : "Người hiến máu đang trong giai đoạn nghỉ ngơi. Bạn có thể xem và cập nhật tình trạng sức khỏe."
-                    }
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.viewStatusButton}
-                    onPress={handleNavigateToDonorStatus}
-                  >
-                    <MaterialCommunityIcons 
-                      name="heart-plus" 
-                      size={20} 
-                      color="#fff" 
-                    />
-                    <Text style={styles.viewStatusButtonText}>
-                      {donorStatusLog.recordedAt ? "Xem chi tiết theo dõi" : "Xem và cập nhật trạng thái"}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.restingDescription}>
-                    Người hiến máu đã hoàn thành quá trình hiến máu. Hãy chuyển họ sang giai đoạn nghỉ ngơi để theo dõi sức khỏe.
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.restingButton, isCreatingRestingLog && styles.restingButtonDisabled]}
-                    onPress={handleCreateRestingLog}
-                    disabled={isCreatingRestingLog}
-                  >
-                    <MaterialCommunityIcons 
-                      name="bed" 
-                      size={20} 
-                      color="#fff" 
-                    />
-                    <Text style={styles.restingButtonText}>
-                      {isCreatingRestingLog ? 'Đang xử lý...' : 'Chuyển sang nghỉ ngơi'}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+            
+            {donorStatusLog ? (
+              <TouchableOpacity
+                style={styles.compactActionButton}
+                onPress={handleNavigateToDonorStatus}
+              >
+                <MaterialCommunityIcons name="heart-plus" size={16} color="#fff" />
+                <Text style={styles.compactActionButtonText}>
+                  {donorStatusLog.recordedAt ? "Xem chi tiết" : "Cập nhật trạng thái"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.compactActionButton, styles.restingButton, isCreatingRestingLog && styles.restingButtonDisabled]}
+                onPress={handleCreateRestingLog}
+                disabled={isCreatingRestingLog}
+              >
+                <MaterialCommunityIcons name="bed" size={16} color="#fff" />
+                <Text style={styles.compactActionButtonText}>
+                  {isCreatingRestingLog ? 'Đang xử lý...' : 'Chuyển sang nghỉ ngơi'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
-
-        {/* Mode Information */}
-        <View style={styles.modeInfo}>
-          <MaterialCommunityIcons 
-            name={mode === 'update' ? 'pencil' : 'eye'} 
-            size={16} 
-            color="#636E72" 
-          />
-          <Text style={styles.modeText}>
-            Chế độ: {mode === 'update' ? 'Cập nhật' : 'Xem'}
-          </Text>
-        </View>
       </ScrollView>
 
       {renderUpdateModal()}
@@ -708,14 +711,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 12,
+    paddingBottom: 24,
   },
-  card: {
+  mainCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -724,7 +727,149 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  cardHeader: {
+  donorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  compactAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: '#FF6B6B',
+  },
+  donorInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  compactDonorName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginBottom: 8,
+  },
+  donorMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  bloodTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  bloodTypeText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  genderChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  chipText: {
+    fontSize: 11,
+    color: '#636E72',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  contactText: {
+    fontSize: 12,
+    color: '#636E72',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  heroMetricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  compactHeroCard: {
+    flex: 1,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  volumeCard: {
+    backgroundColor: '#F39C12',
+  },
+  compactHeroIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  volumeIcon: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  compactHeroContent: {
+    flex: 1,
+  },
+  compactHeroLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  compactHeroValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    lineHeight: 18,
+  },
+  compactProgressBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  compactProgress: {
+    height: '100%',
+    backgroundColor: '#fff',
+  },
+  processCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  processHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
@@ -732,169 +877,168 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  cardTitle: {
-    fontSize: 18,
+  processTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#2D3436',
     marginLeft: 8,
-  },
-  donorInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  donorAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#FF6B6B',
-  },
-  donorDetails: {
     flex: 1,
-    marginLeft: 16,
   },
-  donorName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    marginBottom: 8,
-  },
-  donorMetaContainer: {
+  statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-  },
-  donorMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: '#F8F9FA',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  donorMetaText: {
-    fontSize: 14,
-    color: '#636E72',
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  donorContactInfo: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  donationInfoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  infoCard: {
-    width: '48%',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  infoCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoCardLabel: {
-    fontSize: 12,
-    color: '#636E72',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  infoCardValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    textAlign: 'center',
-  },
-  donationDetails: {
-    marginTop: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 4,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#636E72',
-    marginLeft: 8,
-    minWidth: 120,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#2D3436',
-    fontWeight: '600',
-    flex: 1,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 'auto',
-  },
-  statusBadgeText: {
-    fontSize: 14,
+  statusChipText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#fff',
     marginLeft: 4,
   },
-  notesContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+  processGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+    gap: 8,
   },
-  notesText: {
-    fontSize: 15,
+  processItem: {
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  processLabel: {
+    fontSize: 11,
+    color: '#636E72',
+    fontWeight: '500',
+    marginLeft: 6,
+    flex: 1,
+  },
+  processValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
     color: '#2D3436',
-    lineHeight: 22,
+    textAlign: 'right',
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  timeLabel: {
+    fontSize: 11,
+    color: '#636E72',
+    fontWeight: '500',
+    marginLeft: 6,
+    flex: 1,
+  },
+  timeValue: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    textAlign: 'right',
+  },
+  notesCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  notesTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginLeft: 6,
+  },
+  compactNotesText: {
+    fontSize: 13,
+    color: '#636E72',
+    lineHeight: 18,
     fontStyle: 'italic',
   },
-  modeInfo: {
+  actionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  actionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginLeft: 6,
+    flex: 1,
+  },
+  actionStatus: {
+    backgroundColor: '#E8F8F5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  actionStatusText: {
+    fontSize: 10,
+    color: '#2ED573',
+    fontWeight: '600',
+  },
+  compactActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#E9ECEF',
+    backgroundColor: '#4A90E2',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
   },
-  modeText: {
-    fontSize: 14,
-    color: '#636E72',
-    marginLeft: 8,
-    fontWeight: '500',
+  restingButton: {
+    backgroundColor: '#2ED573',
+  },
+  restingButtonDisabled: {
+    backgroundColor: '#E9ECEF',
+  },
+  compactActionButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 6,
   },
   // Modal styles
   modalOverlay: {
@@ -1102,73 +1246,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-  },
-  restingActionContainer: {
-    padding: 16,
-  },
-  restingDescription: {
-    fontSize: 14,
-    color: '#636E72',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  restingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    backgroundColor: '#2ED573',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#2ED573',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  restingButtonDisabled: {
-    backgroundColor: '#E9ECEF',
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  restingButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  statusIndicatorBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F8F5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 'auto',
-  },
-  statusIndicatorText: {
-    fontSize: 12,
-    color: '#2ED573',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  viewStatusButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  viewStatusButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 8,
   },
 });
 

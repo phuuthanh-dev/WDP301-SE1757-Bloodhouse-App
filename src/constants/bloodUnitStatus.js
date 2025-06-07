@@ -64,7 +64,7 @@ export const BLOOD_UNIT_STATUS_OPTIONS = [
 export const TEST_RESULT_OPTIONS = [
   { 
     value: TEST_RESULT.PENDING, 
-    label: 'Chờ kết quả', 
+    label: 'Chưa có', 
     color: '#4A90E2', 
     icon: 'clock-outline' 
   },

@@ -6,27 +6,8 @@ import healthCheckAPI from '@/apis/healthCheckAPI';
 import bloodDonationAPI from '@/apis/bloodDonation';
 import { useSelector } from 'react-redux';
 import { authSelector } from '@/redux/reducers/authReducer';
-
-// Health Check Status mapping
-const HEALTH_CHECK_STATUS = {
-  PENDING: "pending",
-  COMPLETED: "completed", 
-  CANCELLED: "cancelled",
-  DONATED: "donated",
-};
-
-// Registration Status mapping
-const DONATION_STATUS = {
-  PENDING_APPROVAL: "pending_approval",
-  REGISTERED: "registered", 
-  CHECKED_IN: "checked_in",
-  IN_CONSULT: "in_consult",
-  REJECTED: "rejected",
-  WAITING_DONATION: "waiting_donation",
-  DONATING: "donating",
-  DONATED: "donated",
-  COMPLETED: "completed",
-};
+import { DONATION_STATUS } from '@/constants/donationStatus';
+import { HEALTH_CHECK_STATUS } from '@/constants/healthCheckStatus';
 
 // Status styling functions
 const getHealthCheckStatusInfo = (status) => {
@@ -139,7 +120,6 @@ const HealthCheckDetailScreen = ({ route }) => {
                 userId: registrationData.userId._id,
                 bloodGroupId: registrationData.bloodGroupId._id,
                 bloodDonationRegistrationId: registrationData._id,
-                bloodComponent: registrationData.bloodComponent || 'Máu toàn phần',
                 healthCheckId: healthCheckData._id,
               };
 
@@ -277,7 +257,6 @@ const HealthCheckDetailScreen = ({ route }) => {
             <InfoItem icon="calendar" label="Ngày khám" value={new Date(healthCheckData.checkDate).toLocaleString('vi-VN')} />
             <InfoItem icon="hospital-building" label="Cơ sở" value={registrationData.facilityId?.name} />
             <InfoItem icon="account-tie" label="Y tá hỗ trợ" value={registrationData.staffId?.userId?.fullName || 'Chưa phân công'} />
-            <InfoItem icon="heart-plus" label="Thành phần" value={registrationData.bloodComponent || 'Máu toàn phần'} />
           </View>
         </View>
 
