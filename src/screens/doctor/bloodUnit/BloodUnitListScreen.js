@@ -236,133 +236,6 @@ export default function BloodUnitListScreen() {
     );
   };
 
-  // Custom Date Picker Component
-  const CustomDatePicker = () => {
-    const [tempDate, setTempDate] = useState(new Date());
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
-    const months = Array.from({length: 12}, (_, i) => i + 1);
-    const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
-    const days = Array.from({length: getDaysInMonth(tempDate.getFullYear(), tempDate.getMonth() + 1)}, (_, i) => i + 1);
-    const [calendarVisible, setCalendarVisible] = useState(false);
-
-    const handleConfirmDate = () => {
-      // For BloodUnitListScreen, we don't need to update selectedDate since it doesn't have date filtering
-      // This is just for consistency with other screens
-      setCalendarVisible(false);
-    };
-
-    return (
-      <Modal
-        transparent={true}
-        animationType="slide"
-        visible={calendarVisible}
-        onRequestClose={() => setCalendarVisible(false)}
-      >
-        <View style={styles.dateModalOverlay}>
-          <View style={styles.dateModalContent}>
-            <View style={styles.dateModalHeader}>
-              <TouchableOpacity onPress={() => setCalendarVisible(false)}>
-                <Text style={styles.dateModalCancel}>Hủy</Text>
-              </TouchableOpacity>
-              <Text style={styles.dateModalTitle}>Chọn ngày</Text>
-              <TouchableOpacity onPress={handleConfirmDate}>
-                <Text style={styles.dateModalDone}>Xong</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.datePickerBody}>
-              <View style={styles.datePickerColumns}>
-                {/* Day Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Ngày</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {days.map(day => (
-                      <TouchableOpacity
-                        key={day}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getDate() === day && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setDate(day);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getDate() === day && styles.selectedDateText
-                        ]}>
-                          {day.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Month Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Tháng</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {months.map(month => (
-                      <TouchableOpacity
-                        key={month}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getMonth() + 1 === month && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setMonth(month - 1);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getMonth() + 1 === month && styles.selectedDateText
-                        ]}>
-                          {month.toString().padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Year Column */}
-                <View style={styles.dateColumn}>
-                  <Text style={styles.columnTitle}>Năm</Text>
-                  <ScrollView style={styles.dateScrollView} showsVerticalScrollIndicator={false}>
-                    {years.map(year => (
-                      <TouchableOpacity
-                        key={year}
-                        style={[
-                          styles.dateItem,
-                          tempDate.getFullYear() === year && styles.selectedDateItem
-                        ]}
-                        onPress={() => {
-                          const newDate = new Date(tempDate);
-                          newDate.setFullYear(year);
-                          setTempDate(newDate);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dateItemText,
-                          tempDate.getFullYear() === year && styles.selectedDateText
-                        ]}>
-                          {year}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -401,7 +274,7 @@ export default function BloodUnitListScreen() {
             <MaterialCommunityIcons name="magnify" size={16} color="#A0AEC0" />
             <TextInput
               style={styles.compactSearchInput}
-              placeholder="Tìm kiếm đơn vị máu..."
+              placeholder="Mã đơn vị máu..."
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#A0AEC0"
@@ -419,10 +292,7 @@ export default function BloodUnitListScreen() {
           >
             <MaterialCommunityIcons name="refresh" size={18} color="#FF6B6B" />
           </TouchableOpacity>
-          
-          <Text style={styles.compactDateText}>
-            {bloodUnits.length} đv
-          </Text>
+        
         </View>
       </View>
 
