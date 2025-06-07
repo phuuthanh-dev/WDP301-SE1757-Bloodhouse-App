@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import authenticationAPI from "@/apis/authAPI";
@@ -16,6 +17,7 @@ import { toast } from "sonner-native";
 import { useAuth } from "@/hooks/useAuth";
 import { useFacility } from "@/contexts/FacilityContext";
 import { USER_ROLE, STAFF_ROLES } from "@/constants/userRole";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -50,8 +52,11 @@ export default function LoginScreen({ navigation }) {
         }
 
         await login(response.data.tokens.accessToken, userData);
-        toast.success("Đăng nhập thành công");
-        // Navigation is handled automatically by AppRouters
+        Toast.show({
+          type: "success",
+          text1: "Đăng nhập thành công",
+          text2: "Chào mừng bạn trở lại!",
+        });
       }
     } catch (error) {
       toast.error(error.message || "Có lỗi xảy ra khi đăng nhập");
@@ -66,6 +71,13 @@ export default function LoginScreen({ navigation }) {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("@/assets/images/onboarding1.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
         <View style={styles.header}>
           <Text style={styles.title}>Đăng nhập</Text>
           <Text style={styles.subtitle}>Chào mừng bạn trở lại!</Text>
@@ -155,8 +167,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 20,
+  },
+  logo: {
+    width: 150,
+    height: 150,
+  },
   header: {
-    marginBottom: 40,
+    marginBottom: 30,
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,

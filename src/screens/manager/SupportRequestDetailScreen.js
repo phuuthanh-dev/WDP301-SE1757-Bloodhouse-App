@@ -301,7 +301,11 @@ const SupportRequestDetailScreen = () => {
                 >
                   {request.groupId.name}
                 </Text>
-                <Text style={styles.component}>{request.componentId.name}</Text>
+                {request?.componentId?.name && (
+                  <Text style={styles.component}>
+                    {request?.componentId?.name}
+                  </Text>
+                )}
               </View>
               <View style={styles.quantityBadge}>
                 <Text style={styles.quantityText}>

@@ -90,10 +90,12 @@ export default function ReceiveRequestDetailScreen({ route, navigation }) {
             <Text style={styles.label}>Nhóm máu:</Text>
             <Text style={styles.value}>{request.groupId.name}</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Thành phần máu:</Text>
-            <Text style={styles.value}>{request.componentId.name}</Text>
-          </View>
+          {request?.componentId?.name && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Thành phần máu:</Text>
+              <Text style={styles.value}>{request?.componentId?.name}</Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Số lượng:</Text>
             <Text style={styles.value}>{request.quantity} đơn vị</Text>
@@ -121,7 +123,7 @@ export default function ReceiveRequestDetailScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Địa chỉ:</Text>
+            <Text style={styles.label}>Địa chỉ cơ sở điều trị:</Text>
             <TouchableOpacity onPress={handleOpenMap} style={styles.addressContainer}>
               <Text style={[styles.value, styles.link]} numberOfLines={2}>
                 {request.address}

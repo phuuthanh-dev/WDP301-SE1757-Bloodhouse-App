@@ -17,8 +17,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFacility } from "@/contexts/FacilityContext";
 import userAPI from "@/apis/userAPI";
 import { toast } from "sonner-native";
-import { USER_ROLE, STAFF_ROLES, getRoleName } from "@/constants/userRole";
+import { STAFF_ROLES, getRoleName } from "@/constants/userRole";
 import { CameraView, Camera } from "expo-camera";
+import Toast from "react-native-toast-message";
 
 const VerificationBadge = ({ level }) => {
   const getBadgeStyle = () => {
@@ -167,7 +168,10 @@ export default function ProfileScreen({ navigation }) {
                 await clearFacilityData(); // Clear facility data for staff
               }
               await logout();
-              toast.success("Đăng xuất thành công");
+              Toast.show({
+                type: "success",
+                text1: "Đăng xuất thành công",
+              });
               // Navigation will be handled automatically by AppRouters
             } catch (error) {
               console.error("Logout error:", error);

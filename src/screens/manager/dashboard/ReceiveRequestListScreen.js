@@ -129,7 +129,9 @@ export default function ReceiveRequestList({ navigation }) {
             request={request}
             handleReject={() => handleRejectReceive(request._id)}
             onViewDetails={() =>
-              navigation.navigate("ReceiveRequestDetailScreen", { request })
+              navigation.navigate("ReceiveRequestDetailScreen", {
+                requestId: request._id,
+              })
             }
             onApproveSuccess={handleApproveReceive}
           />

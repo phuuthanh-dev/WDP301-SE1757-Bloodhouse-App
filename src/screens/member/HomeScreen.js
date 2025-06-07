@@ -62,8 +62,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const fetchBlogPosts = async () => {
-    const response = await contentAPI.HandleContent();
-    setBlogPosts(response.data);
+    const response = await contentAPI.HandleContent("?page=1&limit=10");
+    setBlogPosts(response.data.data);
   };
 
   const fetchBloodGroupPositive = async () => {
@@ -86,12 +86,6 @@ export default function HomeScreen({ navigation }) {
           icon: "compare-arrows",
           color: "#2196F3", // Medical blue for compatibility
           bgColor: "rgba(33, 150, 243, 0.1)",
-        };
-      case "donation":
-        return {
-          icon: "favorite",
-          color: "#4CAF50", // Green for donation
-          bgColor: "rgba(76, 175, 80, 0.1)",
         };
       case "request":
         return {
@@ -249,28 +243,6 @@ export default function HomeScreen({ navigation }) {
                 ]}
               >
                 Kiểm tra tương thích
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: getActionButtonStyle("donation").bgColor },
-              ]}
-              onPress={() => navigation.navigate("Donation")}
-            >
-              <FontAwesome5
-                name="hand-holding-medical"
-                size={24}
-                color={getActionButtonStyle("donation").color}
-              />
-              <Text
-                style={[
-                  styles.actionText,
-                  { color: getActionButtonStyle("donation").color },
-                ]}
-              >
-                Đăng ký hiến máu
               </Text>
             </TouchableOpacity>
 

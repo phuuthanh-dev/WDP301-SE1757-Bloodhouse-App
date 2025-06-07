@@ -37,7 +37,9 @@ export default function SupportRequestListScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await bloodRequestAPI.HandleBloodRequest(
-        `/facility/${facilityId}/support-requests?status=${filter !== "all" ? filter : ""}`,
+        `/facility/${facilityId}/support-requests?status=${
+          filter !== "all" ? filter : ""
+        }`,
         null,
         "get"
       );
@@ -55,12 +57,16 @@ export default function SupportRequestListScreen({ navigation }) {
     <TouchableOpacity
       key={request._id}
       style={styles.card}
-      onPress={() => navigation.navigate("SupportRequestDetail", { requestId: request._id })}
+      onPress={() =>
+        navigation.navigate("SupportRequestDetail", { requestId: request._id })
+      }
     >
       <View style={styles.cardHeader}>
         <View style={styles.bloodInfo}>
           <Text style={styles.bloodType}>{request.groupId.name}</Text>
-          <Text style={styles.component}>{request.componentId.name}</Text>
+          {request?.componentId?.name && (
+            <Text style={styles.component}>{request?.componentId?.name}</Text>
+          )}
         </View>
         <View style={styles.quantityContainer}>
           <Text style={styles.quantity}>{request.quantity} đơn vị</Text>
@@ -74,9 +80,7 @@ export default function SupportRequestListScreen({ navigation }) {
         </View>
         <View style={styles.infoRow}>
           <MaterialIcons name="access-time" size={18} color="#7a5545" />
-          <Text style={styles.infoText}>
-            {request.preferredDate}
-          </Text>
+          <Text style={styles.infoText}>{request.preferredDate}</Text>
         </View>
         <View style={styles.infoRow}>
           <MaterialIcons name="people" size={18} color="#7a5545" />
@@ -87,9 +91,13 @@ export default function SupportRequestListScreen({ navigation }) {
       </View>
 
       <View style={styles.cardFooter}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.viewButton}
-          onPress={() => navigation.navigate("SupportRequestDetail", { requestId: request._id })}
+          onPress={() =>
+            navigation.navigate("SupportRequestDetail", {
+              requestId: request._id,
+            })
+          }
         >
           <Text style={styles.viewButtonText}>Xem chi tiết</Text>
           <MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" />
@@ -149,7 +157,10 @@ export default function SupportRequestListScreen({ navigation }) {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchSupportRequests} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={fetchSupportRequests}
+          />
         }
       >
         {supportRequests.map(renderRequestCard)}

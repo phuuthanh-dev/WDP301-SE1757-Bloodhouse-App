@@ -115,9 +115,11 @@ const RequestCard = ({ request, onPress }) => {
           >
             {request.groupId.name}
           </Text>
-          <Text style={[styles.component, { color: MEDICAL_THEME.neutral }]}>
-            {request.componentId.name}
-          </Text>
+          {request?.componentId?.name && (
+            <Text style={[styles.component, { color: MEDICAL_THEME.neutral }]}>
+              {request?.componentId?.name}
+            </Text>
+          )}
           {urgencyBadge}
         </View>
         <View style={styles.statusContainer}>

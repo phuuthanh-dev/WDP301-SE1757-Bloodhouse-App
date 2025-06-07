@@ -8,9 +8,12 @@ import {
   TextInput,
   SafeAreaView,
   Platform,
+  Modal,
+  Dimensions,
+  Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
-import { Calendar } from "react-native-calendars";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import DropDown from "react-native-paper-dropdown";
 import { authSelector } from "@/redux/reducers/authReducer";
 import { useSelector } from "react-redux";
@@ -19,35 +22,47 @@ import { toast } from "sonner-native";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { Provider as PaperProvider } from "react-native-paper";
 import facilityAPI from "@/apis/facilityAPI";
+import userAPI from "@/apis/userAPI";
+
+const termsAndConditions = [
+  "1. Tôi xác nhận rằng tất cả thông tin cung cấp là chính xác và đầy đủ.",
+  "2. Tôi hiểu rằng việc hiến máu là hoàn toàn tự nguyện và không nhận bất kỳ lợi ích vật chất nào.",
+  "3. Tôi đồng ý cho phép cơ sở y tế sử dụng máu của tôi cho mục đích y tế.",
+  "4. Tôi cam kết đã nghỉ ngơi đầy đủ và không sử dụng chất kích thích trước khi hiến máu.",
+  "5. Tôi hiểu rằng có thể từ chối hiến máu nếu không đủ điều kiện sức khỏe.",
+  "6. Tôi đồng ý tuân thủ các quy định và hướng dẫn của cơ sở y tế trong quá trình hiến máu.",
+];
 
 export default function DonationScreen({ navigation, route }) {
   const { user } = useSelector(authSelector);
   const { facilityId: routeFacilityId } = route.params || {};
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("08:00");
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [bloodGroupId, setBloodGroupId] = useState("");
   const [showBloodGroupDropdown, setShowBloodGroupDropdown] = useState(false);
   const [expectedQuantity, setExpectedQuantity] = useState("250");
   const [showQuantityDropdown, setShowQuantityDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState("");
-  const [bloodGroups, setBloodGroups] = useState([]);
   const [facilities, setFacilities] = useState([]);
   const [facilityId, setFacilityId] = useState(routeFacilityId || "");
   const [showFacilityDropdown, setShowFacilityDropdown] = useState(false);
+  const [showHealthModal, setShowHealthModal] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [showTerms, setShowTerms] = useState(false);
+  const [isConsent, setIsConsent] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bloodGroupResponse, facilityResponse] = await Promise.all([
-          bloodGroupAPI.HandleBloodGroup(),
+        const [facilityResponse, userInfoResponse] = await Promise.all([
           !routeFacilityId
             ? facilityAPI.HandleFacility()
             : Promise.resolve(null),
+          userAPI.HandleUser("/me"),
         ]);
-
-        setBloodGroups(bloodGroupResponse.data);
 
         if (facilityResponse) {
           setFacilities(
@@ -56,6 +71,10 @@ export default function DonationScreen({ navigation, route }) {
               value: facility._id,
             }))
           );
+        }
+
+        if (userInfoResponse) {
+          setUserInfo(userInfoResponse.data);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -72,14 +91,74 @@ export default function DonationScreen({ navigation, route }) {
     { label: "450ml", value: "450" },
   ];
 
-  const times = Array.from({ length: 17 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 8;
-    const minute = i % 2 === 0 ? "00" : "30";
-    const time = `${hour.toString().padStart(2, "0")}:${minute}`;
-    return { label: time, value: time };
-  });
+  const handleDateChange = (event, selected) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+
+    if (selected) {
+      setSelectedDate(selected);
+    }
+  };
+
+  const handleTimeChange = (event, selected) => {
+    if (Platform.OS === "android") {
+      setShowTimePicker(false);
+    }
+
+    if (selected) {
+      setSelectedTime(selected);
+    }
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString("vi-VN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const handleSubmit = async () => {
+    if (!userInfo) {
+      toast.error("Không thể tải thông tin người dùng");
+      return;
+    }
+
+    if (userInfo.profileLevel !== 2) {
+      Alert.alert(
+        "Yêu cầu xác thực",
+        "Bạn cần xác thực thông tin cá nhân ở mức 2 để có thể hiến máu. Bạn có muốn cập nhật ngay?",
+        [
+          {
+            text: "Để sau",
+            style: "cancel",
+          },
+          {
+            text: "Cập nhật ngay",
+            onPress: () =>
+              navigation.navigate("TabNavigatorMember", {
+                screen: "Hồ sơ",
+              }),
+          },
+        ]
+      );
+      return;
+    }
+
+    if (!isConsent) {
+      toast.error("Vui lòng đọc và đồng ý với điều khoản");
+      return;
+    }
+
     if (!facilityId) {
       toast.error("Vui lòng chọn cơ sở y tế");
       return;
@@ -88,16 +167,12 @@ export default function DonationScreen({ navigation, route }) {
       toast.error("Vui lòng chọn ngày");
       return;
     }
-    if (!selectedTime) {
-      toast.error("Vui lòng chọn giờ");
-      return;
-    }
-    if (!bloodGroupId) {
-      toast.error("Vui lòng chọn nhóm máu");
-      return;
-    }
-    // Combine date and time into preferredDate
-    const preferredDate = new Date(selectedDate + "T" + selectedTime + ":00");
+
+    // Combine date and time
+    const preferredDate = new Date(selectedDate);
+    const timeDate = new Date(selectedTime);
+    preferredDate.setHours(timeDate.getHours());
+    preferredDate.setMinutes(timeDate.getMinutes());
 
     // Handle donation registration
     setLoading(true);
@@ -131,126 +206,25 @@ export default function DonationScreen({ navigation, route }) {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <PaperProvider>
-          {/* Header */}
-          <View style={styles.header}>
+  const HealthRequirementsModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showHealthModal}
+      onRequestClose={() => setShowHealthModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Điều kiện sức khỏe</Text>
             <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => setShowHealthModal(false)}
+              style={styles.closeButton}
             >
-              <MaterialIcons name="arrow-back" size={24} color="white" />
+              <MaterialIcons name="close" size={24} color="#2D3436" />
             </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.title}>Đăng ký hiến máu</Text>
-              <Text style={styles.subtitle}>Chọn thời gian phù hợp với bạn</Text>
-            </View>
           </View>
-
-          {/* Facility Selection - Only show if facilityId is not provided in route */}
-          {!routeFacilityId && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Chọn cơ sở y tế</Text>
-              <DropDown
-                label="Chọn cơ sở"
-                mode="outlined"
-                visible={showFacilityDropdown}
-                showDropDown={() => setShowFacilityDropdown(true)}
-                onDismiss={() => setShowFacilityDropdown(false)}
-                value={facilityId}
-                setValue={setFacilityId}
-                list={facilities}
-                activeColor="#FF6B6B"
-              />
-            </View>
-          )}
-
-          {/* Calendar */}
-          <View style={styles.calendarContainer}>
-            <Calendar
-              onDayPress={(day) => setSelectedDate(day.dateString)}
-              markedDates={{
-                [selectedDate]: { selected: true, selectedColor: "#FF6B6B" },
-              }}
-              theme={{
-                todayTextColor: "#FF6B6B",
-                selectedDayBackgroundColor: "#FF6B6B",
-                arrowColor: "#FF6B6B",
-              }}
-              minDate={new Date().toISOString().split("T")[0]}
-            />
-          </View>
-
-          {/* Time Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Chọn giờ</Text>
-            <DropDown
-              label="Chọn thời gian"
-              mode="outlined"
-              visible={showTimeDropdown}
-              showDropDown={() => setShowTimeDropdown(true)}
-              onDismiss={() => setShowTimeDropdown(false)}
-              value={selectedTime}
-              setValue={setSelectedTime}
-              list={times}
-              dropDownContainerMaxHeight={300}
-              activeColor="#FF6B6B"
-            />
-          </View>
-
-          {/* Blood Group Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nhóm máu</Text>
-            <DropDown
-              label="Chọn nhóm máu"
-              mode="outlined"
-              visible={showBloodGroupDropdown}
-              showDropDown={() => setShowBloodGroupDropdown(true)}
-              onDismiss={() => setShowBloodGroupDropdown(false)}
-              value={bloodGroupId}
-              setValue={setBloodGroupId}
-              list={bloodGroups.map((group) => ({
-                label: group.name,
-                value: group._id,
-              }))}
-              activeColor="#FF6B6B"
-            />
-          </View>
-
-          {/* Expected Quantity */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Lượng máu dự kiến hiến</Text>
-            <DropDown
-              label="Chọn lượng máu"
-              mode="outlined"
-              visible={showQuantityDropdown}
-              showDropDown={() => setShowQuantityDropdown(true)}
-              onDismiss={() => setShowQuantityDropdown(false)}
-              value={expectedQuantity}
-              setValue={setExpectedQuantity}
-              list={quantities}
-              activeColor="#FF6B6B"
-            />
-          </View>
-
-          {/* Note Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ghi chú</Text>
-            <TextInput
-              style={styles.noteInput}
-              multiline
-              numberOfLines={4}
-              placeholder="Thêm ghi chú về tình trạng sức khỏe hoặc yêu cầu đặc biệt..."
-              value={notes}
-              onChangeText={setNotes}
-            />
-          </View>
-
-          {/* Health Requirements */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Điều kiện sức khỏe</Text>
+          <ScrollView style={styles.modalBody}>
             <View style={styles.requirementsList}>
               <RequirementItem
                 icon="weight"
@@ -272,22 +246,312 @@ export default function DonationScreen({ navigation, route }) {
                 text="Nhịn ăn trước 4 giờ"
                 description="Đảm bảo kết quả xét nghiệm"
               />
+              <RequirementItem
+                icon="user-shield"
+                text="Không có bệnh truyền nhiễm"
+                description="HIV, viêm gan B, C, giang mai"
+              />
+              <RequirementItem
+                icon="bed"
+                text="Nghỉ ngơi đầy đủ"
+                description="Ngủ ít nhất 6 tiếng đêm trước"
+              />
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderProfileLevelWarning = () => {
+    if (!userInfo || userInfo.profileLevel !== 2) {
+      return (
+        <View style={styles.warningContainer}>
+          <MaterialIcons name="warning" size={24} color="#FFA000" />
+          <Text style={styles.warningText}>
+            Bạn cần xác thực thông tin cá nhân ở mức 2 để có thể hiến máu.{" "}
+            <Text
+              style={styles.warningLink}
+              onPress={() =>
+                navigation.navigate("TabNavigatorMember", {
+                  screen: "Hồ sơ",
+                })
+              }
+            >
+              Cập nhật ngay
+            </Text>
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        <PaperProvider>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.title}>Đăng ký hiến máu</Text>
+              <TouchableOpacity onPress={() => setShowHealthModal(true)}>
+                <Text style={styles.healthRequirementsLink}>
+                  Xem điều kiện sức khỏe
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.bloodTypeContainer}>
+              <Text style={styles.bloodTypeLabel}>Nhóm máu</Text>
+              <Text style={styles.bloodTypeValue}>
+                {userInfo?.bloodId?.name || "Chưa có"}
+              </Text>
             </View>
           </View>
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              { backgroundColor: loading ? "#ccc" : "#FF6B6B" },
-            ]}
-            onPress={handleSubmit}
-            disabled={loading}
+          {renderProfileLevelWarning()}
+
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            {/* Facility Selection */}
+            {!routeFacilityId && (
+              <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Chọn cơ sở y tế</Text>
+                <DropDown
+                  label="Chọn cơ sở"
+                  mode="outlined"
+                  visible={showFacilityDropdown}
+                  showDropDown={() => setShowFacilityDropdown(true)}
+                  onDismiss={() => setShowFacilityDropdown(false)}
+                  value={facilityId}
+                  setValue={setFacilityId}
+                  list={facilities}
+                  activeColor="#FF6B6B"
+                />
+              </View>
+            )}
+
+            {/* Date and Time Selection */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Thời gian hiến máu</Text>
+              <View style={styles.dateTimeContainer}>
+                <View style={styles.datePickerWrapper}>
+                  <Text style={styles.inputLabel}>Ngày</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <MaterialIcons
+                      name="calendar-today"
+                      size={24}
+                      color="#FF6B6B"
+                    />
+                    <Text style={styles.dateText}>
+                      {formatDate(selectedDate)}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.timePickerWrapper}>
+                  <Text style={styles.inputLabel}>Giờ</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <MaterialIcons
+                      name="access-time"
+                      size={24}
+                      color="#FF6B6B"
+                    />
+                    <Text style={styles.dateText}>
+                      {formatTime(selectedTime)}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {showDatePicker && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={handleDateChange}
+                    minimumDate={new Date()}
+                  />
+                  <View style={styles.pickerButtons}>
+                    <TouchableOpacity
+                      style={[styles.pickerButton, styles.cancelButton]}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Hủy</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.pickerButton, styles.confirmButton]}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {showTimePicker && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={selectedTime}
+                    mode="time"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={handleTimeChange}
+                    minuteInterval={30}
+                  />
+                  <View style={styles.pickerButtons}>
+                    <TouchableOpacity
+                      style={[styles.pickerButton, styles.cancelButton]}
+                      onPress={() => setShowTimePicker(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Hủy</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.pickerButton, styles.confirmButton]}
+                      onPress={() => setShowTimePicker(false)}
+                    >
+                      <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Expected Quantity */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Lượng máu dự kiến hiến</Text>
+              <DropDown
+                label="Chọn lượng máu"
+                mode="outlined"
+                visible={showQuantityDropdown}
+                showDropDown={() => setShowQuantityDropdown(true)}
+                onDismiss={() => setShowQuantityDropdown(false)}
+                value={expectedQuantity}
+                setValue={setExpectedQuantity}
+                list={quantities}
+                activeColor="#FF6B6B"
+              />
+            </View>
+
+            {/* Notes */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Ghi chú</Text>
+              <TextInput
+                style={styles.noteInput}
+                multiline
+                numberOfLines={4}
+                placeholder="Thêm ghi chú về tình trạng sức khỏe hoặc yêu cầu đặc biệt..."
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+
+            {/* Terms and Conditions Section */}
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Điều khoản và điều kiện</Text>
+              <View style={styles.termsContainer}>
+                <TouchableOpacity
+                  style={styles.viewTermsButton}
+                  onPress={() => setShowTerms(true)}
+                >
+                  <MaterialIcons name="description" size={24} color="#FF6B6B" />
+                  <Text style={styles.viewTermsText}>Xem điều khoản</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.consentButton}
+                  onPress={() => setIsConsent(!isConsent)}
+                >
+                  <MaterialIcons
+                    name={isConsent ? "check-box" : "check-box-outline-blank"}
+                    size={24}
+                    color={isConsent ? "#FF6B6B" : "#636E72"}
+                  />
+                  <Text style={styles.consentText}>
+                    Tôi đã đọc và đồng ý với các điều khoản
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor:
+                    !isConsent ||
+                    loading ||
+                    !userInfo ||
+                    userInfo.profileLevel !== 2
+                      ? "#ccc"
+                      : "#FF6B6B",
+                },
+                (!isConsent ||
+                  loading ||
+                  !userInfo ||
+                  userInfo.profileLevel !== 2) &&
+                  styles.submitButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={
+                !isConsent ||
+                loading ||
+                !userInfo ||
+                userInfo.profileLevel !== 2
+              }
+            >
+              <Text style={styles.submitButtonText}>
+                {loading ? "Đang đăng ký..." : "Đăng ký hiến máu"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Health Requirements Modal */}
+          <HealthRequirementsModal />
+
+          {/* Terms Modal */}
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={showTerms}
+            onRequestClose={() => setShowTerms(false)}
           >
-            <Text style={styles.submitButtonText}>
-              {loading ? "Đang đăng ký..." : "Đăng ký hiến máu"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Điều khoản và điều kiện</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowTerms(false)}
+                    style={styles.closeButton}
+                  >
+                    <MaterialIcons name="close" size={24} color="#2D3436" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.modalBody}>
+                  <View style={styles.termsList}>
+                    {termsAndConditions.map((term, index) => (
+                      <View key={index} style={styles.termItem}>
+                        <Text style={styles.termText}>{term}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         </PaperProvider>
       </ScrollView>
     </SafeAreaView>
@@ -317,6 +581,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 16,
     paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   backButton: {
     padding: 8,
@@ -332,23 +601,43 @@ const styles = StyleSheet.create({
     color: "#FFF",
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 16,
+  healthRequirementsLink: {
     color: "#FFF",
     opacity: 0.9,
+    fontSize: 14,
+    marginTop: 4,
+    textDecorationLine: "underline",
   },
-  calendarContainer: {
-    backgroundColor: "#FFF",
-    margin: 16,
+  bloodTypeContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    minWidth: 80,
+  },
+  bloodTypeLabel: {
+    color: "#FFF",
+    fontSize: 12,
+    opacity: 0.9,
+  },
+  bloodTypeValue: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  mainContent: {
+    padding: 16,
+  },
+  formSection: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
-  },
-  section: {
-    padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -356,37 +645,111 @@ const styles = StyleSheet.create({
     color: "#2D3436",
     marginBottom: 16,
   },
-  dropdown: {
-    marginTop: 8,
-    backgroundColor: "#FFF",
+  dateTimeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  datePickerWrapper: {
+    flex: 1,
+  },
+  timePickerWrapper: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "#636E72",
+    marginBottom: 8,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
     borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  dateText: {
+    fontSize: 14,
+    color: "#2D3436",
+    flex: 1,
   },
   noteInput: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#F8F9FA",
     borderRadius: 12,
     padding: 16,
     textAlignVertical: "top",
     minHeight: 120,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: "#E2E8F0",
+    fontSize: 14,
+  },
+  submitButton: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  submitButtonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: "60%",
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#2D3436",
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalBody: {
+    padding: 16,
   },
   requirementsList: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 16,
+    gap: 16,
   },
   requirementItem: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
+    alignItems: "flex-start",
+    backgroundColor: "#F8F9FA",
+    padding: 16,
+    borderRadius: 12,
+    gap: 16,
   },
   requirementText: {
-    marginLeft: 16,
     flex: 1,
   },
   requirementTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: "#2D3436",
     marginBottom: 4,
   },
@@ -394,16 +757,117 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#636E72",
   },
-  submitButton: {
-    backgroundColor: "#FF6B6B",
-    margin: 16,
-    padding: 16,
+  pickerContainer: {
+    backgroundColor: "#FFF",
     borderRadius: 12,
+    marginTop: 8,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  pickerButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 16,
+    gap: 12,
+  },
+  pickerButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 80,
     alignItems: "center",
   },
-  submitButtonText: {
+  cancelButton: {
+    backgroundColor: "#F1F2F6",
+  },
+  confirmButton: {
+    backgroundColor: "#FF6B6B",
+  },
+  cancelButtonText: {
+    color: "#2D3436",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  confirmButtonText: {
     color: "#FFF",
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3E0",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFE0B2",
+  },
+  warningText: {
+    flex: 1,
+    marginLeft: 12,
+    color: "#F57C00",
+    fontSize: 14,
+  },
+  warningLink: {
+    color: "#FF6B6B",
+    textDecorationLine: "underline",
     fontWeight: "bold",
+  },
+  termsContainer: {
+    marginTop: 8,
+    gap: 12,
+  },
+  viewTermsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  viewTermsText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#636E72",
+    flex: 1,
+  },
+  consentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  consentText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#636E72",
+    flex: 1,
+  },
+  termsList: {
+    gap: 16,
+  },
+  termItem: {
+    backgroundColor: "#F8F9FA",
+    padding: 16,
+    borderRadius: 12,
+  },
+  termText: {
+    fontSize: 14,
+    color: "#2D3436",
+    lineHeight: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+    backgroundColor: "#ccc",
   },
 });
