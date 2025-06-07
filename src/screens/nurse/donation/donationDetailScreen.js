@@ -246,6 +246,16 @@ const DonationDetailScreen = ({ route }) => {
     );
   };
 
+  const handleOpenUpdateModal = () => {
+    // Set default values when opening modal, with 'completed' as default status
+    setUpdateData({
+      quantity: donationDetail.quantity?.toString() || '',
+      notes: donationDetail.notes || '',
+      status: 'completed', // Default to completed status
+    });
+    setUpdateModalVisible(true);
+  };
+
   const handleNavigateToDonorStatus = () => {
     navigation.navigate('DonorStatus', {
       donationId: donationDetail.id,
@@ -431,7 +441,7 @@ const DonationDetailScreen = ({ route }) => {
         {mode === 'update' && donationDetail?.status === 'donating' ? (
           <TouchableOpacity 
             style={styles.updateHeaderButton} 
-            onPress={() => setUpdateModalVisible(true)}
+            onPress={handleOpenUpdateModal}
           >
             <MaterialIcons name="edit" size={24} color="#fff" />
           </TouchableOpacity>

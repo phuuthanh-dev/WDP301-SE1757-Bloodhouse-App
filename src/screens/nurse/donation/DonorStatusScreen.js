@@ -204,7 +204,7 @@ const DonorStatusScreen = ({ route }) => {
   };
 
   const openUpdateModal = () => {
-    setUpdateData({ status: '', notes: '' });
+    setUpdateData({ status: 'stable', notes: '' });
     setUpdateModalVisible(true);
   };
 
@@ -287,7 +287,6 @@ const DonorStatusScreen = ({ route }) => {
                           isSelected && styles.statusOptionActive,
                           isSelected && { 
                             borderColor: option.color, 
-                            // backgroundColor: `rgba(${option.color === '#2ED573' ? '46, 213, 115' : option.color === '#FFA502' ? '255, 165, 2' : option.color === '#FF6B6B' ? '255, 107, 107' : '155, 89, 182'}, 0.15)`,
                             shadowColor: option.color,
                             borderWidth: 3,
                           }
