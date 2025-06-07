@@ -146,7 +146,7 @@ export default function ManageRequestsScreen({ navigation }) {
     );
   };
 
-  const handleApproveReceive = (requestId, scheduledDeliveryDate) => {
+  const handleApproveReceive = (requestId) => {
     Alert.alert(
       "Xác nhận duyệt",
       "Bạn có chắc chắn muốn duyệt yêu cầu nhận máu này?",
@@ -160,18 +160,22 @@ export default function ManageRequestsScreen({ navigation }) {
           style: "default",
           onPress: async () => {
             try {
-              const response =
-                await bloodRequestAPI.HandleBloodRequest(
-                  `/facility/${facilityId}/${requestId}/status`,
-                  {
-                    status: "approved",
-                    scheduledDeliveryDate: scheduledDeliveryDate,
-                    staffId: user._id,
-                  },
-                  "patch"
-                );
+              const response = await bloodRequestAPI.HandleBloodRequest(
+                `/facility/${facilityId}/${requestId}/status`,
+                {
+                  status: "approved",
+                  staffId: user._id,
+                },
+                "patch"
+              );
               if (response.status === 200) {
-                toast.success("Duyệt yêu cầu thành công");
+                Toast.show({
+                  type: "success",
+                  text1: "Duyệt yêu cầu thành công",
+                });
+                // navigation.navigate("DistributeBloodScreen", {
+                //   request: response.data.data,
+                // });
                 setReceiveRequests(
                   receiveRequests.filter(
                     (request) => request._id !== requestId
@@ -347,7 +351,7 @@ export default function ManageRequestsScreen({ navigation }) {
                     requestId: request._id,
                   })
                 }
-                onApproveSuccess={handleApproveReceive}
+                handleApproveReceive={handleApproveReceive}
                 onUpdateComponentSuccess={handleUpdateComponentSuccess}
               />
             ))
@@ -361,7 +365,7 @@ export default function ManageRequestsScreen({ navigation }) {
                     requestId: request._id,
                   })
                 }
-                onApproveSuccess={() => handleApproveReceive(request._id)}
+                handleApproveReceive={() => handleApproveReceive(request._id)}
                 onUpdateComponentSuccess={handleUpdateComponentSuccess}
               />
             ))}

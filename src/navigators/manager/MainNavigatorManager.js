@@ -9,6 +9,7 @@ import ReceiveRequestDetailScreen from "@/screens/manager/ReceiveRequestDetailSc
 import ReceiveRequestListScreen from "@/screens/manager/dashboard/ReceiveRequestListScreen";
 import SupportRequestListScreen from "@/screens/manager/dashboard/SupportRequestListScreen";
 import SupportRequestDetailScreen from "@/screens/manager/SupportRequestDetailScreen";
+import DistributeBloodScreen from "@/screens/manager/DistributeBloodScreen";
 
 const MainNavigatorManager = () => {
   const Stack = createNativeStackNavigator();
@@ -21,7 +22,7 @@ const MainNavigatorManager = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigatorManager} />
+      <Stack.Screen name="TabNavigatorManager" component={TabNavigatorManager} />
       <Stack.Screen name="DonationList" component={DonationListScreen} />
       <Stack.Screen name="BloodInventory" component={BloodInventoryScreen} />
       <Stack.Screen name="DonationRequests" component={DonationRequestsScreen} />
@@ -30,6 +31,7 @@ const MainNavigatorManager = () => {
       <Stack.Screen name="ReceiveRequestList" component={ReceiveRequestListScreen} />
       <Stack.Screen name="SupportRequestList" component={SupportRequestListScreen} />
       <Stack.Screen name="SupportRequestDetail" component={SupportRequestDetailScreen} />
+      <Stack.Screen name="DistributeBloodScreen" component={DistributeBloodScreen} />
     </Stack.Navigator>
   );
 };

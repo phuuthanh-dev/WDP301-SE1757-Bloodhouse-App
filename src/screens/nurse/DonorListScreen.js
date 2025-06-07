@@ -124,10 +124,12 @@ export default function DonorListScreen({ route }) {
       donorDate.getMonth() === selectedDate.getMonth() &&
       donorDate.getDate() === selectedDate.getDate();
     
-    const matchName = donor.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
+    const fullName = donor.userId?.fullName || "";
+    const matchName = fullName.toLowerCase().includes(searchText.toLowerCase());
     
     return matchDate && matchName;
   });
+
 
   // Chuyển tuần
   const handlePrevWeek = () => {

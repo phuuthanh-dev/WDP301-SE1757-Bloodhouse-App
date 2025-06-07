@@ -14,6 +14,7 @@ import {
   getStatusReceiveBloodName,
 } from "@/constants/receiveBloodStatus";
 import { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import ApproveBloodRequestModal from "./ApproveBloodRequestModal";
 import SelectBloodComponentModal from "./SelectBloodComponentModal";
 import Toast from "react-native-toast-message";
@@ -22,10 +23,11 @@ export default function ReceiveRequestCard({
   request,
   handleReject,
   onViewDetails,
-  onApproveSuccess,
+  handleApproveReceive,
   onDistributionSuccess,
   onUpdateComponentSuccess,
 }) {
+  const navigation = useNavigation();
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showComponentModal, setShowComponentModal] = useState(false);
   const isUnknownComponent = !request.componentId || request.componentId === "";
@@ -231,8 +233,12 @@ export default function ReceiveRequestCard({
 
           {request.status === "approved" && !request.isFullfill && (
             <TouchableOpacity
-              style={[styles.button, styles.startButton]}
-              onPress={() => onDistributionSuccess(request._id)}
+              style={[styles.actionButton, styles.startButton]}
+              onPress={() =>
+                navigation.navigate("DistributeBloodScreen", {
+                  request
+                })
+              }
             >
               <MaterialIcons name="play-arrow" size={20} color="#2ED573" />
               <Text style={[styles.buttonText, styles.startButtonText]}>
@@ -247,7 +253,7 @@ export default function ReceiveRequestCard({
         visible={showApproveModal}
         onClose={() => setShowApproveModal(false)}
         request={request}
-        onApproveSuccess={onApproveSuccess}
+        handleApproveReceive={handleApproveReceive}
       />
 
       <SelectBloodComponentModal

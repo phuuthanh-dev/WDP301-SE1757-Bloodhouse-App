@@ -8,28 +8,23 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
-import { formatDateTime } from "@/utils/formatHelpers";
 import bloodInventoryAPI from "@/apis/bloodInventoryAPI";
 import { useFacility } from "@/contexts/FacilityContext";
 import { useNavigation } from "@react-navigation/native";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import { useSelector } from "react-redux";
 import { authSelector } from "@/redux/reducers/authReducer";
-import bloodUnitAPI from "@/apis/bloodUnit";
 
 export default function ApproveBloodRequestModal({
   visible,
   onClose,
   request,
-  onApproveSuccess,
+  handleApproveReceive,
 }) {
   const { user } = useSelector(authSelector);
   const { facilityId } = useFacility();
   const navigation = useNavigation();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [availableUnits, setAvailableUnits] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -42,24 +37,16 @@ export default function ApproveBloodRequestModal({
   const fetchAvailableUnits = async () => {
     try {
       setLoading(true);
-      console.log(request.groupId._id, request.componentId._id);
       const response = await bloodInventoryAPI.HandleBloodInventory(
         `/facility/${facilityId}/available?groupId=${request.groupId._id}&componentId=${request.componentId._id}`
       );
       if (response.status === 200) {
-        
         setAvailableUnits(response.data.totalQuantity || 0);
       }
     } catch (error) {
       console.error("Error fetching available units:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDateChange = (event, date) => {
-    if (date) {
-      setSelectedDate(date);
     }
   };
 
@@ -105,133 +92,108 @@ export default function ApproveBloodRequestModal({
       return;
     }
 
-    onApproveSuccess(request._id, selectedDate);
+    handleApproveReceive(request._id);
     onClose();
   };
 
   return (
-    <>
-      <Modal
-        visible={visible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={onClose}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Duyệt Yêu Cầu Nhận Máu</Text>
-              <TouchableOpacity onPress={onClose}>
-                <MaterialIcons name="close" size={24} color="#636E72" />
-              </TouchableOpacity>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Duyệt Yêu Cầu Nhận Máu</Text>
+            <TouchableOpacity onPress={onClose}>
+              <MaterialIcons name="close" size={24} color="#636E72" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Thông tin yêu cầu</Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Người yêu cầu:</Text>
+                <Text style={styles.value}>{request.userId.fullName}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Nhóm máu:</Text>
+                <Text style={styles.value}>{request?.groupId?.name}</Text>
+              </View>
+              {request?.componentId?.name && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Thành phần máu:</Text>
+                  <Text style={styles.value}>
+                    {request?.componentId?.name}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Số lượng yêu cầu:</Text>
+                <Text style={styles.value}>{request.quantity} đơn vị</Text>
+              </View>
             </View>
 
-            <ScrollView style={styles.modalBody}>
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Thông tin yêu cầu</Text>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Người yêu cầu:</Text>
-                  <Text style={styles.value}>{request.userId.fullName}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Nhóm máu:</Text>
-                  <Text style={styles.value}>{request?.groupId?.name}</Text>
-                </View>
-                {request?.componentId?.name && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.label}>Thành phần máu:</Text>
-                    <Text style={styles.value}>
-                      {request?.componentId?.name}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Kiểm tra tồn kho</Text>
+              {loading ? (
+                <Text style={styles.loadingText}>
+                  Đang kiểm tra tồn kho...
+                </Text>
+              ) : (
+                <>
+                  <View style={styles.inventoryInfo}>
+                    <Text style={styles.label}>Số đơn vị khả dụng:</Text>
+                    <Text
+                      style={[
+                        styles.value,
+                        availableUnits < request.quantity &&
+                          styles.warningText,
+                      ]}
+                    >
+                      {availableUnits} đơn vị
                     </Text>
                   </View>
-                )}
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Số lượng yêu cầu:</Text>
-                  <Text style={styles.value}>{request.quantity} đơn vị</Text>
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Chọn thời gian hẹn</Text>
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <MaterialIcons name="event" size={20} color="#FF6B6B" />
-                  <Text style={styles.dateText}>
-                    {formatDateTime(selectedDate)}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="datetime"
-                    is24Hour={true}
-                    display="default"
-                    onChange={handleDateChange}
-                    minimumDate={new Date()}
-                  />
-                )}
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Kiểm tra tồn kho</Text>
-                {loading ? (
-                  <Text style={styles.loadingText}>
-                    Đang kiểm tra tồn kho...
-                  </Text>
-                ) : (
-                  <>
-                    <View style={styles.inventoryInfo}>
-                      <Text style={styles.label}>Số đơn vị khả dụng:</Text>
-                      <Text
-                        style={[
-                          styles.value,
-                          availableUnits < request.quantity &&
-                            styles.warningText,
-                        ]}
-                      >
-                        {availableUnits} đơn vị
+                  {availableUnits < request.quantity && (
+                    <View style={styles.warningContainer}>
+                      <Text style={styles.warningMessage}>
+                        ⚠️ Không đủ đơn vị máu để đáp ứng yêu cầu
+                      </Text>
+                      <Text style={styles.warningSubtext}>
+                        Bạn có thể đánh dấu là đã được duyệt và cần người hỗ
+                        trợ.
                       </Text>
                     </View>
-                    {availableUnits < request.quantity && (
-                      <View style={styles.warningContainer}>
-                        <Text style={styles.warningMessage}>
-                          ⚠️ Không đủ đơn vị máu để đáp ứng yêu cầu
-                        </Text>
-                        <Text style={styles.warningSubtext}>
-                          Bạn có thể đánh dấu là đã được duyệt và cần người hỗ
-                          trợ.
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={onClose}
-              >
-                <Text style={styles.buttonText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.approveButton]}
-                onPress={handleApprove}
-              >
-                <Text style={[styles.buttonText, styles.approveButtonText]}>
-                  {availableUnits < request.quantity
-                    ? "Đánh dấu cần hỗ trợ"
-                    : "Duyệt yêu cầu"}
-                </Text>
-              </TouchableOpacity>
+                  )}
+                </>
+              )}
             </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={onClose}
+            >
+              <Text style={styles.buttonText}>Hủy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.approveButton]}
+              onPress={handleApprove}
+            >
+              <Text style={[styles.buttonText, styles.approveButtonText]}>
+                {availableUnits < request.quantity
+                  ? "Đánh dấu cần hỗ trợ"
+                  : "Duyệt yêu cầu"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 }
 
@@ -291,19 +253,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2D3436",
     fontWeight: "500",
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F1F2F6",
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-    marginBottom: 10,
-  },
-  dateText: {
-    fontSize: 14,
-    color: "#2D3436",
   },
   inventoryInfo: {
     flexDirection: "row",

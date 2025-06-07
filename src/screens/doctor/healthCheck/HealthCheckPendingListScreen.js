@@ -17,8 +17,8 @@ import { formatDateTime } from "@/utils/formatHelpers";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
-import { Calendar } from 'react-native-calendars';
-import { formatDate, getStartOfWeek, getWeekDays } from '@/utils/dateFn';
+import { Calendar } from "react-native-calendars";
+import { formatDate, getStartOfWeek, getWeekDays } from "@/utils/dateFn";
 import healthCheckAPI from "@/apis/healthCheckAPI";
 
 export default function HealthCheckListScreen() {
@@ -26,32 +26,31 @@ export default function HealthCheckListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
-  const [searchText, setSearchText] = useState('');
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    getStartOfWeek(new Date())
+  );
+  const [searchText, setSearchText] = useState("");
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-
-
 
   const fetchHealthChecks = async () => {
     setLoading(true);
     try {
       // Build query params for health checks
       const params = new URLSearchParams({
-        page: '1',
-        limit: '100',
+        page: "1",
+        limit: "100",
       });
 
-
       // Add status filter if not "all"
-      params.append('status', 'pending');
+      params.append("status", "pending");
 
       const response = await healthCheckAPI.HandleHealthCheck(
-        `/doctor?${params.toString()}`, 
+        `/doctor?${params.toString()}`,
         null,
-        'get'
+        "get"
       );
-      
+
       if (response.data && response.data.data) {
         setHealthChecks(response.data.data);
       } else {
@@ -78,19 +77,16 @@ export default function HealthCheckListScreen() {
     }, [searchText, selectedDate])
   );
 
- 
-
   // Filter health checks by selected date, search text, and status
   const filteredHealthChecks = healthChecks.filter((healthCheck) => {
     const checkDateStr = formatDate(new Date(healthCheck.checkDate));
     const selectedDateStr = formatDate(selectedDate);
-  
     const matchDate = checkDateStr === selectedDateStr;
 
-  const matchName =
-    healthCheck.userId?.fullName?.toLowerCase().includes(searchText.toLowerCase()) || false;
+    const fullName = healthCheck.userId?.fullName || "";
+    const matchName = fullName.toLowerCase().includes(searchText.toLowerCase());
 
-  return matchDate && matchName;
+    return matchDate && matchName;
   });
 
   // Navigation functions
@@ -100,7 +96,7 @@ export default function HealthCheckListScreen() {
     setCurrentWeekStart(prev);
     setSelectedDate(prev);
   };
-  
+
   const handleNextWeek = () => {
     const next = new Date(currentWeekStart);
     next.setDate(next.getDate() + 7);
@@ -110,10 +106,14 @@ export default function HealthCheckListScreen() {
 
   const getStatusInfo = (healthCheck) => {
     switch (healthCheck.status) {
-      case 'pending':
-        return { label: 'Chờ khám', color: '#4A90E2', icon: 'clock-outline' };
+      case "pending":
+        return { label: "Chờ khám", color: "#4A90E2", icon: "clock-outline" };
       default:
-        return { label: 'Chưa xác định', color: '#95A5A6', icon: 'help-circle' };
+        return {
+          label: "Chưa xác định",
+          color: "#95A5A6",
+          icon: "help-circle",
+        };
     }
   };
 
@@ -123,80 +123,118 @@ export default function HealthCheckListScreen() {
     return (
       <TouchableOpacity
         style={styles.healthCheckCard}
-        onPress={() => navigation.navigate('HealthCheckUpdate', { 
-          healthCheckId: item._id,
-          registrationId: item.registrationId?._id || item.registrationId
-        })}
+        onPress={() =>
+          navigation.navigate("HealthCheckUpdate", {
+            healthCheckId: item._id,
+            registrationId: item.registrationId?._id || item.registrationId,
+          })
+        }
       >
         <View style={styles.cardHeader}>
           <View style={styles.patientInfo}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ 
-                  uri: item.userId?.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 10)}`
+                source={{
+                  uri:
+                    item.userId?.avatar ||
+                    `https://i.pravatar.cc/150?img=${Math.floor(
+                      Math.random() * 10
+                    )}`,
                 }}
                 style={styles.avatar}
               />
               <View style={styles.bloodTypeBadge}>
                 <Text style={styles.bloodTypeText}>
-                  {item.userId?.bloodId?.name || item.userId?.bloodId?.type || 'N/A'}
+                  {item.userId?.bloodId?.name ||
+                    item.userId?.bloodId?.type ||
+                    "N/A"}
                 </Text>
               </View>
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.patientName}>{item.userId?.fullName || 'N/A'}</Text>
+              <Text style={styles.patientName}>
+                {item.userId?.fullName || "N/A"}
+              </Text>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="clock-outline" size={16} color="#4A90E2" />
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={16}
+                  color="#4A90E2"
+                />
                 <Text style={styles.details}>
                   {formatDateTime(new Date(item.checkDate))}
                 </Text>
               </View>
               <View style={styles.detailsRow}>
-                <MaterialCommunityIcons name="account-tie" size={16} color="#636E72" />
+                <MaterialCommunityIcons
+                  name="account-tie"
+                  size={16}
+                  color="#636E72"
+                />
                 <Text style={styles.details}>
-                  Y tá: {item.staffId?.userId?.fullName || 'N/A'}
+                  Y tá: {item.staffId?.userId?.fullName || "N/A"}
                 </Text>
               </View>
             </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-            <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#FFF" />
+          <View
+            style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}
+          >
+            <MaterialCommunityIcons
+              name={statusInfo.icon}
+              size={14}
+              color="#FFF"
+            />
             <Text style={styles.statusText}>{statusInfo.label}</Text>
           </View>
         </View>
-        
-        {item.status !== 'pending' && (
+
+        {item.status !== "pending" && (
           <View style={styles.healthSummary}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tình trạng:</Text>
-              <Text style={styles.summaryValue}>{item.generalCondition || '-'}</Text>
+              <Text style={styles.summaryValue}>
+                {item.generalCondition || "-"}
+              </Text>
             </View>
             {item.deferralReason && (
               <View style={styles.deferralReason}>
-                <MaterialCommunityIcons name="alert-circle" size={16} color="#FF4757" />
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={16}
+                  color="#FF4757"
+                />
                 <Text style={styles.deferralText}>{item.deferralReason}</Text>
               </View>
             )}
             {item.notes && (
               <View style={styles.notesPreview}>
-                <MaterialCommunityIcons name="note-text" size={16} color="#636E72" />
-                <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+                <MaterialCommunityIcons
+                  name="note-text"
+                  size={16}
+                  color="#636E72"
+                />
+                <Text style={styles.notesText} numberOfLines={2}>
+                  {item.notes}
+                </Text>
               </View>
             )}
           </View>
         )}
-        
+
         <View style={styles.cardFooter}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.updateBtn}
-            onPress={() => navigation.navigate('HealthCheckUpdate', { 
-              healthCheckId: item._id,
-              registrationId: item.registrationId?._id || item.registrationId
-            })}
+            onPress={() =>
+              navigation.navigate("HealthCheckUpdate", {
+                healthCheckId: item._id,
+                registrationId: item.registrationId?._id || item.registrationId,
+              })
+            }
           >
             <MaterialIcons name="edit" size={18} color="#FF6B6B" />
             <Text style={styles.updateText}>
-              {item.status === 'pending' ? 'Khám bệnh' : 'Cập nhật'}
+              {item.status === "pending" ? "Khám bệnh" : "Cập nhật"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -225,7 +263,10 @@ export default function HealthCheckListScreen() {
               placeholderTextColor="#A0AEC0"
             />
           </View>
-          <TouchableOpacity style={styles.calendarBtn} onPress={() => setCalendarVisible(true)}>
+          <TouchableOpacity
+            style={styles.calendarBtn}
+            onPress={() => setCalendarVisible(true)}
+          >
             <MaterialCommunityIcons name="calendar" size={24} color="#FF6B6B" />
           </TouchableOpacity>
         </View>
@@ -234,22 +275,28 @@ export default function HealthCheckListScreen() {
       {/* Calendar Modal */}
       {calendarVisible && (
         <View style={styles.calendarModalWrap}>
-          <TouchableOpacity style={styles.calendarModalBg} onPress={() => setCalendarVisible(false)} />
+          <TouchableOpacity
+            style={styles.calendarModalBg}
+            onPress={() => setCalendarVisible(false)}
+          />
           <View style={styles.calendarModal}>
             <Calendar
-              onDayPress={day => {
+              onDayPress={(day) => {
                 const pickedDate = new Date(day.dateString);
                 setSelectedDate(pickedDate);
                 setCurrentWeekStart(getStartOfWeek(pickedDate));
                 setCalendarVisible(false);
               }}
               markedDates={{
-                [format(selectedDate, 'yyyy-MM-dd')]: { selected: true, selectedColor: '#FF6B6B' },
+                [format(selectedDate, "yyyy-MM-dd")]: {
+                  selected: true,
+                  selectedColor: "#FF6B6B",
+                },
               }}
               theme={{
-                todayTextColor: '#FF6B6B',
-                selectedDayBackgroundColor: '#FF6B6B',
-                arrowColor: '#FF6B6B',
+                todayTextColor: "#FF6B6B",
+                selectedDayBackgroundColor: "#FF6B6B",
+                arrowColor: "#FF6B6B",
               }}
             />
           </View>
@@ -259,7 +306,11 @@ export default function HealthCheckListScreen() {
       {/* Calendar Bar */}
       <View style={styles.calendarBar}>
         <TouchableOpacity onPress={handlePrevWeek} style={styles.weekNavBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#FF6B6B" />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={28}
+            color="#FF6B6B"
+          />
         </TouchableOpacity>
         {getWeekDays(currentWeekStart).map((day, idx) => {
           const isSelected =
@@ -272,17 +323,25 @@ export default function HealthCheckListScreen() {
               style={[styles.dayBtn, isSelected && styles.dayBtnSelected]}
               onPress={() => setSelectedDate(day)}
             >
-              <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>
+              <Text
+                style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}
+              >
                 {format(day, "EEE", { locale: viLocale })}
               </Text>
-              <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>
+              <Text
+                style={[styles.dayNum, isSelected && styles.dayNumSelected]}
+              >
                 {format(day, "d")}
               </Text>
             </TouchableOpacity>
           );
         })}
         <TouchableOpacity onPress={handleNextWeek} style={styles.weekNavBtn}>
-          <MaterialCommunityIcons name="chevron-right" size={28} color="#FF6B6B" />
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={28}
+            color="#FF6B6B"
+          />
         </TouchableOpacity>
       </View>
 
@@ -293,18 +352,24 @@ export default function HealthCheckListScreen() {
         keyExtractor={(item) => item._id.toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#FF6B6B"]} 
+            colors={["#FF6B6B"]}
             tintColor="#FF6B6B"
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="stethoscope" size={64} color="#FF6B6B" />
+            <MaterialCommunityIcons
+              name="stethoscope"
+              size={64}
+              color="#FF6B6B"
+            />
             <Text style={styles.emptyText}>
-              {loading ? "Đang tải dữ liệu..." : "Không có phiếu khám sức khỏe nào trong ngày này"}
+              {loading
+                ? "Đang tải dữ liệu..."
+                : "Không có phiếu khám sức khỏe nào trong ngày này"}
             </Text>
           </View>
         }
@@ -348,94 +413,94 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 4,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     zIndex: 2,
-    width: '100%',
+    width: "100%",
   },
   filterChips: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginRight: 8,
   },
   filterChip: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 7,
     marginRight: 4,
   },
   filterChipActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
   },
   filterChipText: {
-    color: '#4A5568',
+    color: "#4A5568",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   filterChipTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 'auto',
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
     gap: 4,
-    width: '100%',
+    width: "100%",
   },
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
     borderRadius: 8,
     paddingHorizontal: 8,
     height: 38,
-    minWidth: '90%',
+    minWidth: "90%",
     marginRight: 4,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#2D3748',
+    color: "#2D3748",
     marginLeft: 6,
     paddingVertical: 0,
   },
   calendarBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 6,
     borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderColor: "#FF6B6B",
   },
   calendarModalWrap: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   calendarModalBg: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   calendarModal: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 12,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -457,25 +522,25 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 8,
     minWidth: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
   },
   dayBtn: {
     alignItems: "center",
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 44,
     height: 48,
     paddingHorizontal: 0,
     paddingVertical: 0,
     borderRadius: 8,
     marginHorizontal: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   dayBtnSelected: {
     backgroundColor: "#FF6B6B",
@@ -667,4 +732,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 24,
   },
-}); 
+});

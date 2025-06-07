@@ -3,9 +3,10 @@ export const USER_ROLE = {
   DOCTOR: 'DOCTOR',
   NURSE: 'NURSE',
   MEMBER: 'MEMBER',
+  TRANSPORTER: 'TRANSPORTER',
 };
 
-export const STAFF_ROLES = [USER_ROLE.MANAGER, USER_ROLE.DOCTOR, USER_ROLE.NURSE];
+export const STAFF_ROLES = [USER_ROLE.MANAGER, USER_ROLE.DOCTOR, USER_ROLE.NURSE, USER_ROLE.TRANSPORTER ];
 
 export const getRoleName = (role) => {
   switch (role) {
@@ -17,6 +18,8 @@ export const getRoleName = (role) => {
       return 'Y tá';
     case USER_ROLE.MEMBER:
       return 'Thành viên';
+    case USER_ROLE.TRANSPORTER:
+      return 'Vận chuyển';
     default:
       return 'Tất cả';
   }
