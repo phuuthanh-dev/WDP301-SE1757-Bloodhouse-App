@@ -87,10 +87,15 @@ export const getStatusReceiveBloodColor = (status) => {
     case RECEIVE_BLOOD_STATUS.READY_FOR_HANDOVER:
       return "#0EA5E9";
     case RECEIVE_BLOOD_STATUS.COMPLETED:
-      return "#B98173";
+      return "#2ED573";
     case RECEIVE_BLOOD_STATUS.CANCELLED:
       return "#F87171";
     default:
       return "#FFC107";
   }
 };
+
+export const STATUS_DELIVERY = [
+  RECEIVE_BLOOD_STATUS.ASSIGNED,
+  RECEIVE_BLOOD_STATUS.COMPLETED,
+];

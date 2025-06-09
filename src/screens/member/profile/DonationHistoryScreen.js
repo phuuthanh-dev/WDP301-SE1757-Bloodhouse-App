@@ -177,7 +177,9 @@ export default function DonationHistoryScreen({ navigation }) {
     <TouchableOpacity
       key={request._id}
       style={styles.donationCard}
-      onPress={() => navigation.navigate("ReceiveRequestDetail", { request })}
+      onPress={() =>
+        navigation.navigate("ReceiveRequestDetail", { requestId: request._id })
+      }
     >
       <View style={styles.cardHeader}>
         {request?.scheduledDeliveryDate && (
@@ -216,11 +218,15 @@ export default function DonationHistoryScreen({ navigation }) {
         </View>
         <View style={styles.infoRow}>
           <MaterialIcons name="warehouse" size={20} color="#636E72" />
-          <Text style={styles.infoText}>{request.facilityId.name} </Text>
+          <Text style={styles.infoText}>
+            Cơ sở yêu cầu: {request.facilityId.name}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <MaterialIcons name="location-on" size={20} color="#636E72" />
-          <Text style={styles.infoText}>{request.facilityId.address} </Text>
+          <Text style={styles.infoText}>
+            Địa chỉ cơ sở yêu cầu: {request.facilityId.address}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <MaterialIcons name="opacity" size={20} color="#636E72" />
