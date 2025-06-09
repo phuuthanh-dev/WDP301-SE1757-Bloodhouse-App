@@ -22,6 +22,7 @@ import {
   getStatusNameDelivery,
 } from "@/constants/deliveryStatus";
 import Toast from "react-native-toast-message";
+import { useSocket } from "@/contexts/SocketContext";
 
 const DELIVERY_STATUS = {
   pending: {
@@ -49,6 +50,7 @@ const DELIVERY_STATUS = {
 const DeliveryListScreen = ({ navigation }) => {
   const { user } = useSelector(authSelector);
   const { facilityId } = useFacility();
+  const { startLocationTracking } = useSocket();
   const [deliveries, setDeliveries] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
@@ -140,12 +142,25 @@ const DeliveryListScreen = ({ navigation }) => {
                 "put"
               );
               if (response.status === 200) {
-                Toast.show({
-                  type: "success",
-                  text1: "Thành công",
-                  text2: "Bắt đầu giao hàng thành công!",
-                });
-                fetchDeliveries();
+                // Start location tracking after successful API call
+                try {
+                  await startLocationTracking(deliveryId);
+                  Toast.show({
+                    type: "success",
+                    text1: "Thành công",
+                    text2: "Bắt đầu giao hàng và theo dõi vị trí thành công!",
+                  });
+                  fetchDeliveries();
+                  // Navigate to delivery map screen
+                  navigation.navigate("DeliveryMap", { id: deliveryId });
+                } catch (error) {
+                  console.error("Error starting location tracking:", error);
+                  Toast.show({
+                    type: "error",
+                    text1: "Lỗi",
+                    text2: "Không thể bắt đầu theo dõi vị trí. Vui lòng kiểm tra quyền truy cập vị trí.",
+                  });
+                }
               }
             } catch (error) {
               console.error("Error starting delivery:", error);

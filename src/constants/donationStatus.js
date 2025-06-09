@@ -89,7 +89,7 @@ export const DONATION_STATUS_NAME_LABELS = [
   },
 ];
 
-export const getStatusName = (status) => {
+export const getStatusDonationName = (status) => {
   switch (status) {
     case DONATION_STATUS.PENDING_APPROVAL:
       return "Chờ phê duyệt";
@@ -100,7 +100,7 @@ export const getStatusName = (status) => {
     case DONATION_STATUS.CHECKED_IN:
       return "Đã điểm danh";
     case DONATION_STATUS.IN_CONSULT:
-      return "Đang khám";
+      return "Khám sức khỏe";
     case DONATION_STATUS.REJECTED:
       return "Không đủ điều kiện";
     case DONATION_STATUS.WAITING_DONATION:
@@ -122,7 +122,7 @@ export const getStatusName = (status) => {
   }
 };
 
-export const getStatusColor = (status) => {
+export const getStatusDonationColor = (status) => {
   switch (status) {
     case DONATION_STATUS.PENDING_APPROVAL:
       return "#95A5A6";

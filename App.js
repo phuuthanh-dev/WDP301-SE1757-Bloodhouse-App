@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { FacilityProvider } from "./src/contexts/FacilityContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { LogBox } from "react-native";
 import Toast from "react-native-toast-message";
 
@@ -26,11 +27,13 @@ export default function App() {
           <SafeAreaProvider style={styles.container}>
             <Toaster />
             <LocationProvider>
-              <NotificationProvider>
-                <NavigationContainer>
-                  <AppRouters />
-                </NavigationContainer>
-              </NotificationProvider>
+              <SocketProvider>
+                <NotificationProvider>
+                  <NavigationContainer>
+                    <AppRouters />
+                  </NavigationContainer>
+                </NotificationProvider>
+              </SocketProvider>
             </LocationProvider>
             <Toast />
           </SafeAreaProvider>

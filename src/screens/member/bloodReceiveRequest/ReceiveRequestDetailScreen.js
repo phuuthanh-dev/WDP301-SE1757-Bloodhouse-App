@@ -214,7 +214,6 @@ export default function ReceiveRequestDetailScreen({ route, navigation }) {
       const response = await bloodDeliveryAPI.HandleBloodDelivery(
         `/request/${request._id}`
       );
-      console.log(response.data);
       setBloodDelivery(response.data);
     } catch (error) {
       Toast.show({
