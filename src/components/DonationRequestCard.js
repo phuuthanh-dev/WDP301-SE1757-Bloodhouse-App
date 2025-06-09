@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { getStatusColor, getStatusName } from "@/constants/donationStatus";
+import { getStatusDonationColor, getStatusDonationName } from "@/constants/donationStatus";
 import { formatDateTime } from "@/utils/formatHelpers";
 
 export default function DonationRequestCard({
@@ -38,16 +38,16 @@ export default function DonationRequestCard({
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: getStatusColor(request.status) + "20" },
+            { backgroundColor: getStatusDonationColor(request.status) + "20" },
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              { color: getStatusColor(request.status) },
+              { color: getStatusDonationColor(request.status) },
             ]}
           >
-            {getStatusName(request.status)}
+            {getStatusDonationName(request.status)}
           </Text>
         </View>
       </View>

@@ -21,6 +21,8 @@ import VerifyLevel2Screen from "@/screens/member/profile/VerifyLevel2Screen";
 import SupportRequestsScreen from "@/screens/member/supportRequest/SupportRequestsScreen";
 import SupportRequestDetailScreen from "@/screens/member/supportRequest/SupportRequestDetailScreen";
 import DeliveryTrackingScreen from "@/screens/member/bloodReceiveRequest/DeliveryTrackingScreen";
+import DonationRegistrationDetailScreen from "@/screens/member/donation/DonationRegistrationDetailScreen";
+import DonationTimeline from "@/screens/member/donation/DonationTimeline";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -68,6 +70,14 @@ const MainNavigatorMember = () => {
       <Stack.Screen
         name="DeliveryTrackingScreen"
         component={DeliveryTrackingScreen}
+      />
+      <Stack.Screen
+        name="DonationRegistrationDetail"
+        component={DonationRegistrationDetailScreen}
+      />
+      <Stack.Screen
+        name="DonationTimeline"
+        component={DonationTimeline}
       />
     </Stack.Navigator>
   );

@@ -1,14 +1,8 @@
+import { BASE_URL } from "@/configs/globalVariables";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import queryString from "query-string";
 import { toast } from "sonner-native";
-
-// Thay đổi IP này thành IP của máy chủ của bạn
-
-// export const BASE_URL = "http://10.87.63.189:3000/api/v1"; // Thay x bằng số thích hợp
-// export const BASE_URL = "http://192.168.100.23:3000/api/v1"; // Thay x bằng số thích hợp
-export const BASE_URL = "http://192.168.100.23:3000/api/v1"; // Thay x bằng số thích hợp
-
 
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");
@@ -45,7 +39,7 @@ axiosClient.interceptors.response.use(
   (error) => {
     const errorMessage =
       error.response?.data?.message || error.message || "An error occurred";
-    toast.error(errorMessage);
+    // toast.error(errorMessage);
     throw error;
   }
 );

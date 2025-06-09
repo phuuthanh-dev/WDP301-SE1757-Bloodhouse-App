@@ -46,9 +46,7 @@ const MOCK_HISTORY = [
     completedAt: new Date(2024, 2, 14, 10, 15),
     origin: "Bệnh viện Thống Nhất",
     destination: "Bệnh viện Đa khoa Quận 7",
-    bloodUnits: [
-      { type: "O+", quantity: 3 },
-    ],
+    bloodUnits: [{ type: "O+", quantity: 3 }],
     distance: "4.5",
     duration: "20",
   },
@@ -101,9 +99,7 @@ const DeliveryHistoryScreen = ({ navigation }) => {
   };
 
   const renderBloodUnits = (bloodUnits) => {
-    return bloodUnits
-      .map((unit) => `${unit.quantity} ${unit.type}`)
-      .join(", ");
+    return bloodUnits.map((unit) => `${unit.quantity} ${unit.type}`).join(", ");
   };
 
   const renderHistoryItem = ({ item }) => (
@@ -123,10 +119,7 @@ const DeliveryHistoryScreen = ({ navigation }) => {
           ]}
         >
           <Text
-            style={[
-              styles.statusText,
-              { color: getStatusColor(item.status) },
-            ]}
+            style={[styles.statusText, { color: getStatusColor(item.status) }]}
           >
             {getStatusText(item.status)}
           </Text>
@@ -404,4 +397,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DeliveryHistoryScreen; 
+export default DeliveryHistoryScreen;

@@ -16,6 +16,7 @@ import contentAPI from "@/apis/contentAPI";
 import { formatDateTime } from "@/utils/formatHelpers";
 import bloodGroupAPI from "@/apis/bloodGroup";
 import { useLocation } from "@/contexts/LocationContext";
+import * as Speech from "expo-speech";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -42,6 +43,20 @@ export default function HomeScreen({ navigation }) {
     };
     updateCurrentLocation();
   }, [location]);
+
+  useEffect(() => {
+    Speech.speak("Chào mừng đến với Bờlớt hâu", {
+      language: "vi-VN",
+      pitch: 1,
+      rate: 0.4,
+      onDone: () => {
+        console.log("Speech done");
+      },
+      onError: (error) => {
+        console.log("Speech error:", error);
+      },
+    });
+  }, []);
 
   const getAddressFromCoords = async (latitude, longitude) => {
     try {

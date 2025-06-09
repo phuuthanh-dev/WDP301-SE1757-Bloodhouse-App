@@ -21,6 +21,7 @@ import bloodDeliveryAPI from "@/apis/bloodDeliveryAPI";
 import { formatDateTime } from "@/utils/formatHelpers";
 import CustomMapViewDirections from "@/components/CustomMapViewDirections";
 import { formatDurationRoute } from "@/utils/formatHelpers";
+import { useSocket } from "@/contexts/SocketContext";
 
 // Mock data for delivery timeline
 const deliveryTimeline = [
@@ -211,6 +212,7 @@ const CarrierInfo = ({ transporter, trackingId }) => {
 
 export default function DeliveryTrackingScreen({ route, navigation }) {
   const { deliveryId } = route.params;
+  const { socket } = useSocket();
   const bottomSheetRef = useRef(null);
   const mapRef = useRef(null);
   const snapPoints = useMemo(() => ["25%", "50%", "90%"], []);
@@ -233,12 +235,13 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
       const deliveryLocation =
         response.data.bloodRequestId.location.coordinates;
 
-      // Cập nhật vị trí tài xế
-      const mockDriverLocation = {
-        latitude: (facilityLocation[1] + deliveryLocation[1]) / 2,
-        longitude: (facilityLocation[0] + deliveryLocation[0]) / 2,
-      };
-      setDriverLocation(mockDriverLocation);
+      // Nếu có currentLocation trong response, sử dụng nó làm vị trí ban đầu của tài xế
+      if (response.data.currentLocation?.coordinates) {
+        setDriverLocation({
+          latitude: response.data.currentLocation.coordinates[1],
+          longitude: response.data.currentLocation.coordinates[0],
+        });
+      }
 
       setMapRoute({
         origin: {
@@ -258,19 +261,35 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
       });
     };
     fetchBloodDelivery();
-
-    // Simulate driver movement (optional)
-    const interval = setInterval(() => {
-      if (driverLocation) {
-        setDriverLocation(prev => ({
-          latitude: prev.latitude + (Math.random() - 0.5) * 0.001,
-          longitude: prev.longitude + (Math.random() - 0.5) * 0.001,
-        }));
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
+
+  // Listen for real-time location updates
+  useEffect(() => {
+    if (socket && deliveryId) {
+      // Subscribe to location updates for this specific delivery
+      socket.on(`delivery:${deliveryId}:location`, (data) => {
+        setDriverLocation({
+          latitude: data.latitude,
+          longitude: data.longitude,
+        });
+
+        // Optional: Auto-center map on new driver location
+        if (mapRef.current && driverLocation) {
+          mapRef.current.animateToRegion({
+            latitude: data.latitude,
+            longitude: data.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }, 1000);
+        }
+      });
+
+      // Cleanup subscription on unmount
+      return () => {
+        socket.off(`delivery:${deliveryId}:location`);
+      };
+    }
+  }, [socket, deliveryId]);
 
   const handleSheetChanges = useCallback((index) => {
     console.log("handleSheetChanges", index);
@@ -325,7 +344,7 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
           <MaterialIcons name="location-on" size={30} color="#00B894" />
         </Marker>
 
-        {/* Add Driver Location Marker */}
+        {/* Driver Location Marker */}
         {driverLocation && (
           <Marker
             coordinate={driverLocation}
@@ -338,21 +357,24 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
           </Marker>
         )}
 
-        <CustomMapViewDirections
-          origin={mapRoute.origin}
-          destination={destination}
-          strokeWidth={3}
-          strokeColor="#FF6B6B"
-          onReady={(result) => {
-            setRouteInfo(result);
-            if (mapRef.current) {
-              mapRef.current.fitToCoordinates(result.coordinates, {
-                edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-                animated: true,
-              });
-            }
-          }}
-        />
+        {/* Update CustomMapViewDirections to use driver's location as origin */}
+        {driverLocation && (
+          <CustomMapViewDirections
+            origin={driverLocation}
+            destination={destination}
+            strokeWidth={3}
+            strokeColor="#FF6B6B"
+            onReady={(result) => {
+              setRouteInfo(result);
+              if (mapRef.current) {
+                mapRef.current.fitToCoordinates(result.coordinates, {
+                  edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                  animated: true,
+                });
+              }
+            }}
+          />
+        )}
       </MapView>
 
       {/* Bottom Sheet */}

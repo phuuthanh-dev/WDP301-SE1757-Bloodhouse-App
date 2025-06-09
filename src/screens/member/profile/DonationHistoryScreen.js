@@ -14,7 +14,10 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { formatDateTime } from "@/utils/formatHelpers";
-import { getStatusColor, getStatusName } from "@/constants/donationStatus";
+import {
+  getStatusDonationColor,
+  getStatusDonationName,
+} from "@/constants/donationStatus";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import {
   getStatusReceiveBloodColor,
@@ -66,7 +69,9 @@ export default function DonationHistoryScreen({ navigation }) {
       key={donationRegistration._id}
       style={styles.donationCard}
       onPress={() =>
-        navigation.navigate("DonationDetails", { donationRegistration })
+        navigation.navigate("DonationRegistrationDetail", {
+          donationReId: donationRegistration._id,
+        })
       }
     >
       <View style={styles.cardHeader}>
@@ -81,17 +86,17 @@ export default function DonationHistoryScreen({ navigation }) {
             styles.statusBadge,
             {
               backgroundColor:
-                getStatusColor(donationRegistration.status) + "20",
+                getStatusDonationColor(donationRegistration.status) + "20",
             },
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              { color: getStatusColor(donationRegistration.status) },
+              { color: getStatusDonationColor(donationRegistration.status) },
             ]}
           >
-            {getStatusName(donationRegistration.status)}
+            {getStatusDonationName(donationRegistration.status)}
           </Text>
         </View>
       </View>

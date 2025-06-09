@@ -22,7 +22,6 @@ import viLocale from "date-fns/locale/vi";
 import { Calendar } from 'react-native-calendars';
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import bloodDonationAPI from "@/apis/bloodDonation";
-import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
 
 const { width: screenWidth } = Dimensions.get('window');
 
