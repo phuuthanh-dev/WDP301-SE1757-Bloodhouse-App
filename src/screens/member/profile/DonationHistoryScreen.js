@@ -23,6 +23,7 @@ import {
   getStatusReceiveBloodColor,
   getStatusReceiveBloodName,
 } from "@/constants/receiveBloodStatus";
+import Header from "@/components/Header";
 export default function DonationHistoryScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("donation");
   const [donationRegistration, setDonationRegistration] = useState([]);
@@ -271,16 +272,12 @@ export default function DonationHistoryScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử hoạt động</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <Header
+        title="Lịch sử hoạt động"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
+      
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity

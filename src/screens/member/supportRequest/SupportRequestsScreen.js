@@ -261,7 +261,7 @@ export default function SupportRequestsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Yêu cầu cần hỗ trợ" showBackButton rightComponent />
+      <Header title="Yêu cầu cần hỗ trợ" showBackButton />
 
       <FlatList
         data={requests}

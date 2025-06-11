@@ -27,17 +27,17 @@ import { formatDateTime } from "@/utils/formatHelpers";
 
 const VerificationBadge = ({ level }) => {
   const getBadgeStyle = () => {
-    return level === 2
+    return level === 2 
       ? [styles.badge, styles.level2Badge]
       : [styles.badge, styles.level1Badge];
   };
 
   return (
     <View style={getBadgeStyle()}>
-      <MaterialIcons
-        name={level === 2 ? "verified" : "shield"}
-        size={14}
-        color="#FFF"
+      <MaterialIcons 
+        name={level === 2 ? "verified" : "shield"} 
+        size={14} 
+        color="#FFF" 
       />
       <Text style={styles.badgeText}>Xác thực mức {level}</Text>
     </View>
@@ -63,7 +63,7 @@ export default function ProfileScreen({ navigation }) {
     fetchUserBadges();
   }, []);
 
-  const fetchUserInfo = async () => {
+    const fetchUserInfo = async () => {
     try {
       setIsLoading(true);
       const response = await userAPI.HandleUser("/me");
@@ -73,9 +73,9 @@ export default function ProfileScreen({ navigation }) {
     } finally {
       setIsLoading(false);
     }
-  };
+    };
 
-  const fetchUserBadges = async () => {
+    const fetchUserBadges = async () => {
     try {
       setIsLoading(true);
       const response = await userBadgeAPI.HandleUserBadge("/user");
@@ -85,7 +85,7 @@ export default function ProfileScreen({ navigation }) {
     } finally {
       setIsLoading(false);
     }
-  };
+    };
 
   useEffect(() => {
     (async () => {
@@ -118,7 +118,7 @@ export default function ProfileScreen({ navigation }) {
       // Example QR format: số CCCD|Họ tên|Ngày sinh|Giới tính|Địa chỉ
       const [idCard, idNumberOld, fullName, yob, sex, address] =
         qrData.split("|");
-
+      
       return {
         idCard,
         fullName,
