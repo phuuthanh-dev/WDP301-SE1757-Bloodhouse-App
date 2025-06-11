@@ -24,29 +24,6 @@ import {
 import Toast from "react-native-toast-message";
 import { useSocket } from "@/contexts/SocketContext";
 
-const DELIVERY_STATUS = {
-  pending: {
-    label: "Chờ giao",
-    color: "#FBBF24",
-    icon: "pending",
-  },
-  in_transit: {
-    label: "Đang vận chuyển",
-    color: "#FF6B6B",
-    icon: "local-shipping",
-  },
-  delivered: {
-    label: "Đã giao",
-    color: "#00B894",
-    icon: "check-circle",
-  },
-  failed: {
-    label: "Thất bại",
-    color: "#FF7675",
-    icon: "error",
-  },
-};
-
 const DeliveryListScreen = ({ navigation }) => {
   const { user } = useSelector(authSelector);
   const { facilityId } = useFacility();
@@ -343,7 +320,9 @@ const DeliveryListScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Danh sách đơn giao" />
+      <Header
+        title="Danh sách đơn giao"
+      />
       {renderStatusFilter()}
       <FlatList
         data={deliveries}

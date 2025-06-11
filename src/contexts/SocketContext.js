@@ -122,7 +122,6 @@ export const SocketProvider = ({ children }) => {
   const checkAndResumeTracking = async (socketio) => {
     try {
       const trackingInfo = await AsyncStorage.getItem(TRACKING_INFO_KEY);
-      console.log("trackingInfo", trackingInfo);
       if (trackingInfo) {
         const { deliveryId, startTime } = JSON.parse(trackingInfo);
         const lastLocation = await AsyncStorage.getItem("@last_location");

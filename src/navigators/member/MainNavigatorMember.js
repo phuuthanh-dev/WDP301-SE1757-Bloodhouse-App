@@ -23,6 +23,8 @@ import SupportRequestDetailScreen from "@/screens/member/supportRequest/SupportR
 import DeliveryTrackingScreen from "@/screens/member/bloodReceiveRequest/DeliveryTrackingScreen";
 import DonationRegistrationDetailScreen from "@/screens/member/donation/DonationRegistrationDetailScreen";
 import DonationTimeline from "@/screens/member/donation/DonationTimeline";
+import EventListScreen from "@/screens/member/event/EventListScreen";
+import EventDetailScreen from "@/screens/member/event/EventDetailScreen";
 
 const MainNavigatorMember = () => {
   const Stack = createNativeStackNavigator();
@@ -78,6 +80,14 @@ const MainNavigatorMember = () => {
       <Stack.Screen
         name="DonationTimeline"
         component={DonationTimeline}
+      />
+      <Stack.Screen
+        name="EventList"
+        component={EventListScreen}
+      />
+      <Stack.Screen
+        name="EventDetail"
+        component={EventDetailScreen}
       />
     </Stack.Navigator>
   );

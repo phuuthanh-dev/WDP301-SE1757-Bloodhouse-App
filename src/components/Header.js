@@ -12,9 +12,13 @@ import { useNavigation } from "@react-navigation/native";
 
 const Header = ({
   title,
+  greeting,
+  subtitle,
   showBackButton = false,
+  showProfileButton = false,
   rightComponent,
   onBackPress,
+  onProfilePress,
   containerStyle,
 }) => {
   const navigation = useNavigation();
@@ -28,41 +32,68 @@ const Header = ({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
-      <View style={styles.header}>
+    <View style={[styles.header, containerStyle]}>
+      <View style={styles.headerContent}>
         {showBackButton && (
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
             <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-        <Text style={styles.headerTitle}>{title}</Text>
-        {rightComponent && (
-          <View style={styles.rightSection}>{rightComponent}</View>
-        )}
+        <View style={styles.titleContainer}>
+          {greeting && <Text style={styles.greeting}>{greeting}</Text>}
+          <Text style={styles.headerTitle}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        </View>
       </View>
+      {showProfileButton && (
+        <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
+          <MaterialIcons name="account-circle" size={32} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+      {rightComponent && !showProfileButton && (
+        <View style={styles.rightSection}>{rightComponent}</View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#F8F9FA",
-  },
   header: {
     backgroundColor: "#FF6B6B",
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    alignItems: "center",
+    padding: 20,
+  },
+  headerContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
   },
   backButton: {
-    marginRight: 8,
+    marginRight: 16,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 24,
+    fontWeight: "bold",
     color: "#FFFFFF",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    marginTop: 4,
+    opacity: 0.9,
+  },
+  profileButton: {
+    padding: 8,
   },
   rightSection: {
     width: 40,
