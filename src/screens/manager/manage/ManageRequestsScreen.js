@@ -106,7 +106,7 @@ export default function ManageRequestsScreen({ navigation }) {
     );
   };
 
-  const handleRejectDonation = async (requestId) => {
+  const handleRejectDonation = async (requestId, reasonRejected) => {
     Alert.alert(
       "Xác nhận từ chối",
       "Bạn có chắc chắn muốn từ chối yêu cầu hiến máu này?",
@@ -125,6 +125,7 @@ export default function ManageRequestsScreen({ navigation }) {
                   `/${requestId}`,
                   {
                     status: "rejected_registration",
+                    reasonRejected: reasonRejected,
                   },
                   "put"
                 );
@@ -132,7 +133,7 @@ export default function ManageRequestsScreen({ navigation }) {
                 toast.success("Từ chối yêu cầu thành công");
                 setDonationRequests(
                   donationRequests.filter(
-                    (request) => request._id !== request._id
+                    (request) => request._id !== requestId
                   )
                 );
               }
@@ -177,9 +178,7 @@ export default function ManageRequestsScreen({ navigation }) {
                 //   request: response.data.data,
                 // });
                 setReceiveRequests(
-                  receiveRequests.filter(
-                    (request) => request._id !== requestId
-                  )
+                  receiveRequests.filter((request) => request._id !== requestId)
                 );
                 setEmergencyRequests(
                   emergencyRequests.filter(
@@ -197,8 +196,52 @@ export default function ManageRequestsScreen({ navigation }) {
     );
   };
 
-  const handleRejectReceive = () => {
-    console.log("Reject");
+  const handleRejectReceive = async (requestId, reasonRejected) => {
+    Alert.alert(
+      "Xác nhận từ chối",
+      "Bạn có chắc chắn muốn từ chối yêu cầu nhận máu này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Từ chối",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log(reasonRejected);
+              const response = await bloodRequestAPI.HandleBloodRequest(
+                `/facility/${facilityId}/${requestId}/status`,
+                {
+                  status: "rejected_registration",
+                  staffId: user._id,
+                  reasonRejected,
+                },
+                "patch"
+              );
+              if (response.status === 200) {
+                Toast.show({
+                  type: "success",
+                  text1: "Từ chối yêu cầu thành công",
+                });
+                setReceiveRequests(
+                  receiveRequests.filter((request) => request._id !== requestId)
+                );
+                setEmergencyRequests(
+                  emergencyRequests.filter(
+                    (request) => request._id !== requestId
+                  )
+                );
+              }
+            } catch (error) {
+              toast.error("Từ chối yêu cầu thất bại");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleUpdateComponentSuccess = async (requestId, componentId) => {
@@ -345,7 +388,7 @@ export default function ManageRequestsScreen({ navigation }) {
               <ReceiveRequestCard
                 key={request._id}
                 request={request}
-                handleReject={() => handleRejectReceive(request._id)}
+                handleReject={handleRejectReceive}
                 onViewDetails={() =>
                   navigation.navigate("ReceiveRequestDetailScreen", {
                     requestId: request._id,
@@ -359,7 +402,7 @@ export default function ManageRequestsScreen({ navigation }) {
               <ReceiveRequestCard
                 key={request._id}
                 request={request}
-                handleReject={() => handleRejectReceive(request._id)}
+                handleReject={handleRejectReceive}
                 onViewDetails={() =>
                   navigation.navigate("ReceiveRequestDetailScreen", {
                     requestId: request._id,

@@ -2,7 +2,7 @@ import { BASE_URL } from "@/configs/globalVariables";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import queryString from "query-string";
-import { toast } from "sonner-native";
+import Toast from "react-native-toast-message";
 
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");
@@ -39,7 +39,11 @@ axiosClient.interceptors.response.use(
   (error) => {
     const errorMessage =
       error.response?.data?.message || error.message || "An error occurred";
-    // toast.error(errorMessage);
+    Toast.show({
+      type: "error",
+      text1: "Lỗi",
+      text2: errorMessage,
+    });
     throw error;
   }
 );
