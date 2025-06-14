@@ -81,6 +81,7 @@ const QRScannerScreen = ({ navigation, route }) => {
       const { deliveryId, facilityId, recipientId, requestId, type } = qrData;
       
       // Validate QR code format and content
+      console.log(expectedRequestId, qrData.requestId);
       if (mode === "delivery_verification") {
         if (qrData.type !== expectedType) {
           throw new Error("Loại QR không hợp lệ");

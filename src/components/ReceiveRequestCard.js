@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  Modal,
+  TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { formatDateTime } from "@/utils/formatHelpers";
@@ -30,6 +32,8 @@ export default function ReceiveRequestCard({
   const navigation = useNavigation();
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showComponentModal, setShowComponentModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
   const isUnknownComponent = !request.componentId || request.componentId === "";
 
   const renderRequestStats = () => {
@@ -72,6 +76,12 @@ export default function ReceiveRequestCard({
       );
     }
     return null;
+  };
+
+  const onReject = () => {
+    setShowRejectModal(false);
+    handleReject(request._id, rejectNote);
+    setRejectNote("");
   };
 
   return (
@@ -174,11 +184,11 @@ export default function ReceiveRequestCard({
             </View>
           )}
 
-          {request.note && (
+          {request.reasonRejected && (
             <View style={styles.infoRow}>
               <MaterialIcons name="notes" size={16} color="#636E72" />
               <Text style={styles.infoText} numberOfLines={2}>
-                Ghi chú: {request.note}
+                Lý do từ chối: {request.reasonRejected}
               </Text>
             </View>
           )}
@@ -209,7 +219,7 @@ export default function ReceiveRequestCard({
 
               <TouchableOpacity
                 style={[styles.actionButton, styles.rejectButton]}
-                onPress={handleReject}
+                onPress={() => setShowRejectModal(true)}
               >
                 <MaterialIcons name="cancel" size={16} color="#FF4757" />
                 <Text style={[styles.actionText, { color: "#FF4757" }]}>
@@ -263,6 +273,34 @@ export default function ReceiveRequestCard({
         onSelect={onUpdateComponentSuccess}
         currentComponentId={request.componentId}
       />
+
+      <Modal
+        visible={showRejectModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRejectModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: 320 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12 }}>Nhập lý do từ chối</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, minHeight: 60, marginBottom: 16 }}
+              placeholder="Nhập lý do..."
+              value={rejectNote}
+              onChangeText={setRejectNote}
+              multiline
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowRejectModal(false)}>
+                <Text style={{ color: '#888', fontSize: 16 }}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onReject} disabled={!rejectNote.trim()}>
+                <Text style={{ color: '#FF4757', fontWeight: 'bold', fontSize: 16, opacity: rejectNote.trim() ? 1 : 0.5 }}>Từ chối</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }

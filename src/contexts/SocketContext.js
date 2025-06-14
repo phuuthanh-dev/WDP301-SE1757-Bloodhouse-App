@@ -221,12 +221,18 @@ export const SocketProvider = ({ children }) => {
 
   const stopLocationTracking = async () => {
     try {
-      await Location.stopLocationUpdatesAsync(LOCATION_TRACKING);
+      const isActive = await Location.hasStartedLocationUpdatesAsync(
+        LOCATION_TRACKING
+      );
+
+      if (isActive) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TRACKING);
+      }
+
       global.currentDeliveryId = null;
 
       // Clear tracking info
-      await AsyncStorage.removeItem(TRACKING_INFO_KEY);
-      await AsyncStorage.removeItem("@last_location");
+      await AsyncStorage.multiRemove([TRACKING_INFO_KEY, "@last_location"]);
 
       setIsTracking(false);
     } catch (error) {

@@ -128,7 +128,7 @@ const DeliveryMapScreen = ({ route, navigation }) => {
             longitudeDelta: 0.0421,
           }}
           showsUserLocation={true}
-          followsUserLocation={true}
+          // followsUserLocation={true}
         >
           {/* Origin Marker (Facility) */}
           <Marker coordinate={facilityInfo.location} title={facilityInfo.name}>
