@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import {
   SafeAreaView,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import {
   MaterialIcons,
@@ -24,17 +25,25 @@ import { formatDateTime } from "@/utils/formatHelpers";
 import Toast from "react-native-toast-message";
 import { getStatusEventColor } from "@/constants/eventStatus";
 import eventAPI from "@/apis/eventAPI";
+import eventRegistrationAPI from "@/apis/eventRegistrationAPI";
+import { authSelector } from "@/redux/reducers/authReducer";
+import { useSelector } from "react-redux";
 
 const { width } = Dimensions.get("window");
 
 export default function EventDetailScreen({ route, navigation }) {
   const { eventId } = route.params;
+  const { user } = useSelector(authSelector);
   const [isRegistering, setIsRegistering] = useState(false);
   const [event, setEvent] = useState(null);
+  const [eventRegistrations, setEventRegistrations] = useState(null);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalGoing, setTotalGoing] = useState(0);
 
   useEffect(() => {
     fetchEvent();
+    fetchEventRegistration();
   }, [eventId]);
 
   const fetchEvent = async () => {
@@ -46,6 +55,23 @@ export default function EventDetailScreen({ route, navigation }) {
       console.log(error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchEventRegistration = async () => {
+    try {
+      const response = await eventRegistrationAPI.HandleEventRegistration(
+        `/event/${eventId}`
+      );
+      setEventRegistrations(response.data.data);
+      setTotalGoing(response.data.metadata.total);
+      setIsRegistered(
+        response.data.data.some(
+          (registration) => registration.userId._id === user._id
+        )
+      );
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -68,23 +94,48 @@ export default function EventDetailScreen({ route, navigation }) {
   };
 
   const handleRegister = async () => {
-    try {
-      setIsRegistering(true);
-      // TODO: Implement registration logic
-      Toast.show({
-        type: "success",
-        text1: "Đăng ký thành công",
-        text2: "Bạn sẽ nhận được thông báo chi tiết qua email",
-      });
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "Đăng ký thất bại",
-        text2: "Vui lòng thử lại sau",
-      });
-    } finally {
-      setIsRegistering(false);
-    }
+    Alert.alert(
+      "Xác nhận đăng ký",
+      "Bạn có chắc chắn muốn đăng ký sự kiện này?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đăng ký",
+          style: "default",
+          onPress: async () => {
+            try {
+              setIsRegistering(true);
+              const response =
+                await eventRegistrationAPI.HandleEventRegistration(
+                  `/event/${eventId}`,
+                  {},
+                  "post"
+                );
+              if (response.status === 201) {
+                Toast.show({
+                  type: "success",
+                  text1: "Đăng ký thành công",
+                  text2: "Bạn sẽ nhận được thông báo chi tiết qua email",
+                });
+                fetchEvent();
+                fetchEventRegistration();
+              }
+            } catch (error) {
+              Toast.show({
+                type: "error",
+                text1: "Đăng ký thất bại",
+                text2: "Vui lòng thử lại sau",
+              });
+            } finally {
+              setIsRegistering(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleContact = (type) => {
@@ -96,6 +147,67 @@ export default function EventDetailScreen({ route, navigation }) {
       }
     });
   };
+
+  // Xác định trạng thái nút
+  let registerButtonState = "default";
+  if (isRegistered) {
+    registerButtonState = "registered";
+  } else if (event?.status !== "scheduled") {
+    registerButtonState = "disabled";
+  }
+
+  // Xác định style và icon cho từng trạng thái
+  const getRegisterButtonStyle = () => {
+    switch (registerButtonState) {
+      case "registered":
+        return [styles.registerButton, styles.registeredButton];
+      case "disabled":
+        return [styles.registerButton, styles.disabledButton];
+      default:
+        return styles.registerButton;
+    }
+  };
+
+  const getRegisterButtonText = () => {
+    if (isRegistering) return "Đang đăng ký...";
+    if (registerButtonState === "registered") return "Đã đăng ký";
+    if (registerButtonState === "disabled") return "Không thể đăng ký";
+    return "Đăng ký tham gia";
+  };
+
+  const getRegisterButtonIcon = () => {
+    if (registerButtonState === "registered")
+      return (
+        <MaterialIcons
+          name="check-circle"
+          size={20}
+          color="white"
+          style={{ marginRight: 8 }}
+        />
+      );
+    if (registerButtonState === "disabled")
+      return (
+        <MaterialIcons
+          name="block"
+          size={20}
+          color="white"
+          style={{ marginRight: 8 }}
+        />
+      );
+    return (
+      <MaterialIcons
+        name="event-available"
+        size={20}
+        color="white"
+        style={{ marginRight: 8 }}
+      />
+    );
+  };
+
+  const tagsStyles = useMemo(() => ({
+    p: { color: "#2D3436", lineHeight: 24, marginBottom: 10 },
+    img: { borderRadius: 8, marginVertical: 10 },
+  }), []);
 
   if (isLoading) {
     return (
@@ -111,7 +223,13 @@ export default function EventDetailScreen({ route, navigation }) {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={fetchEvent} />
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => {
+              fetchEvent();
+              fetchEventRegistration();
+            }}
+          />
         }
       >
         {/* Banner Image with Gradient Overlay */}
@@ -134,6 +252,43 @@ export default function EventDetailScreen({ route, navigation }) {
             <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
               <MaterialIcons name="share" size={24} color="#FFFFFF" />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Participants Card */}
+        <View style={styles.participantsCard}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flex: 1,
+              justifyContent: "center",
+            }}
+          >
+            {/* Avatars */}
+            <View style={{ flexDirection: "row", marginRight: 8 }}>
+              {eventRegistrations &&
+                eventRegistrations.slice(0, 3).map((reg, idx) => (
+                  <Image
+                    key={reg._id}
+                    source={{
+                      uri:
+                        reg.userId.avatar ||
+                        "https://ui-avatars.com/api/?name=U",
+                    }}
+                    style={[
+                      styles.participantAvatar,
+                      { marginLeft: idx === 0 ? 0 : -16 },
+                    ]}
+                  />
+                ))}
+            </View>
+            {/* +Going */}
+            {eventRegistrations && eventRegistrations.length > 0 && (
+              <Text style={styles.goingText}>
+                +{totalGoing} Going
+              </Text>
+            )}
           </View>
         </View>
 
@@ -172,7 +327,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 <FontAwesome5 name="user-friends" size={14} color="#95A5A6" />
                 <Text style={styles.participantsText}>
                   <Text style={styles.highlightText}>
-                    {event?.registeredParticipants || 0}
+                    {totalGoing || 0}
                   </Text>
                   /{event?.expectedParticipants}
                 </Text>
@@ -209,6 +364,25 @@ export default function EventDetailScreen({ route, navigation }) {
                 <Text style={styles.infoValue}>{event?.address}</Text>
               </View>
             </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoIcon}>
+                <Image
+                  source={{
+                    uri:
+                      event?.createdBy?.avatar ||
+                      "https://via.placeholder.com/150",
+                  }}
+                  style={styles.creatorAvatar}
+                />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Người tạo sự kiện</Text>
+                <Text style={styles.infoValue}>
+                  {event?.createdBy?.fullName}
+                </Text>
+              </View>
+            </View>
           </View>
 
           {/* Description */}
@@ -217,10 +391,7 @@ export default function EventDetailScreen({ route, navigation }) {
             <RenderHtml
               contentWidth={width - 32}
               source={{ html: event?.description }}
-              tagsStyles={{
-                p: { color: "#2D3436", lineHeight: 24, marginBottom: 10 },
-                img: { borderRadius: 8, marginVertical: 10 },
-              }}
+              tagsStyles={tagsStyles}
             />
           </View>
 
@@ -244,43 +415,22 @@ export default function EventDetailScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Creator Info */}
-          <View style={styles.creatorSection}>
-            <Image
-              source={{ uri: event?.createdBy?.avatar }}
-              style={styles.creatorAvatar}
-            />
-            <View style={styles.creatorInfo}>
-              <Text style={styles.creatorLabel}>Người tạo sự kiện</Text>
-              <Text style={styles.creatorName}>
-                {event?.createdBy?.fullName}
-              </Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
 
       {/* Register Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.registerButton,
-            (isRegistering || event?.status !== "published") &&
-              styles.disabledButton,
-          ]}
+          style={getRegisterButtonStyle()}
           onPress={handleRegister}
-          disabled={isRegistering || event?.status !== "published"}
+          disabled={isRegistering || registerButtonState !== "default"}
         >
-          {isRegistering ? (
-            <Text style={styles.registerButtonText}>Đang đăng ký...</Text>
-          ) : (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {getRegisterButtonIcon()}
             <Text style={styles.registerButtonText}>
-              {event?.status === "published"
-                ? "Đăng ký tham gia"
-                : "Không thể đăng ký"}
+              {getRegisterButtonText()}
             </Text>
-          )}
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -298,6 +448,10 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: "relative",
     height: width * 0.6,
+  },
+  eventRegisterContainer: {
+    marginTop: -20,
+    backgroundColor: "red",
   },
   bannerImage: {
     width: width,
@@ -343,6 +497,10 @@ const styles = StyleSheet.create({
   titleSection: {
     padding: 16,
     backgroundColor: "white",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    marginTop: 12,
   },
   titleRow: {
     marginBottom: 12,
@@ -404,6 +562,9 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
     marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
   infoCard: {
     flexDirection: "row",
@@ -440,6 +601,9 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
     marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
   sectionTitle: {
     fontSize: 18,
@@ -451,6 +615,10 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
     marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    marginBottom: 50,
   },
   contactButtons: {
     flexDirection: "row",
@@ -480,10 +648,11 @@ const styles = StyleSheet.create({
     marginBottom: 100,
   },
   creatorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
+    width: "100%",
+    height: "100%",
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "#fff",
   },
   creatorInfo: {
     flex: 1,
@@ -513,6 +682,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
   },
+  registeredButton: {
+    backgroundColor: "#4CAF50",
+  },
   disabledButton: {
     backgroundColor: "#95A5A6",
   },
@@ -520,5 +692,37 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  participantsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginHorizontal: 60,
+    marginTop: -28,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
+  },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#fff",
+    backgroundColor: "#eee",
+  },
+  goingText: {
+    fontWeight: "bold",
+    color: "#4A60E8",
+    fontSize: 16,
+    marginLeft: 12,
+    marginRight: 8,
   },
 });
