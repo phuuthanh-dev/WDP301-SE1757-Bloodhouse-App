@@ -14,12 +14,16 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { formatDateTime } from "@/utils/formatHelpers";
-import { getStatusColor, getStatusName } from "@/constants/donationStatus";
+import {
+  getStatusDonationColor,
+  getStatusDonationName,
+} from "@/constants/donationStatus";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import {
   getStatusReceiveBloodColor,
   getStatusReceiveBloodName,
 } from "@/constants/receiveBloodStatus";
+import Header from "@/components/Header";
 export default function DonationHistoryScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("donation");
   const [donationRegistration, setDonationRegistration] = useState([]);
@@ -66,7 +70,9 @@ export default function DonationHistoryScreen({ navigation }) {
       key={donationRegistration._id}
       style={styles.donationCard}
       onPress={() =>
-        navigation.navigate("DonationDetails", { donationRegistration })
+        navigation.navigate("DonationRegistrationDetail", {
+          donationReId: donationRegistration._id,
+        })
       }
     >
       <View style={styles.cardHeader}>
@@ -81,17 +87,17 @@ export default function DonationHistoryScreen({ navigation }) {
             styles.statusBadge,
             {
               backgroundColor:
-                getStatusColor(donationRegistration.status) + "20",
+                getStatusDonationColor(donationRegistration.status) + "20",
             },
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              { color: getStatusColor(donationRegistration.status) },
+              { color: getStatusDonationColor(donationRegistration.status) },
             ]}
           >
-            {getStatusName(donationRegistration.status)}
+            {getStatusDonationName(donationRegistration.status)}
           </Text>
         </View>
       </View>
@@ -266,16 +272,12 @@ export default function DonationHistoryScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử hoạt động</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <Header
+        title="Lịch sử hoạt động"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
+      
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity

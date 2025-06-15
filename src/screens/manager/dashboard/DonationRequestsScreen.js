@@ -18,7 +18,7 @@ import {
   DONATION_STATUS,
   DONATION_STATUS_NAME_LABELS,
   getStatusColor,
-  getStatusName,
+  getStatusDonationName,
 } from "@/constants/donationStatus";
 import { formatDateTime } from "@/utils/formatHelpers";
 
@@ -151,7 +151,7 @@ export default function DonationRequestsScreen({ navigation }) {
               { color: getStatusColor(request.status) },
             ]}
           >
-            {getStatusName(request.status)}
+            {getStatusDonationName(request.status)}
           </Text>
         </View>
       </View>

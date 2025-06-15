@@ -5,16 +5,28 @@ import {
   Image,
   StyleSheet,
   Platform,
+  Modal,
+  TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { getStatusColor, getStatusName } from "@/constants/donationStatus";
+import { getStatusDonationColor, getStatusDonationName } from "@/constants/donationStatus";
 import { formatDateTime } from "@/utils/formatHelpers";
+import React, { useState } from "react";
 
 export default function DonationRequestCard({
   request,
   handleApprove,
   handleReject,
 }) {
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
+
+  const onReject = () => {
+    setShowRejectModal(false);
+    handleReject(request._id, rejectNote);
+    setRejectNote("");
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -38,16 +50,16 @@ export default function DonationRequestCard({
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: getStatusColor(request.status) + "20" },
+            { backgroundColor: getStatusDonationColor(request.status) + "20" },
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              { color: getStatusColor(request.status) },
+              { color: getStatusDonationColor(request.status) },
             ]}
           >
-            {getStatusName(request.status)}
+            {getStatusDonationName(request.status)}
           </Text>
         </View>
       </View>
@@ -89,12 +101,40 @@ export default function DonationRequestCard({
 
         <TouchableOpacity
           style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => handleReject(request._id)}
+          onPress={() => setShowRejectModal(true)}
         >
           <MaterialIcons name="close" size={16} color="#FF4757" />
           <Text style={[styles.actionText, { color: "#FF4757" }]}>Reject</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={showRejectModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRejectModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: 320 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 12 }}>Nhập lý do từ chối</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, minHeight: 60, marginBottom: 16 }}
+              placeholder="Nhập lý do..."
+              value={rejectNote}
+              onChangeText={setRejectNote}
+              multiline
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowRejectModal(false)}>
+                <Text style={{ color: '#888', fontSize: 16 }}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onReject} disabled={!rejectNote.trim()}>
+                <Text style={{ color: '#FF4757', fontWeight: 'bold', fontSize: 16, opacity: rejectNote.trim() ? 1 : 0.5 }}>Từ chối</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

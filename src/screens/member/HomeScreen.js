@@ -10,12 +10,15 @@ import {
   SafeAreaView,
   Platform,
 } from "react-native";
-import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { MaterialIcons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import contentAPI from "@/apis/contentAPI";
 import { formatDateTime } from "@/utils/formatHelpers";
 import bloodGroupAPI from "@/apis/bloodGroup";
 import { useLocation } from "@/contexts/LocationContext";
+import * as Speech from "expo-speech";
+import eventAPI from "@/apis/eventAPI";
+import { getStatusEventColor } from "@/constants/eventStatus";
 
 export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -24,10 +27,12 @@ export default function HomeScreen({ navigation }) {
   const [address, setAddress] = useState("Đang tải vị trí...");
   const [blogPosts, setBlogPosts] = useState([]);
   const [bloodGroupPositive, setBloodGroupPositive] = useState([]);
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
     fetchBlogPosts();
     fetchBloodGroupPositive();
+    fetchEvents();
   }, []);
 
   useEffect(() => {
@@ -42,6 +47,20 @@ export default function HomeScreen({ navigation }) {
     };
     updateCurrentLocation();
   }, [location]);
+
+  // useEffect(() => {
+  //   Speech.speak("Chào mừng đến với Bờlớt hâu", {
+  //     language: "vi-VN",
+  //     pitch: 1,
+  //     rate: 0.4,
+  //     onDone: () => {
+  //       console.log("Speech done");
+  //     },
+  //     onError: (error) => {
+  //       console.log("Speech error:", error);
+  //     },
+  //   });
+  // }, []);
 
   const getAddressFromCoords = async (latitude, longitude) => {
     try {
@@ -71,12 +90,19 @@ export default function HomeScreen({ navigation }) {
     setBloodGroupPositive(response.data);
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await eventAPI.HandleEvent("?page=1&limit=10");
+      setEvents(response.data.data);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    }
+  };
+
   const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    // Simulate data fetching
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    fetchBlogPosts();
+    fetchBloodGroupPositive();
+    fetchEvents();
   }, []);
 
   const getActionButtonStyle = (type) => {
@@ -125,6 +151,70 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const renderEventCard = (event) => (
+    <TouchableOpacity
+      key={event?._id}
+      style={styles.eventCardHorizontal}
+      onPress={() =>
+        navigation.navigate("EventDetail", { eventId: event?._id })
+      }
+    >
+      <Image
+        source={{ uri: event?.bannerUrl }}
+        style={styles.eventImageHorizontal}
+        resizeMode="cover"
+      />
+      <View style={styles.eventOverlay}>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: getStatusEventColor(event?.status).bg },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={getStatusEventColor(event?.status).icon}
+            size={14}
+            color={getStatusEventColor(event?.status).text}
+            style={styles.statusIcon}
+          />
+          <Text
+            style={[
+              styles.statusText,
+              { color: getStatusEventColor(event?.status).text },
+            ]}
+          >
+            {event?.status?.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.eventContentHorizontal}>
+        <Text style={styles.eventTitle} numberOfLines={2}>
+          {event?.title}
+        </Text>
+        <View style={styles.eventInfoRow}>
+          <View style={styles.eventInfo}>
+            <MaterialIcons name="access-time" size={14} color="#95A5A6" />
+            <Text style={styles.eventInfoText}>
+              {formatDateTime(event?.startTime)}
+            </Text>
+          </View>
+          <View style={styles.eventInfo}>
+            <FontAwesome5 name="user-friends" size={14} color="#95A5A6" />
+            <Text style={styles.eventInfoText}>
+              {event?.registeredParticipants || 0}/{event?.expectedParticipants}
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.facilityInfo, { paddingTop: 0 }]}>
+          <MaterialIcons name="location-on" size={14} color="#FF6B6B" />
+          <Text style={styles.facilityName} numberOfLines={1}>
+            {event?.address}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
   const renderBloodTypeCard = (info) => (
     <TouchableOpacity
       key={info._id}
@@ -133,7 +223,10 @@ export default function HomeScreen({ navigation }) {
     >
       <View style={styles.bloodTypeHeader}>
         <View style={styles.bloodTypeContainer}>
-          <Text style={styles.bloodType}>{info.name}</Text>
+          <View style={styles.bloodTypeNameContainer}>
+            <Text style={styles.bloodType}>{info.name}</Text>
+            <View style={styles.bloodTypeIndicator} />
+          </View>
           <View style={styles.percentageContainer}>
             <Text style={styles.percentage}>{info.populationRate}%</Text>
             <Text style={styles.percentageLabel}>dân số</Text>
@@ -157,43 +250,47 @@ export default function HomeScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderBlogPost = (blog) => (
+  const getStatusColor = (status) => {
+    switch (status.toLowerCase()) {
+      case "published":
+        return { bg: "#E3FCEF", text: "#00B074" };
+      case "draft":
+        return { bg: "#FFF4E5", text: "#FFA043" };
+      case "cancelled":
+        return { bg: "#FFE8E8", text: "#FF4D4F" };
+      default:
+        return { bg: "#F0F0F0", text: "#909090" };
+    }
+  };
+
+  const renderBlogCardHorizontal = (blog) => (
     <TouchableOpacity
       key={blog?._id}
-      style={styles.blogCard}
+      style={styles.blogCardHorizontal}
       onPress={() => navigation.navigate("BlogDetail", { blog })}
     >
       <Image
         source={{ uri: blog?.image }}
-        style={styles.blogImage}
+        style={styles.blogImageHorizontal}
         defaultSource={require("@/assets/images/onboarding1.png")}
       />
-      <View style={styles.blogContent}>
+      <View style={styles.blogContentHorizontal}>
         <View style={styles.categoryContainer}>
           <Text style={styles.categoryText}>
             {blog?.categoryId?.name?.replace("_", " ").toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.blogTitle} numberOfLines={2}>
+        <Text style={styles.blogTitleHorizontal} numberOfLines={2}>
           {blog?.title}
         </Text>
-        <View style={styles.blogMeta}>
-          <View style={styles.authorContainer}>
-            <Image
-              source={{ uri: blog?.authorId?.avatar }}
-              style={styles.authorAvatar}
-              // defaultSource={require("../../assets/default-avatar.png")}
-            />
-            <View style={styles.authorInfo}>
-              <Text style={styles.blogAuthor}>{blog?.authorId?.fullName}</Text>
-              <View style={styles.readTimeContainer}>
-                <MaterialIcons name="access-time" size={12} color="#95A5A6" />
-                <Text style={styles.blogDate}>
-                  {formatDateTime(blog?.createdAt)}
-                </Text>
-              </View>
-            </View>
-          </View>
+        <View style={styles.authorInfoHorizontal}>
+          <Image
+            source={{ uri: blog?.authorId?.avatar }}
+            style={styles.authorAvatarSmall}
+          />
+          <Text style={styles.authorNameSmall} numberOfLines={1}>
+            {blog?.authorId?.fullName}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -297,7 +394,7 @@ export default function HomeScreen({ navigation }) {
                 styles.actionButton,
                 { backgroundColor: getActionButtonStyle("nearby").bgColor },
               ]}
-              onPress={() => navigation.navigate("BloodDonationEventList")}
+              onPress={() => navigation.navigate("EventList")}
             >
               <MaterialIcons
                 name="event"
@@ -373,9 +470,26 @@ export default function HomeScreen({ navigation }) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 4 }}
+            contentContainerStyle={styles.horizontalScrollContent}
           >
             {bloodGroupPositive.map(renderBloodTypeCard)}
+          </ScrollView>
+        </View>
+
+        {/* Events Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Sự kiện hiến máu</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("EventList")}>
+              <Text style={styles.seeAll}>Xem tất cả</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {events.map(renderEventCard)}
           </ScrollView>
         </View>
 
@@ -387,7 +501,13 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.seeAll}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
-          {blogPosts.map(renderBlogPost)}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {blogPosts.map(renderBlogCardHorizontal)}
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -486,134 +606,127 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  bloodTypeCard: {
+  eventCardHorizontal: {
+    width: 280,
     backgroundColor: "#FFFFFF",
-    padding: 20,
     borderRadius: 16,
-    marginRight: 16,
-    width: 300,
+    marginRight: 12,
+    marginBottom: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E3E8F0",
   },
-  bloodTypeHeader: {
-    marginBottom: 12,
+  eventImageHorizontal: {
+    width: "100%",
+    height: 160,
   },
-  bloodTypeContainer: {
+  eventOverlay: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusIcon: {
+    marginRight: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  eventContentHorizontal: {
+    padding: 12,
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2D3436",
+    marginBottom: 8,
+  },
+  eventInfoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 8,
   },
-  bloodType: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#2196F3", // Medical blue for blood type
-  },
-  percentageContainer: {
-    alignItems: "flex-end",
-  },
-  percentage: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1A237E",
-  },
-  percentageLabel: {
-    fontSize: 13,
-    color: "#5C6BC0",
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E3E8F0",
-    marginVertical: 12,
-  },
-  characteristicsContainer: {
-    paddingVertical: 8,
-  },
-  characteristicItem: {
+  eventInfo: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-    backgroundColor: "#F8FAFC",
-    padding: 8,
+    backgroundColor: "#F8F9FA",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
   },
-  characteristicIcon: {
-    marginRight: 8,
-  },
-  characteristicText: {
-    fontSize: 14,
-    color: "#1A237E",
-    flex: 1,
-    fontWeight: "500",
-  },
-  blogCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 20,
-    borderColor: "#E3E8F0",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    overflow: "hidden",
-  },
-  blogImage: {
-    width: "100%",
-    height: 200,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  blogContent: {
-    padding: 16,
-  },
-  blogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2D3436",
-    marginBottom: 12,
-    lineHeight: 24,
-  },
-  blogMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  authorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  authorAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#2D3436",
-  },
-  authorInfo: {
-    flex: 1,
-  },
-  blogAuthor: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2D3436",
-    marginBottom: 4,
-  },
-  readTimeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  blogDate: {
+  eventInfoText: {
     fontSize: 12,
     color: "#95A5A6",
     marginLeft: 4,
+  },
+  facilityInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  facilityName: {
+    fontSize: 12,
+    color: "#FF6B6B",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  blogCardHorizontal: {
+    width: 280,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginRight: 12,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E3E8F0",
+  },
+  blogImageHorizontal: {
+    width: "100%",
+    height: 140,
+  },
+  blogContentHorizontal: {
+    padding: 12,
+  },
+  blogTitleHorizontal: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#2D3436",
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  authorInfoHorizontal: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  authorAvatarSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  authorNameSmall: {
+    fontSize: 12,
+    color: "#95A5A6",
+    flex: 1,
   },
   locationContainer: {
     flexDirection: "row",
@@ -629,16 +742,104 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   categoryContainer: {
-    backgroundColor: "rgba(33, 150, 243, 0.1)", // Light medical blue background
+    backgroundColor: "#F0F7FF",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  categoryText: {
+    color: "#2196F3",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // Blood Type Card Styles
+  bloodTypeCard: {
+    width: 280,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginRight: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#E3E8F0",
+  },
+  bloodTypeHeader: {
+    marginBottom: 12,
+  },
+  bloodTypeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bloodTypeNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bloodType: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#2196F3",
+    marginRight: 8,
+  },
+  bloodTypeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF6B6B",
+  },
+  percentageContainer: {
+    backgroundColor: "#F0F7FF",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 12,
+    alignItems: "center",
   },
-  categoryText: {
-    color: "#2196F3", // Medical blue text
-    fontSize: 12,
+  percentage: {
+    fontSize: 20,
     fontWeight: "600",
+    color: "#2196F3",
+  },
+  percentageLabel: {
+    fontSize: 12,
+    color: "#5C6BC0",
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E3E8F0",
+    marginVertical: 12,
+  },
+  characteristicsContainer: {
+    paddingVertical: 8,
+  },
+  characteristicItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    backgroundColor: "#F8FAFC",
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E3E8F0",
+  },
+  characteristicIcon: {
+    marginRight: 8,
+  },
+  characteristicText: {
+    fontSize: 14,
+    color: "#2D3436",
+    flex: 1,
+    fontWeight: "500",
+  },
+  horizontalScrollContent: {
+    // paddingLeft: 16,
+    paddingRight: 8,
+    paddingBottom: 8,
   },
 });

@@ -23,6 +23,7 @@ import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
 import { Provider as PaperProvider } from "react-native-paper";
 import facilityAPI from "@/apis/facilityAPI";
 import userAPI from "@/apis/userAPI";
+import Toast from "react-native-toast-message";
 
 const termsAndConditions = [
   "1. Tôi xác nhận rằng tất cả thông tin cung cấp là chính xác và đầy đủ.",
@@ -41,7 +42,6 @@ export default function DonationScreen({ navigation, route }) {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [bloodGroupId, setBloodGroupId] = useState("");
-  const [showBloodGroupDropdown, setShowBloodGroupDropdown] = useState(false);
   const [expectedQuantity, setExpectedQuantity] = useState("250");
   const [showQuantityDropdown, setShowQuantityDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,6 +75,7 @@ export default function DonationScreen({ navigation, route }) {
 
         if (userInfoResponse) {
           setUserInfo(userInfoResponse.data);
+          setBloodGroupId(userInfoResponse.data.bloodId._id);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -199,8 +200,11 @@ export default function DonationScreen({ navigation, route }) {
         });
       }
     } catch (error) {
-      console.error("Error submitting donation:", error);
-      toast.error("Đăng ký thất bại. Vui lòng thử lại sau.");
+      Toast.show({
+        type: "error",
+        text1: "Đăng ký thất bại",
+        text2: error.response.data.message,
+      });
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Alert,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +21,9 @@ import { toast } from "sonner-native";
 import { STAFF_ROLES, getRoleName } from "@/constants/userRole";
 import { CameraView, Camera } from "expo-camera";
 import Toast from "react-native-toast-message";
+import userBadgeAPI from "@/apis/userBadgeAPI";
+import DynamicIcon from "@/components/IconComponent";
+import { formatDateTime } from "@/utils/formatHelpers";
 
 const VerificationBadge = ({ level }) => {
   const getBadgeStyle = () => {
@@ -46,19 +50,42 @@ export default function ProfileScreen({ navigation }) {
   const [isAvailableToDonate, setIsAvailableToDonate] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+  const [userBadges, setUserBadges] = useState([]);
   const isStaff = STAFF_ROLES.includes(position);
   const [showScanner, setShowScanner] = useState(false);
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [flashMode, setFlashMode] = useState("off");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    fetchUserInfo();
+    fetchUserBadges();
+  }, []);
+
     const fetchUserInfo = async () => {
+    try {
+      setIsLoading(true);
       const response = await userAPI.HandleUser("/me");
       setUserInfo(response.data);
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    } finally {
+      setIsLoading(false);
+    }
     };
-    fetchUserInfo();
-  }, []);
+
+    const fetchUserBadges = async () => {
+    try {
+      setIsLoading(true);
+      const response = await userBadgeAPI.HandleUserBadge("/user");
+      setUserBadges(response.data);
+    } catch (error) {
+      console.error("Error fetching user badges:", error);
+    } finally {
+      setIsLoading(false);
+    }
+    };
 
   useEffect(() => {
     (async () => {
@@ -89,7 +116,8 @@ export default function ProfileScreen({ navigation }) {
   const parseQRCodeData = (qrData) => {
     try {
       // Example QR format: số CCCD|Họ tên|Ngày sinh|Giới tính|Địa chỉ
-      const [idCard, idNumberOld, fullName, yob, sex, address] = qrData.split("|");
+      const [idCard, idNumberOld, fullName, yob, sex, address] =
+        qrData.split("|");
       
       return {
         idCard,
@@ -186,7 +214,11 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={fetchUserInfo} />
+        }
+      >
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.profileInfo}>
@@ -244,6 +276,38 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
             </View>
           </TouchableOpacity>
+        )}
+
+        {/* Compact Badges Section - Only show for donors */}
+        {!isStaff && userBadges.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>Huy hiệu</Text>
+              <Text style={styles.badgeCount}>{userBadges.length} huy hiệu</Text>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.badgeScrollContainer}
+            >
+              {userBadges.map((badge, index) => (
+                <View key={badge._id} style={styles.compactBadgeCard}>
+                  <View style={styles.badgeIconContainer}>
+                    <DynamicIcon icon={badge.badgeId.icon} />
+                  </View>
+                  <Text style={styles.compactBadgeName} numberOfLines={2}>
+                    {badge.badgeId.name}
+                  </Text>
+                  <Text style={styles.badgeDescription} numberOfLines={2}>
+                    {badge.badgeId.description}
+                  </Text>
+                  <Text style={styles.badgeDate}>
+                    {formatDateTime(badge.earnedAt)}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
         {/* Settings Section - Only show availability for donors */}
@@ -456,9 +520,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#2D3436",
-    marginBottom: 16,
   },
   settingItem: {
     flexDirection: "row",
@@ -655,28 +718,145 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 8,
   },
   level1Badge: {
-    backgroundColor: '#FFA726',
+    backgroundColor: "#FFA726",
   },
   level2Badge: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   badgeText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 4,
   },
   badgeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 4,
+  },
+  badgesScrollContainer: {
+    paddingHorizontal: 4,
+  },
+  badgeCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  badgeIcon: {
+    fontSize: 32,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  badgeName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2D3436",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  badgeDescription: {
+    fontSize: 12,
+    color: "#636E72",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  badgeDate: {
+    fontSize: 10,
+    color: "#95A5A6",
+    textAlign: "center",
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  seeAllText: {
+    color: "#FF6B6B",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  compactBadgeCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginRight: 16,
+    width: 160,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  badgeIconContainer: {
+    backgroundColor: "rgba(255,107,107,0.1)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    width: 64,
+    height: 64,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactBadgeName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2D3436",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 4,
+    lineHeight: 22,
+  },
+  badgeDescription: {
+    fontSize: 12,
+    color: "#636E72",
+    textAlign: "center",
+    marginTop: 6,
+    marginBottom: 8,
+    lineHeight: 16,
+    paddingHorizontal: 4,
+  },
+  badgeDate: {
+    fontSize: 11,
+    color: "#95A5A6",
+    textAlign: "center",
+    backgroundColor: "#F8F9FA",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  badgeCount: {
+    fontSize: 14,
+    color: "#636E72",
+    fontWeight: "600",
+    backgroundColor: "#F8F9FA",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  badgeScrollContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
 });

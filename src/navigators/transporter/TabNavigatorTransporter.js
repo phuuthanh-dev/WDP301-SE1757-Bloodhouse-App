@@ -5,8 +5,8 @@ import { View, TouchableOpacity } from "react-native";
 import ProfileScreen from "@/screens/ProfileScreen";
 import DashboardScreen from "@/screens/transporter/DashboardScreen";
 import DeliveryListScreen from "@/screens/transporter/DeliveryListScreen";
-import NotificationScreen from "@/screens/transporter/NotificationScreen";
 import QRScannerScreen from "@/screens/transporter/QRScannerScreen";
+import NotificationsScreen from "@/screens/member/notification/NotificationsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -92,7 +92,7 @@ export default function TabNavigatorTransporter() {
       />
       <Tab.Screen
         name="Notification"
-        component={NotificationScreen}
+        component={NotificationsScreen}
         options={{
           title: "Thông báo",
           tabBarIcon: ({ color, size }) => (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import notificationAPI from "@/apis/notification";
+import { useFocusEffect } from "@react-navigation/native";
 
 const NotificationItem = ({ notification }) => {
   const getNotificationStyle = (type) => {
@@ -46,6 +47,12 @@ const NotificationItem = ({ notification }) => {
           color: "#FF6B6B", // Gift pink
           bgColor: "rgba(255, 107, 107, 0.1)",
         };
+      case "delivery":
+        return {
+          icon: "delivery-dining",
+          color: "#FF6B6B", // Delivery pink
+          bgColor: "rgba(255, 107, 107, 0.1)",
+        };
       default:
         return {
           icon: "notifications",
@@ -58,18 +65,14 @@ const NotificationItem = ({ notification }) => {
   const style = getNotificationStyle(notification.type);
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.notificationItem,
-        { borderLeftWidth: 4, borderLeftColor: style.color }
+        { borderLeftWidth: 4, borderLeftColor: style.color },
       ]}
     >
       <View style={[styles.iconContainer, { backgroundColor: style.bgColor }]}>
-        <MaterialIcons
-          name={style.icon}
-          size={24}
-          color={style.color}
-        />
+        <MaterialIcons name={style.icon} size={24} color={style.color} />
       </View>
       <View style={styles.contentContainer}>
         <Text style={[styles.notiTitle, { color: style.color }]}>
@@ -88,27 +91,77 @@ const NotificationItem = ({ notification }) => {
 
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(5);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showLoadMoreButton, setShowLoadMoreButton] = useState(true);
 
-  useEffect(() => {
-    fetchNotification();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setNotifications([]);
+      setPage(1);
+      setTotal(0);
+      setShowLoadMoreButton(true);
+      fetchNotification(1, true);
+    }, [])
+  );
 
-  const fetchNotification = async () => {
+  const fetchNotification = async (pageToFetch = 1, initial = false) => {
     try {
-      setLoading(true);
-      const response = await notificationAPI.HandleNotification("/user");
+      if (initial) setLoading(true);
+      else setLoadingMore(true);
+      const response = await notificationAPI.HandleNotification(
+        `/user?page=${pageToFetch}&limit=${limit}`
+      );
       if (response.status === 200) {
-        setNotifications(response.data);
+        const data = response.data.data;
+        const totalCount = response.data.metadata.total;
+        setTotal(totalCount);
+        if (pageToFetch === 1) {
+          setNotifications(data);
+        } else {
+          setNotifications((prev) => [...prev, ...data]);
+        }
+        setPage(pageToFetch);
       }
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  if (notifications.length === 0) {
+  const handleLoadMore = () => {
+    if (notifications.length < total && !loadingMore) {
+      fetchNotification(page + 1);
+    }
+  };
+
+  const handleShowMore = () => {
+    setShowLoadMoreButton(false);
+    handleLoadMore();
+  };
+
+  const renderFooter = () => {
+    if (loadingMore)
+      return (
+        <Text style={{ textAlign: "center", margin: 10 }}>Đang tải...</Text>
+      );
+    if (notifications.length < total && !showLoadMoreButton)
+      return (
+        <TouchableOpacity onPress={handleLoadMore}>
+          <Text style={{ textAlign: "center", color: "#FF6B6B", margin: 10 }}>
+            Tải thêm
+          </Text>
+        </TouchableOpacity>
+      );
+    return null;
+  };
+
+  if (loading && notifications.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -134,7 +187,22 @@ const NotificationsScreen = () => {
         renderItem={({ item }) => <NotificationItem notification={item} />}
         contentContainerStyle={styles.listContainer}
         refreshing={loading}
-        onRefresh={fetchNotification}
+        onRefresh={() => fetchNotification(1, true)}
+        onEndReached={!showLoadMoreButton ? handleLoadMore : null}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={
+          showLoadMoreButton && notifications.length < total ? (
+            <TouchableOpacity onPress={handleShowMore} style={styles.loadMoreButton}>
+              <Text
+                style={styles.loadMoreText}
+              >
+                Xem thông báo trước đó
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            renderFooter()
+          )
+        }
       />
     </SafeAreaView>
   );
@@ -216,6 +284,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#95A5A6",
     fontStyle: "italic",
+  },
+  loadMoreText: {
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    margin: 10,
+  },
+  loadMoreButton: {
+    marginTop: 20,
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

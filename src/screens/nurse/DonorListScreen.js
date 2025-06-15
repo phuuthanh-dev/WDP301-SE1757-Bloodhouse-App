@@ -21,7 +21,7 @@ import { format } from "date-fns";
 import viLocale from "date-fns/locale/vi";
 import { getStartOfWeek, getWeekDays } from '@/utils/dateFn';
 import bloodDonationRegistrationAPI from "@/apis/bloodDonationRegistration";
-import { DONATION_STATUS, getStatusName, getStatusColor } from "@/constants/donationStatus";
+import { DONATION_STATUS, getStatusDonationName, getStatusDonationColor } from "@/constants/donationStatus";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -39,8 +39,8 @@ export default function DonorListScreen({ route }) {
   // Định nghĩa các filter status cho trang này - chỉ 2 trạng thái
   const FILTER_OPTIONS = [
     { label: "Tất cả", value: "all" },
-    { label: getStatusName(DONATION_STATUS.REGISTERED), value: DONATION_STATUS.REGISTERED },
-    { label: getStatusName(DONATION_STATUS.CHECKED_IN), value: DONATION_STATUS.CHECKED_IN },
+    { label: getStatusDonationName(DONATION_STATUS.REGISTERED), value: DONATION_STATUS.REGISTERED },
+    { label: getStatusDonationName(DONATION_STATUS.CHECKED_IN), value: DONATION_STATUS.CHECKED_IN },
   ];
 
   const fetchDonors = async () => {
@@ -148,8 +148,8 @@ export default function DonorListScreen({ route }) {
 
   const renderDonorItem = ({ item }) => {
     // Lấy thông tin trạng thái
-    const statusLabel = getStatusName(item.status);
-    const statusColor = getStatusColor(item.status);
+    const statusLabel = getStatusDonationName(item.status);
+    const statusColor = getStatusDonationColor(item.status);
 
     // Điều hướng tạo khám y tế
     const handleCreateHealthCheck = () => {

@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import { authSelector } from "@/redux/reducers/authReducer";
 import { useFacility } from "@/contexts/FacilityContext";
 import facilityAPI from "@/apis/facilityAPI";
+import Header from "@/components/Header";
 
 const screenWidth = Dimensions.get('window').width;
 const cardWidth = (screenWidth - 48) / 2; // 48 = padding left 16 + padding right 16 + gap 16
@@ -134,17 +135,13 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.greeting}>Xin Chào, {user?.fullName}</Text>
-          <Text style={styles.headerTitle}>Quản Lý Ngân Hàng Máu</Text>
-          <Text style={styles.facilityName}>{facilityName}</Text>
-        </View>
-        <TouchableOpacity style={styles.profileButton}>
-          <MaterialIcons name="account-circle" size={32} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      <Header
+        greeting={`Xin Chào, ${user?.fullName}`}
+        title="Quản Lý Ngân Hàng Máu"
+        subtitle={facilityName}
+        showProfileButton
+        onProfilePress={() => navigation.navigate("Profile")}
+      />
 
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
@@ -187,36 +184,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F9FA",
     paddingTop: Platform.OS === "android" ? 40 : 0,
-  },
-  header: {
-    backgroundColor: "#FF6B6B",
-    padding: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerContent: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    opacity: 0.8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    marginTop: 4,
-  },
-  facilityName: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    marginTop: 4,
-    opacity: 0.9,
-  },
-  profileButton: {
-    padding: 8,
   },
   statsContainer: {
     flexDirection: "row",
