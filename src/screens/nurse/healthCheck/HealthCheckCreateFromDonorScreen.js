@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, StyleSheet, Platform, Alert, Image, TextInput } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import healthCheckAPI from '@/apis/healthCheckAPI';
 import facilityStaffAPI from '@/apis/facilityStaffAPI';
 import bloodDonationRegistrationAPI from '@/apis/bloodDonationRegistration';
@@ -260,17 +260,43 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
                       <View style={styles.doctorAvatarShadow}>
                         <View style={styles.doctorAvatarCircle}>
                           <View style={styles.doctorAvatarInner}>
-                            <View style={{overflow: 'hidden', borderRadius: 32}}>
-                              <Image source={{ uri: doctor.avatar }} alt={doctor.name} style={{width: 64, height: 64, objectFit: 'cover'}} />
+                            <View style={{overflow: 'hidden', borderRadius: 26}}>
+                              <Image source={{ uri: doctor.avatar }} alt={doctor.name} style={{width: 52, height: 52, objectFit: 'cover'}} />
                             </View>
                           </View>
                         </View>
                       </View>
                     </View>
+                    {/* Position Badge */}
+                    <View style={styles.positionBadge}>
+                      <Text style={styles.positionText}>BS</Text>
+                    </View>
                   </View>
-                  <Text style={styles.doctorNameCard} numberOfLines={1}>{doctor.name}</Text>
+                  
+                  <View style={styles.doctorInfo}>
+                    <Text style={styles.doctorNameCard} numberOfLines={2}>{doctor.name}</Text>
+                    {doctor.phone && (
+                      <View style={styles.contactRow}>
+                        <MaterialCommunityIcons name="phone" size={12} color="#636E72" />
+                        <Text style={styles.doctorContact} numberOfLines={2}>
+                          {doctor.phone}
+                        </Text>
+                      </View>
+                    )}
+                    {doctor.email && (
+                      <View style={styles.contactRow}>
+                        <MaterialCommunityIcons name="email" size={12} color="#636E72" />
+                        <Text style={styles.doctorEmail} numberOfLines={2}>
+                          {doctor.email}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  
                   {selectedDoctor === doctor.id && (
-                    <MaterialIcons name="check-circle" size={20} color="#FF6B6B" style={{ marginTop: 4 }} />
+                    <View style={styles.selectedIndicator}>
+                      <MaterialIcons name="check-circle" size={16} color="#FF6B6B" />
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}
@@ -302,7 +328,7 @@ const HealthCheckCreateFromDonorScreen = ({ navigation, route }) => {
           onPress={handleCreate}
           disabled={isSubmitting || doctors.length === 0}
         >
-          <MaterialIcons name="check" size={24} color="#FFFFFF" />
+          <MaterialIcons name="check" size={20} color="#FFFFFF" />
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Đang tạo...' : doctors.length === 0 ? 'Không có bác sĩ' : 'Tạo phiếu khám'}
           </Text>
@@ -323,11 +349,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 20 : 40,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
   },
   headerLeft: {
-    width: 40,
+    width: 36,
     alignItems: 'flex-start',
   },
   headerCenter: {
@@ -335,12 +361,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerRight: {
-    width: 40,
+    width: 36,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -348,28 +374,28 @@ const styles = StyleSheet.create({
   nurseName: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 13,
   },
   facilityName: {
     color: '#fff',
-    fontSize: 13,
-    marginBottom: 2,
+    fontSize: 11,
+    marginBottom: 1,
   },
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
-    marginTop: 2,
+    fontSize: 16,
+    marginTop: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 12,
+    paddingBottom: 24,
   },
   section: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -377,46 +403,47 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   infoLabel: {
     color: '#636E72',
-    fontSize: 14,
-    width: 90,
+    fontSize: 12,
+    width: 80,
   },
   infoValue: {
     color: '#2D3436',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     flex: 1,
   },
   emptyDoctors: {
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyDoctorsText: {
     color: '#636E72',
-    fontSize: 14,
+    fontSize: 12,
     fontStyle: 'italic',
   },
   doctorList: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 4,
+    gap: 10,
+    paddingVertical: 3,
   },
   doctorCard: {
-    width: 120,
+    width: 160,
+    height: 180,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 12,
     marginRight: 12,
     elevation: 2,
@@ -426,19 +453,22 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     borderWidth: 1,
     borderColor: '#F0F0F0',
+    position: 'relative',
   },
   doctorCardSelected: {
     backgroundColor: '#FFEAEA',
     borderColor: '#FF6B6B',
-    borderWidth: 1,
+    borderWidth: 2,
   },
   doctorAvatarWrap: {
     marginBottom: 8,
+    alignSelf: 'center',
+    position: 'relative',
   },
   doctorAvatarBorder: {
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    borderRadius: 32,
+    borderRadius: 28,
     padding: 2,
   },
   doctorAvatarShadow: {
@@ -448,45 +478,45 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   doctorAvatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorAvatarInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   doctorNameCard: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#2D3436',
     textAlign: 'center',
-    marginBottom: 2,
-    marginTop: 2,
+    marginBottom: 4,
+    lineHeight: 16,
   },
   doctorCount: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#636E72',
     textAlign: 'center',
     marginBottom: 2,
   },
   footer: {
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
   },
   submitButton: {
     backgroundColor: '#FF6B6B',
-    height: 56,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -496,20 +526,67 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   noteInputWrap: {
-    marginTop: 4,
+    marginTop: 3,
   },
   noteInput: {
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    padding: 12,
-    minHeight: 60,
-    fontSize: 15,
+    padding: 10,
+    minHeight: 50,
+    fontSize: 13,
     color: '#2D3436',
+  },
+  positionBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  positionText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  doctorInfo: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  doctorContact: {
+    fontSize: 11,
+    color: '#636E72',
+    textAlign: 'center',
+    marginLeft: 4,
+    flex: 1,
+  },
+  doctorEmail: {
+    fontSize: 10,
+    color: '#636E72',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginLeft: 4,
+    flex: 1,
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
   },
 });
 

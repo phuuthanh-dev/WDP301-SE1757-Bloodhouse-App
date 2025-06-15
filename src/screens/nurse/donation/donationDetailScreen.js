@@ -67,9 +67,9 @@ const DonationDetailScreen = ({ route }) => {
             email: donation.userId?.email || 'N/A',
           },
           staff: {
-            id: donation.staffId?._id || donation.staffId,
-            name: donation.staffId?.userId?.fullName || "N/A",
-            avatar: donation.staffId?.userId?.avatar || "https://png.pngtree.com/png-clipart/20240321/original/pngtree-avatar-job-student-flat-portrait-of-man-png-image_14639685.png",
+            id: donation.createdBy?._id || donation.createdBy,
+            name: donation.createdBy?.userId?.fullName || "N/A",
+            avatar: donation.createdBy?.userId?.avatar || "https://png.pngtree.com/png-clipart/20240321/original/pngtree-avatar-job-student-flat-portrait-of-man-png-image_14639685.png",
           },
           bloodGroup: {
             id: donation.bloodGroupId?._id,
@@ -249,7 +249,7 @@ const DonationDetailScreen = ({ route }) => {
   const handleOpenUpdateModal = () => {
     // Set default values when opening modal, with 'completed' as default status
     setUpdateData({
-      quantity: donationDetail.quantity?.toString() || '',
+      quantity: donationDetail.quantity > 0 ? donationDetail.quantity.toString() : '',
       notes: donationDetail.notes || '',
       status: 'completed', // Default to completed status
     });
@@ -287,7 +287,7 @@ const DonationDetailScreen = ({ route }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Cập nhật thông tin hiến máu</Text>
             <TouchableOpacity onPress={() => setUpdateModalVisible(false)}>
-              <MaterialIcons name="close" size={24} color="#636E72" />
+              <MaterialIcons name="close" size={22} color="#636E72" />
             </TouchableOpacity>
           </View>
 
@@ -297,11 +297,13 @@ const DonationDetailScreen = ({ route }) => {
           >
             {/* Current Information Display */}
             <View style={styles.currentInfoSection}>
-              <Text style={styles.currentInfoTitle}>Thông tin hiện tại:</Text>
-              <Text style={styles.currentInfoText}>Người hiến: {donationDetail.donor.name}</Text>
-              <Text style={styles.currentInfoText}>Nhóm máu: {donationDetail.donor.bloodType}</Text>
-              <Text style={styles.currentInfoText}>Thể tích hiến: {donationDetail.quantity > 0 ? `${donationDetail.quantity} ml` : 'Chưa cập nhật'}</Text>
-              <Text style={styles.currentInfoText}>Trạng thái: {getStatusInfo(donationDetail.status).label}</Text>
+              <Text style={styles.currentInfoTitle}>Thông tin hiện tại</Text>
+              <View style={styles.currentInfoGrid}>
+                <Text style={styles.currentInfoText}>Người hiến: {donationDetail.donor.name}</Text>
+                <Text style={styles.currentInfoText}>Nhóm máu: {donationDetail.donor.bloodType}</Text>
+                <Text style={styles.currentInfoText}>Thể tích: {donationDetail.quantity > 0 ? `${donationDetail.quantity} ml` : 'Chưa cập nhật'}</Text>
+                <Text style={styles.currentInfoText}>Trạng thái: {getStatusInfo(donationDetail.status).label}</Text>
+              </View>
             </View>
 
             {/* Quantity Input */}
@@ -311,7 +313,7 @@ const DonationDetailScreen = ({ route }) => {
                 style={styles.textInput}
                 value={updateData.quantity}
                 onChangeText={(text) => setUpdateData(prev => ({ ...prev, quantity: text }))}
-                placeholder="Nhập thể tích hiến máu (VD: 450)"
+                placeholder="Nhập thể tích (VD: 450)"
                 keyboardType="numeric"
               />
               <Text style={styles.inputHint}>Thể tích tiêu chuẩn: 450ml</Text>
@@ -333,7 +335,7 @@ const DonationDetailScreen = ({ route }) => {
                       updateData.status === option.value && { 
                         borderColor: option.color, 
                         shadowColor: option.color,
-                        borderWidth: 3,
+                        borderWidth: 2,
                       }
                     ]}
                     onPress={() => setUpdateData(prev => ({ ...prev, status: option.value }))}
@@ -342,7 +344,7 @@ const DonationDetailScreen = ({ route }) => {
                       <View style={[styles.statusOptionIcon, { backgroundColor: option.color }]}>
                         <MaterialCommunityIcons 
                           name={option.icon} 
-                          size={20} 
+                          size={18} 
                           color="#fff" 
                         />
                       </View>
@@ -359,7 +361,7 @@ const DonationDetailScreen = ({ route }) => {
                       </View>
                       {updateData.status === option.value && (
                         <View style={[styles.statusSelectedIndicator, { backgroundColor: option.color }]}>
-                          <MaterialCommunityIcons name="check" size={16} color="#fff" />
+                          <MaterialCommunityIcons name="check" size={14} color="#fff" />
                         </View>
                       )}
                     </View>
@@ -377,7 +379,7 @@ const DonationDetailScreen = ({ route }) => {
                 onChangeText={(text) => setUpdateData(prev => ({ ...prev, notes: text }))}
                 placeholder="Nhập ghi chú về quá trình hiến máu..."
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
               />
             </View>
           </ScrollView>
@@ -517,10 +519,10 @@ const DonationDetailScreen = ({ route }) => {
         {/* Process Details Card */}
         <View style={styles.processCard}>
           <View style={styles.processHeader}>
-            <MaterialCommunityIcons name="heart-pulse" size={20} color="#FF6B6B" />
+            <MaterialCommunityIcons name="heart-pulse" size={18} color="#FF6B6B" />
             <Text style={styles.processTitle}>Chi tiết quy trình</Text>
             <View style={[styles.statusChip, { backgroundColor: statusInfo.color }]}>
-              <MaterialCommunityIcons name={statusInfo.icon} size={14} color="#fff" />
+              <MaterialCommunityIcons name={statusInfo.icon} size={12} color="#fff" />
               <Text style={styles.statusChipText}>{statusInfo.label}</Text>
             </View>
           </View>
@@ -528,39 +530,67 @@ const DonationDetailScreen = ({ route }) => {
           {/* Process Info Grid */}
           <View style={styles.processGrid}>
             <View style={styles.processItem}>
-              <MaterialCommunityIcons name="identifier" size={16} color="#4A90E2" />
-              <Text style={styles.processLabel}>Mã hiến máu</Text>
-              <Text style={styles.processValue}>{donationDetail.code}</Text>
+              <View style={styles.processItemHeader}>
+                <MaterialCommunityIcons name="identifier" size={14} color="#4A90E2" />
+                <Text style={styles.processLabel}>Mã hiến máu</Text>
+              </View>
+              <Text style={styles.processValue} numberOfLines={1} ellipsizeMode="tail">
+                {donationDetail.code}
+              </Text>
             </View>
+            
             <View style={styles.processItem}>
-              <MaterialCommunityIcons name="identifier" size={16} color="#9B59B6" />
-              <Text style={styles.processLabel}>Mã đăng ký</Text>
-              <Text style={styles.processValue}>{donationDetail.registrationCode}</Text>
+              <View style={styles.processItemHeader}>
+                <MaterialCommunityIcons name="card-text" size={14} color="#9B59B6" />
+                <Text style={styles.processLabel}>Mã đăng ký</Text>
+              </View>
+              <Text style={styles.processValue} numberOfLines={1} ellipsizeMode="tail">
+                {donationDetail.registrationCode}
+              </Text>
             </View>
+            
             <View style={styles.processItem}>
-              <MaterialCommunityIcons name="account-tie" size={16} color="#2ED573" />
-              <Text style={styles.processLabel}>Y tá</Text>
-              <Text style={styles.processValue}>{donationDetail.staff.name}</Text>
+              <View style={styles.processItemHeader}>
+                <MaterialCommunityIcons name="account-tie" size={14} color="#2ED573" />
+                <Text style={styles.processLabel}>Y tá phụ trách</Text>
+              </View>
+              <Text style={styles.processValue} numberOfLines={1} ellipsizeMode="tail">
+                {donationDetail.staff.name}
+              </Text>
             </View>
+            
             <View style={styles.processItem}>
-              <MaterialCommunityIcons name="hospital-building" size={16} color="#F39C12" />
-              <Text style={styles.processLabel}>Cơ sở</Text>
-              <Text style={styles.processValue}>{donationDetail.facility.name}</Text>
+              <View style={styles.processItemHeader}>
+                <MaterialCommunityIcons name="hospital-building" size={14} color="#F39C12" />
+                <Text style={styles.processLabel}>Cơ sở y tế</Text>
+              </View>
+              <Text style={styles.processValue} numberOfLines={2} ellipsizeMode="tail">
+                {donationDetail.facility.name}
+              </Text>
             </View>
           </View>
 
           {/* Time Info */}
           <View style={styles.timeInfo}>
             <View style={styles.timeItem}>
-              <MaterialCommunityIcons name="clock-outline" size={16} color="#636E72" />
-              <Text style={styles.timeLabel}>Bắt đầu</Text>
-              <Text style={styles.timeValue}>{formatDateTime(new Date(donationDetail.donationStartAt))}</Text>
+              <View style={styles.timeItemHeader}>
+                <MaterialCommunityIcons name="clock-outline" size={14} color="#636E72" />
+                <Text style={styles.timeLabel}>Bắt đầu</Text>
+              </View>
+              <Text style={styles.timeValue} numberOfLines={2}>
+                {formatDateTime(new Date(donationDetail.donationStartAt))}
+              </Text>
             </View>
+            
             {donationDetail.donationEndAt && donationDetail.status === 'completed' && (
               <View style={styles.timeItem}>
-                <MaterialCommunityIcons name="clock-check-outline" size={16} color="#636E72" />
-                <Text style={styles.timeLabel}>Kết thúc</Text>
-                <Text style={styles.timeValue}>{formatDateTime(new Date(donationDetail.donationEndAt))}</Text>
+                <View style={styles.timeItemHeader}>
+                  <MaterialCommunityIcons name="clock-check-outline" size={14} color="#636E72" />
+                  <Text style={styles.timeLabel}>Kết thúc</Text>
+                </View>
+                <Text style={styles.timeValue} numberOfLines={2}>
+                  {formatDateTime(new Date(donationDetail.donationEndAt))}
+                </Text>
               </View>
             )}
           </View>
@@ -717,8 +747,8 @@ const styles = StyleSheet.create({
   mainCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 10,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -730,63 +760,63 @@ const styles = StyleSheet.create({
   donorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
+    marginBottom: 14,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   compactAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    borderWidth: 2.5,
     borderColor: '#FF6B6B',
   },
   donorInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 14,
   },
   compactDonorName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   donorMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 6,
+    gap: 6,
   },
   bloodTypeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FF6B6B',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   bloodTypeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   genderChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E9ECEF',
   },
   chipText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#636E72',
     fontWeight: '500',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   contactRow: {
     flexDirection: 'row',
@@ -794,20 +824,20 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   contactText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#636E72',
-    marginLeft: 4,
+    marginLeft: 3,
     fontWeight: '500',
   },
   heroMetricsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   compactHeroCard: {
     flex: 1,
     backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 10,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     position: 'relative',
@@ -817,13 +847,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F39C12',
   },
   compactHeroIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   volumeIcon: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -832,17 +862,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   compactHeroLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.8)',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   compactHeroValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   compactProgressBar: {
     position: 'absolute',
@@ -859,8 +889,8 @@ const styles = StyleSheet.create({
   processCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -872,92 +902,99 @@ const styles = StyleSheet.create({
   processHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
+    marginBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   processTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginLeft: 8,
+    marginLeft: 6,
     flex: 1,
   },
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   statusChipText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#fff',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   processGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 16,
-    gap: 8,
+    gap: 6,
   },
   processItem: {
     width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  processLabel: {
-    fontSize: 11,
-    color: '#636E72',
-    fontWeight: '500',
-    marginLeft: 6,
-    flex: 1,
-  },
-  processValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    textAlign: 'right',
-  },
-  timeInfo: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  timeItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#F8F9FA',
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E9ECEF',
+    minHeight: 60,
   },
-  timeLabel: {
-    fontSize: 11,
+  processItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  processLabel: {
+    fontSize: 10,
     color: '#636E72',
     fontWeight: '500',
-    marginLeft: 6,
+    marginLeft: 4,
     flex: 1,
+  },
+  processValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2D3436',
+    lineHeight: 14,
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  timeItem: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    minHeight: 60,
+  },
+  timeItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  timeLabel: {
+    fontSize: 10,
+    color: '#636E72',
+    fontWeight: '500',
+    marginLeft: 4,
   },
   timeValue: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#2D3436',
-    textAlign: 'right',
+    lineHeight: 12,
   },
   notesCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 10,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -969,25 +1006,25 @@ const styles = StyleSheet.create({
   notesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   notesTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginLeft: 6,
+    marginLeft: 5,
   },
   compactNotesText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#636E72',
-    lineHeight: 18,
+    lineHeight: 16,
     fontStyle: 'italic',
   },
   actionCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 10,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -999,23 +1036,23 @@ const styles = StyleSheet.create({
   actionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   actionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginLeft: 6,
+    marginLeft: 5,
     flex: 1,
   },
   actionStatus: {
     backgroundColor: '#E8F8F5',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   actionStatusText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#2ED573',
     fontWeight: '600',
   },
@@ -1024,8 +1061,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4A90E2',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
   restingButton: {
@@ -1035,10 +1072,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#E9ECEF',
   },
   compactActionButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#fff',
-    marginLeft: 6,
+    marginLeft: 5,
   },
   // Modal styles
   modalOverlay: {
@@ -1049,10 +1086,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    width: '92%',
-    maxHeight: '85%',
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1063,25 +1100,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingBottom: 16,
+    marginBottom: 18,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#2D3436',
   },
   modalBody: {
-    maxHeight: 450,
+    maxHeight: 400,
   },
   currentInfoSection: {
     backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderLeftWidth: 4,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 18,
+    borderLeftWidth: 3,
     borderLeftColor: '#FF6B6B',
     elevation: 1,
     shadowColor: '#000',
@@ -1090,36 +1127,34 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   currentInfoTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 8,
+  },
+  currentInfoGrid: {
+    gap: 4,
   },
   currentInfoText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#636E72',
-    marginBottom: 6,
-    paddingLeft: 8,
+    paddingLeft: 4,
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 18,
   },
   inputLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2D3436',
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 8,
   },
   textInput: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E9ECEF',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
     backgroundColor: '#FAFBFC',
     color: '#2D3436',
     elevation: 1,
@@ -1129,89 +1164,88 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   textArea: {
-    height: 120,
+    height: 80,
     textAlignVertical: 'top',
-    paddingTop: 16,
+    paddingTop: 12,
   },
   inputHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#636E72',
-    marginTop: 6,
+    marginTop: 4,
     fontStyle: 'italic',
-    paddingLeft: 4,
+    paddingLeft: 2,
   },
   statusOptions: {
     flexDirection: 'column',
+    gap: 8,
   },
   statusOption: {
-    padding: 16,
-    borderWidth: 2,
+    padding: 12,
+    borderWidth: 1.5,
     borderColor: '#E9ECEF',
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    marginBottom: 12,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   statusOptionActive: {
-    borderWidth: 2,
-    elevation: 4,
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   statusOptionContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   statusOptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   statusOptionTextContainer: {
     flex: 1,
   },
   statusOptionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#2D3436',
     marginBottom: 2,
   },
   statusOptionDescription: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#636E72',
-    lineHeight: 18,
+    lineHeight: 14,
   },
   statusSelectedIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 24,
-    paddingTop: 20,
+    marginTop: 18,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
-    gap: 12,
+    gap: 10,
   },
   cancelButton: {
     flex: 1,
-    padding: 16,
-    borderWidth: 2,
+    padding: 12,
+    borderWidth: 1.5,
     borderColor: '#E9ECEF',
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: '#F8F9FA',
     elevation: 1,
     shadowColor: '#000',
@@ -1220,16 +1254,16 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#636E72',
     textAlign: 'center',
   },
   updateButton: {
     flex: 1,
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FF6B6B',
-    borderRadius: 12,
+    borderRadius: 10,
     elevation: 2,
     shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
@@ -1242,7 +1276,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   updateButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
