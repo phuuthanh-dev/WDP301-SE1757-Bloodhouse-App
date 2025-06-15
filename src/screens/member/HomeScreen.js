@@ -81,7 +81,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   const fetchBlogPosts = async () => {
-    const response = await contentAPI.HandleContent("?page=1&limit=10");
+    const response = await contentAPI.HandleContent("/public?page=1&limit=10");
     setBlogPosts(response.data.data);
   };
 

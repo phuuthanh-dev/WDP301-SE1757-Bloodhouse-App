@@ -26,7 +26,7 @@ export default function BlogListScreen({ navigation }) {
   const fetchBlogPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await contentAPI.HandleContent("?page=1&limit=10");
+      const response = await contentAPI.HandleContent("/public?page=1&limit=10");
       setBlogPosts(response.data.data);
     } catch (error) {
       Toast.show({
