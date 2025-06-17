@@ -235,9 +235,18 @@ export default function DonationRegistrationDetailScreen({
                   {getStatusDonationName(registration?.status)}
                 </Text>
               </View>
-              <Text style={styles.timelineDescription}>
-                Theo dõi chi tiết quá trình hiến máu của bạn
-              </Text>
+              {registration?.status === "rejected_registration" && (
+                <View style={styles.rejectedReasonBox}>
+                  <Text style={styles.rejectedReasonText}>
+                    Lý do từ chối: {registration?.reasonRejected}
+                  </Text>
+                </View>
+              )}
+              {registration?.status !== "rejected_registration" && (
+                <Text style={styles.timelineDescription}>
+                  Theo dõi chi tiết quá trình hiến máu của bạn
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         </View>
@@ -601,5 +610,18 @@ const styles = StyleSheet.create({
   timelineDescription: {
     fontSize: 14,
     color: "#636E72",
+  },
+  rejectedReasonBox: {
+    backgroundColor: "#FFF5F5",
+    borderColor: "#FF6B6B",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  rejectedReasonText: {
+    color: "#FF3B30",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });

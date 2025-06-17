@@ -20,7 +20,6 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import bloodDeliveryAPI from "@/apis/bloodDeliveryAPI";
 import { formatDateTime } from "@/utils/formatHelpers";
 import CustomMapViewDirections from "@/components/CustomMapViewDirections";
-import { formatDurationRoute } from "@/utils/formatHelpers";
 import { useSocket } from "@/contexts/SocketContext";
 
 // Mock data for delivery timeline
@@ -345,7 +344,7 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
         </Marker>
 
         {/* Driver Location Marker */}
-        {driverLocation && (
+        {driverLocation && driverLocation.latitude !== 0 && driverLocation.longitude !== 0 && (
           <Marker
             coordinate={driverLocation}
             title={`Tài xế: ${transporter?.fullName}`}
@@ -358,7 +357,7 @@ export default function DeliveryTrackingScreen({ route, navigation }) {
         )}
 
         {/* Update CustomMapViewDirections to use driver's location as origin */}
-        {driverLocation && (
+        {driverLocation && driverLocation.latitude !== 0 && driverLocation.longitude !== 0 && (
           <CustomMapViewDirections
             origin={driverLocation}
             destination={destination}
