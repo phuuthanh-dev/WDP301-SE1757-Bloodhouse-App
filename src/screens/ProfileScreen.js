@@ -23,21 +23,21 @@ import { CameraView, Camera } from "expo-camera";
 import Toast from "react-native-toast-message";
 import userBadgeAPI from "@/apis/userBadgeAPI";
 import DynamicIcon from "@/components/IconComponent";
-import { formatDateTime } from "@/utils/formatHelpers";
+import { formatDate, formatDateTime } from "@/utils/formatHelpers";
 
 const VerificationBadge = ({ level }) => {
   const getBadgeStyle = () => {
-    return level === 2 
+    return level === 2
       ? [styles.badge, styles.level2Badge]
       : [styles.badge, styles.level1Badge];
   };
 
   return (
     <View style={getBadgeStyle()}>
-      <MaterialIcons 
-        name={level === 2 ? "verified" : "shield"} 
-        size={14} 
-        color="#FFF" 
+      <MaterialIcons
+        name={level === 2 ? "verified" : "shield"}
+        size={14}
+        color="#FFF"
       />
       <Text style={styles.badgeText}>Xác thực mức {level}</Text>
     </View>
@@ -63,7 +63,7 @@ export default function ProfileScreen({ navigation }) {
     fetchUserBadges();
   }, []);
 
-    const fetchUserInfo = async () => {
+  const fetchUserInfo = async () => {
     try {
       setIsLoading(true);
       const response = await userAPI.HandleUser("/me");
@@ -73,9 +73,9 @@ export default function ProfileScreen({ navigation }) {
     } finally {
       setIsLoading(false);
     }
-    };
+  };
 
-    const fetchUserBadges = async () => {
+  const fetchUserBadges = async () => {
     try {
       setIsLoading(true);
       const response = await userBadgeAPI.HandleUserBadge("/user");
@@ -85,7 +85,7 @@ export default function ProfileScreen({ navigation }) {
     } finally {
       setIsLoading(false);
     }
-    };
+  };
 
   useEffect(() => {
     (async () => {
@@ -118,7 +118,7 @@ export default function ProfileScreen({ navigation }) {
       // Example QR format: số CCCD|Họ tên|Ngày sinh|Giới tính|Địa chỉ
       const [idCard, idNumberOld, fullName, yob, sex, address] =
         qrData.split("|");
-      
+
       return {
         idCard,
         fullName,
@@ -264,14 +264,16 @@ export default function ProfileScreen({ navigation }) {
           >
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
-                {userInfo?.totalDonations || 0}
+                {userInfo?.donationStats?.completedDonations || 0}
               </Text>
               <Text style={styles.statLabel}>Lần hiến máu</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
-                {userInfo?.lastDonation || "Chưa có"}
+                {userInfo?.donationStats?.latestDonationDate
+                  ? formatDate(userInfo?.donationStats?.latestDonationDate)
+                  : "Chưa có"}
               </Text>
               <Text style={styles.statLabel}>Lần hiến gần nhất</Text>
             </View>
@@ -283,10 +285,12 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Huy hiệu</Text>
-              <Text style={styles.badgeCount}>{userBadges.length} huy hiệu</Text>
+              <Text style={styles.badgeCount}>
+                {userBadges.length} huy hiệu
+              </Text>
             </View>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.badgeScrollContainer}
             >

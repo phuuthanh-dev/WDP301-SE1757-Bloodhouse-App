@@ -89,7 +89,10 @@ export default function ManageRequestsScreen({ navigation }) {
                   "put"
                 );
               if (response.status === 200) {
-                toast.success("Duyệt yêu cầu thành công");
+                Toast.show({
+                  type: "success",
+                  text1: "Duyệt yêu cầu thành công",
+                });
                 setDonationRequests(
                   donationRequests.filter(
                     (request) => request._id !== request._id
@@ -97,7 +100,10 @@ export default function ManageRequestsScreen({ navigation }) {
                 );
               }
             } catch (error) {
-              toast.error("Duyệt yêu cầu thất bại");
+              Toast.show({
+                type: "error",
+                text1: "Duyệt yêu cầu thất bại",
+              });
             }
           },
         },
@@ -130,7 +136,10 @@ export default function ManageRequestsScreen({ navigation }) {
                   "put"
                 );
               if (response.status === 200) {
-                toast.success("Từ chối yêu cầu thành công");
+                Toast.show({
+                  type: "success",
+                  text1: "Từ chối yêu cầu thành công",
+                });
                 setDonationRequests(
                   donationRequests.filter(
                     (request) => request._id !== requestId
@@ -138,7 +147,10 @@ export default function ManageRequestsScreen({ navigation }) {
                 );
               }
             } catch (error) {
-              toast.error("Từ chối yêu cầu thất bại");
+              Toast.show({
+                type: "error",
+                text1: "Từ chối yêu cầu thất bại",
+              });
             }
           },
         },
@@ -187,7 +199,10 @@ export default function ManageRequestsScreen({ navigation }) {
                 );
               }
             } catch (error) {
-              toast.error("Duyệt yêu cầu thất bại");
+              Toast.show({
+                type: "error",
+                text1: "Duyệt yêu cầu thất bại",
+              });
             }
           },
         },
@@ -235,7 +250,10 @@ export default function ManageRequestsScreen({ navigation }) {
                 );
               }
             } catch (error) {
-              toast.error("Từ chối yêu cầu thất bại");
+              Toast.show({
+                type: "error",
+                text1: "Từ chối yêu cầu thất bại",
+              });
             }
           },
         },
