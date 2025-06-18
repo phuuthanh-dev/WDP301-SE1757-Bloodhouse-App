@@ -15,6 +15,7 @@ import bloodInventoryAPI from "@/apis/bloodInventoryAPI";
 import { useFacility } from "@/contexts/FacilityContext";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import Header from "@/components/Header";
 
 const getStatusInfo = (quantity) => {
   if (quantity <= 10) return { status: "Nguy Cấp", color: "#FF4757" };

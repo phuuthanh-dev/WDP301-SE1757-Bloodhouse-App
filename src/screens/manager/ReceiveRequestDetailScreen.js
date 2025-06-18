@@ -21,6 +21,7 @@ import SelectBloodComponentModal from "@/components/SelectBloodComponentModal";
 import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import Toast from "react-native-toast-message";
 import { useFacility } from "@/contexts/FacilityContext";
+import Header from "@/components/Header";
 
 export default function ReceiveRequestDetailScreen({ route, navigation }) {
   const { facilityId } = useFacility();
@@ -98,17 +99,10 @@ export default function ReceiveRequestDetailScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitle}>
-          <Text style={styles.title}>Chi tiết yêu cầu nhận máu</Text>
-        </View>
-      </View>
+      <Header
+        title="Chi tiết yêu cầu nhận máu"
+        showBackButton
+      />
 
       <ScrollView
         style={styles.content}
@@ -307,12 +301,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
     backgroundColor: "#FF6B6B",
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: Platform.OS === "android" ? 40 : 60,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
