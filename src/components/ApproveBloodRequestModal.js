@@ -41,7 +41,7 @@ export default function ApproveBloodRequestModal({
         `/facility/${facilityId}/available?groupId=${request.groupId._id}&componentId=${request.componentId._id}`
       );
       if (response.status === 200) {
-        setAvailableUnits(response.data.totalQuantity || 0);
+        setAvailableUnits(response?.data?.totalQuantity || 0);
       }
     } catch (error) {
       console.error("Error fetching available units:", error);
