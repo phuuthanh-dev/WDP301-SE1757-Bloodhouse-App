@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SafeAreaView,
   Alert,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -347,6 +348,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   filterContainer: {
     backgroundColor: "white",

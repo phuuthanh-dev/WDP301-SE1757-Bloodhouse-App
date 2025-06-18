@@ -9,6 +9,7 @@ import {
   Alert,
   SafeAreaView,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -21,29 +22,6 @@ import {
   getStatusNameDelivery,
 } from "@/constants/deliveryStatus";
 import Toast from "react-native-toast-message";
-
-const DELIVERY_STATUS = {
-  pending: {
-    label: "Chờ giao",
-    color: "#FBBF24",
-    icon: "pending",
-  },
-  in_transit: {
-    label: "Đang vận chuyển",
-    color: "#FF6B6B",
-    icon: "local-shipping",
-  },
-  delivered: {
-    label: "Đã giao",
-    color: "#00B894",
-    icon: "check-circle",
-  },
-  failed: {
-    label: "Thất bại",
-    color: "#FF7675",
-    icon: "error",
-  },
-};
 
 const DeliveryDetailScreen = ({ route }) => {
   const { id, action } = route.params;
@@ -406,6 +384,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   content: {
     flex: 1,

@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SafeAreaView,
   Dimensions,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -253,13 +254,13 @@ const DashboardScreen = () => {
             {currentLocation ? (
               <>
                 <View style={styles.locationDetail}>
-                  <MaterialIcons name="location-on" size={20} color="#FF6B6B" />
+                  <MaterialIcons name="my-location" size={20} color="#FF6B6B" />
                   <Text style={styles.locationText}>
                     {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
                   </Text>
                 </View>
                 <View style={styles.locationDetail}>
-                  <MaterialIcons name="speed" size={20} color="#FF6B6B" />
+                  <MaterialIcons name="gps-not-fixed" size={20} color="#FF6B6B" />
                   <Text style={styles.locationText}>
                     Độ chính xác: {currentLocation.accuracy?.toFixed(0)}m
                   </Text>
@@ -292,6 +293,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   scrollView: {
     flex: 1,

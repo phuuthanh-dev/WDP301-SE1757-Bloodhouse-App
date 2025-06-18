@@ -239,6 +239,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   mapContainer: {
     flex: 1,

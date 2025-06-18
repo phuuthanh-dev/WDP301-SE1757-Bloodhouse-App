@@ -9,6 +9,7 @@ import * as TaskManager from "expo-task-manager";
 import bloodDeliveryAPI from "@/apis/bloodDeliveryAPI";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { USER_ROLE } from "@/constants/userRole";
 
 const LOCATION_TRACKING = "location-tracking";
 const TRACKING_INFO_KEY = "@tracking_info";
@@ -89,7 +90,7 @@ const setupSocketListeners = (socket) => {
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const { token } = useSelector(authSelector);
+  const { token, user } = useSelector(authSelector);
   const dispatch = useDispatch();
   const [isTracking, setIsTracking] = useState(false);
 
@@ -106,9 +107,11 @@ export const SocketProvider = ({ children }) => {
 
       // Setup socket event listeners và lưu cleanup function
       const cleanup = setupSocketListeners(socketio);
-
+      
       // Check và resume tracking nếu cần
-      checkAndResumeTracking(socketio);
+      if (user.role === USER_ROLE.TRANSPORTER) {
+        checkAndResumeTracking(socketio);
+      }
 
       return () => {
         cleanup(); // Remove all listeners
