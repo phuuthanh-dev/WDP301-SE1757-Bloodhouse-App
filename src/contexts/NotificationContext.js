@@ -38,7 +38,7 @@ export function NotificationProvider({ children }) {
   const setupNotificationListeners = () => {
     const notificationListener = Notifications.addNotificationReceivedListener(
       (notification) => {
-        console.log("Received notification:", notification);
+        // console.log("Received notification:", notification);
       }
     );
 

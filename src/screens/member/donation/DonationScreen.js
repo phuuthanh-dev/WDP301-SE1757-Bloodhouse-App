@@ -193,7 +193,10 @@ export default function DonationScreen({ navigation, route }) {
         );
 
       if (response.status === 201) {
-        toast.success("Đăng ký hiến máu thành công");
+        Toast.show({
+          type: "success",
+          text1: "Đăng ký hiến máu thành công",
+        });
         navigation.reset({
           index: 1,
           routes: [{ name: "TabNavigatorMember" }, { name: "DonationHistory" }],
