@@ -60,6 +60,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
   const fetchEventRegistration = async () => {
     try {
+      setIsLoading(true);
       const response = await eventRegistrationAPI.HandleEventRegistration(
         `/event/${eventId}`
       );
@@ -71,7 +72,12 @@ export default function EventDetailScreen({ route, navigation }) {
         )
       );
     } catch (error) {
-      console.log(error);
+      Toast.show({
+        type: "error",
+        text1: "Không thể lấy danh sách đăng ký",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -204,10 +210,13 @@ export default function EventDetailScreen({ route, navigation }) {
     );
   };
 
-  const tagsStyles = useMemo(() => ({
-    p: { color: "#2D3436", lineHeight: 24, marginBottom: 10 },
-    img: { borderRadius: 8, marginVertical: 10 },
-  }), []);
+  const tagsStyles = useMemo(
+    () => ({
+      p: { color: "#2D3436", lineHeight: 24, marginBottom: 10 },
+      img: { borderRadius: 8, marginVertical: 10 },
+    }),
+    []
+  );
 
   if (isLoading) {
     return (
@@ -256,41 +265,41 @@ export default function EventDetailScreen({ route, navigation }) {
         </View>
 
         {/* Participants Card */}
-        <View style={styles.participantsCard}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              flex: 1,
-              justifyContent: "center",
-            }}
-          >
-            {/* Avatars */}
-            <View style={{ flexDirection: "row", marginRight: 8 }}>
-              {eventRegistrations &&
-                eventRegistrations.slice(0, 3).map((reg, idx) => (
-                  <Image
-                    key={reg._id}
-                    source={{
-                      uri:
-                        reg.userId.avatar ||
-                        "https://ui-avatars.com/api/?name=U",
-                    }}
-                    style={[
-                      styles.participantAvatar,
-                      { marginLeft: idx === 0 ? 0 : -16 },
-                    ]}
-                  />
-                ))}
+        {eventRegistrations && eventRegistrations.length > 0 && (
+          <View style={styles.participantsCard}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                justifyContent: "center",
+              }}
+            >
+              {/* Avatars */}
+              <View style={{ flexDirection: "row", marginRight: 8 }}>
+                {eventRegistrations &&
+                  eventRegistrations.slice(0, 3).map((reg, idx) => (
+                    <Image
+                      key={reg._id}
+                      source={{
+                        uri:
+                          reg.userId.avatar ||
+                          "https://ui-avatars.com/api/?name=U",
+                      }}
+                      style={[
+                        styles.participantAvatar,
+                        { marginLeft: idx === 0 ? 0 : -16 },
+                      ]}
+                    />
+                  ))}
+              </View>
+              {/* +Going */}
+              {eventRegistrations && eventRegistrations.length > 0 && (
+                <Text style={styles.goingText}>+{totalGoing} Going</Text>
+              )}
             </View>
-            {/* +Going */}
-            {eventRegistrations && eventRegistrations.length > 0 && (
-              <Text style={styles.goingText}>
-                +{totalGoing} Going
-              </Text>
-            )}
           </View>
-        </View>
+        )}
 
         {/* Content */}
         <View style={styles.mainContent}>
@@ -326,10 +335,8 @@ export default function EventDetailScreen({ route, navigation }) {
               <View style={styles.participantsInfo}>
                 <FontAwesome5 name="user-friends" size={14} color="#95A5A6" />
                 <Text style={styles.participantsText}>
-                  <Text style={styles.highlightText}>
-                    {totalGoing || 0}
-                  </Text>
-                  /{event?.expectedParticipants}
+                  <Text style={styles.highlightText}>{totalGoing || 0}</Text>/
+                  {event?.expectedParticipants}
                 </Text>
               </View>
             </View>
@@ -392,6 +399,7 @@ export default function EventDetailScreen({ route, navigation }) {
               contentWidth={width - 32}
               source={{ html: event?.description }}
               tagsStyles={tagsStyles}
+              ignoredDomTags={["iframe"]}
             />
           </View>
 

@@ -92,7 +92,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { token, user } = useSelector(authSelector);
   const dispatch = useDispatch();
-  const [isTracking, setIsTracking] = useState(false);
+  // const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -107,7 +107,7 @@ export const SocketProvider = ({ children }) => {
 
       // Setup socket event listeners và lưu cleanup function
       const cleanup = setupSocketListeners(socketio);
-      
+
       // Check và resume tracking nếu cần
       if (user.role === USER_ROLE.TRANSPORTER) {
         checkAndResumeTracking(socketio);
@@ -138,7 +138,7 @@ export const SocketProvider = ({ children }) => {
         if (delivery.status === "in_transit") {
           // Resume tracking
           await startLocationTracking(deliveryId);
-          setIsTracking(true);
+          // setIsTracking(true);
 
           // Gửi thông tin resume
           if (lastLocation) {
@@ -162,16 +162,13 @@ export const SocketProvider = ({ children }) => {
 
   const startLocationTracking = async (deliveryId) => {
     try {
-      if (isTracking) return;
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        throw new Error("Location permission denied");
-      }
+      const isActive = await Location.hasStartedLocationUpdatesAsync(
+        LOCATION_TRACKING
+      );
 
-      await Location.requestBackgroundPermissionsAsync();
       global.currentDeliveryId = deliveryId;
 
-      // Lưu thông tin tracking để có thể resume
+      // Lưu tracking info mới
       await AsyncStorage.setItem(
         TRACKING_INFO_KEY,
         JSON.stringify({
@@ -179,6 +176,34 @@ export const SocketProvider = ({ children }) => {
           startTime: new Date().toISOString(),
         })
       );
+
+      if (isActive) {
+        // Service đã chạy sẵn → emit vị trí tức thời
+        const position = await Location.getCurrentPositionAsync({});
+        if (socket) {
+          socket.emit("transporter:location", {
+            deliveryId,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        await AsyncStorage.setItem(
+          "@last_location",
+          JSON.stringify({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        return;
+      }
+
+      // if (isTracking) return;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") throw new Error("Location permission denied");
+
+      await Location.requestBackgroundPermissionsAsync();
 
       // Cập nhật vị trí trong foreground(khi app đang mở)
       //   Location.watchPositionAsync(
@@ -199,6 +224,25 @@ export const SocketProvider = ({ children }) => {
       //     }
       //   );
 
+      // Lấy vị trí tức thời & emit
+      const position = await Location.getCurrentPositionAsync({});
+      if (socket) {
+        socket.emit("transporter:location", {
+          deliveryId,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      await AsyncStorage.setItem(
+        "@last_location",
+        JSON.stringify({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
       // Cập nhật vị trí trong background(khi app đang ở nền)
       await Location.startLocationUpdatesAsync(LOCATION_TRACKING, {
         accuracy: Location.Accuracy.High,
@@ -215,8 +259,19 @@ export const SocketProvider = ({ children }) => {
         showsBackgroundLocationIndicator: true,
       });
 
-      setIsTracking(true);
+      global.currentDeliveryId = deliveryId;
+
+      // Lưu thông tin tracking để có thể resume
+      // await AsyncStorage.setItem(
+      //   TRACKING_INFO_KEY,
+      //   JSON.stringify({
+      //     deliveryId,
+      //     startTime: new Date().toISOString(),
+      //   })
+      // );
+      // setIsTracking(true);
     } catch (error) {
+      global.currentDeliveryId = null;
       console.error("Error starting location tracking:", error);
       throw error;
     }
@@ -236,8 +291,7 @@ export const SocketProvider = ({ children }) => {
 
       // Clear tracking info
       await AsyncStorage.multiRemove([TRACKING_INFO_KEY, "@last_location"]);
-
-      setIsTracking(false);
+      // setIsTracking(false);
     } catch (error) {
       console.error("Error stopping location tracking:", error);
     }
@@ -249,7 +303,7 @@ export const SocketProvider = ({ children }) => {
         socket,
         startLocationTracking,
         stopLocationTracking,
-        isTracking,
+        // isTracking,
       }}
     >
       {children}

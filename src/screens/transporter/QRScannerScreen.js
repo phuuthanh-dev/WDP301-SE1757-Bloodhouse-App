@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import bloodDeliveryAPI from "@/apis/bloodDeliveryAPI";
 import { useFacility } from "@/contexts/FacilityContext";
 import Toast from "react-native-toast-message";
+import { useSocket } from "@/contexts/SocketContext";
 
 const QRScannerScreen = ({ navigation, route }) => {
   const {
@@ -28,6 +29,7 @@ const QRScannerScreen = ({ navigation, route }) => {
     expectedRecipientId,
   } = route.params || {};
   const { facilityId } = useFacility();
+  const { stopLocationTracking } = useSocket();
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [flashMode, setFlashMode] = useState("off");
@@ -82,7 +84,6 @@ const QRScannerScreen = ({ navigation, route }) => {
       const { deliveryId, facilityId, recipientId, requestId, type } = qrData;
       
       // Validate QR code format and content
-      console.log(expectedRequestId, qrData.requestId);
       if (mode === "delivery_verification") {
         if (qrData.type !== expectedType) {
           throw new Error("Loại QR không hợp lệ");
@@ -119,6 +120,8 @@ const QRScannerScreen = ({ navigation, route }) => {
           text1: "Thành công",
           text2: "Xác nhận giao hàng thành công!",
         });
+        
+        await stopLocationTracking();
         navigation.navigate("TabNavigatorTransporter", {
           screen: "DeliveryList"
         });

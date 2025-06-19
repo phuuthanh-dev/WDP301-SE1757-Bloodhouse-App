@@ -28,10 +28,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import bloodGroupAPI from "@/apis/bloodGroup";
 import bloodComponentAPI from "@/apis/bloodComponent";
 import facilityAPI from "@/apis/facilityAPI";
-import bloodRequestAPI from "@/apis/bloodRequestAPI";
 import userAPI from "@/apis/userAPI";
 import axios from "axios";
 import { useDebouncedCallback } from "use-debounce";
+import bloodRequestAPI from "@/apis/bloodRequestAPI";
 
 const MEDICAL_CONDITIONS = [
   { label: "Tai nạn giao thông", value: "Tai nạn giao thông" },
@@ -378,7 +378,7 @@ export default function ReceiveRequestScreen({ navigation, route }) {
         });
       }
 
-      const response = await bloodRequestAPI.HandleBloodRequest(
+      const response = await bloodRequestAPI.HandleBloodRequestFormData(
         "",
         formDataToSend,
         "post"
@@ -395,8 +395,6 @@ export default function ReceiveRequestScreen({ navigation, route }) {
             },
           ]
         );
-      } else {
-        Alert.alert("Lỗi", "Không thể gửi yêu cầu. Vui lòng thử lại sau.");
       }
     } catch (error) {
       Alert.alert("Lỗi", "Không thể gửi yêu cầu. Vui lòng thử lại sau.");

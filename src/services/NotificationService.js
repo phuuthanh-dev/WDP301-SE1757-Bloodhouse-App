@@ -39,11 +39,12 @@ export class NotificationService {
 
     if (permissionGranted) {
       // Get push token only if permission is granted
-      if (Device.isDevice) {
+      // if (Device.isDevice) {
         try {
           const token = await Notifications.getExpoPushTokenAsync({
             projectId: Constants.expoConfig.extra.eas.projectId,
           });
+          console.log("token", token);
           const response = await userAPI.HandleUser("/update-expo-token", {
             expoPushToken: token.data,
           }, "patch");
@@ -55,9 +56,9 @@ export class NotificationService {
         } catch (error) {
           return { granted: true, token: null };
         }
-      } else {
-        return { granted: true, token: null };
-      }
+      // } else {
+      //   return { granted: true, token: null };
+      // }
     }
 
     return { granted: false, token: null };

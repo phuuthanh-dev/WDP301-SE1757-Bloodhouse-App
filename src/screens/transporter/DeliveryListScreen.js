@@ -132,20 +132,18 @@ const DeliveryListScreen = ({ navigation }) => {
                   // Navigate to delivery map screen
                   navigation.navigate("DeliveryMap", { id: deliveryId });
                 } catch (error) {
-                  console.error("Error starting location tracking:", error);
                   Toast.show({
                     type: "error",
                     text1: "Lỗi",
-                    text2: "Không thể bắt đầu theo dõi vị trí. Vui lòng kiểm tra quyền truy cập vị trí.",
+                    text2: error.response.data.message,
                   });
                 }
               }
             } catch (error) {
-              console.error("Error starting delivery:", error);
               Toast.show({
                 type: "error",
                 text1: "Lỗi",
-                text2: "Không thể bắt đầu giao hàng. Vui lòng thử lại sau.",
+                text2: error.response.data.message,
               });
             }
           },
@@ -321,9 +319,7 @@ const DeliveryListScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header
-        title="Danh sách đơn giao"
-      />
+      <Header title="Danh sách đơn giao" />
       {renderStatusFilter()}
       <FlatList
         data={deliveries}
