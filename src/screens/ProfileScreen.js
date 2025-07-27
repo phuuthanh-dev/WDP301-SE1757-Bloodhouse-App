@@ -81,7 +81,10 @@ export default function ProfileScreen({ navigation }) {
       const response = await userBadgeAPI.HandleUserBadge("/user");
       setUserBadges(response.data);
     } catch (error) {
-      console.error("Error fetching user badges:", error);
+      Toast.show({
+        type: "error",
+        text1: "Lỗi"
+      })
     } finally {
       setIsLoading(false);
     }

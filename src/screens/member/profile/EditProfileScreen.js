@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import userAPI from "@/apis/userAPI";
 import { formatDate } from "@/utils/formatHelpers";
 import bloodGroupAPI from "@/apis/bloodGroup";
+import Toast from "react-native-toast-message";
 
 const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -98,22 +99,18 @@ export default function EditProfileScreen({ navigation }) {
 
     setLoading(true);
     try {
-      await userAPI.HandleUser("/update", {
-        method: "PUT",
-        data: {
-          fullName: formData.fullName,
-          phone: formData.phone,
-          bloodId: formData.bloodId._id,
-          address: formData.address,
-          yob: formData.yob,
-        },
+      await userAPI.HandleUser("/profile", {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        bloodId: formData.bloodId._id,
+        address: formData.address,
+        yob: formData.yob,
+      }, "patch");
+      Toast.show({
+        type: "success",
+        text1: "Cập nhật thông tin thành công",
       });
-      Alert.alert("Thành công", "Cập nhật thông tin thành công", [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      fetchUserInfo();
     } catch (error) {
       console.error("Error updating profile:", error);
       Alert.alert("Lỗi", "Không thể cập nhật thông tin");

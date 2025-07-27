@@ -186,7 +186,7 @@ export default function DonationRegistrationDetailScreen({
           />
         }
       >
-        {registration?.status === "registered" && registration?.qrCodeUrl && (
+        {registration?.qrCodeUrl && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.qrButton} onPress={showQRCode}>
               <MaterialIcons name="qr-code-2" size={24} color="white" />

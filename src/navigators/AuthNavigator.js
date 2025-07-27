@@ -52,11 +52,11 @@ export default function AuthNavigator() {
       }}
     >
       {!hasCompletedOnboarding && (
-        <Stack.Screen 
-          name="Onboarding" 
-          component={OnboardingScreen} 
-          options={{ headerShown: false }}
-        />
+      <Stack.Screen 
+        name="Onboarding" 
+        component={OnboardingScreen} 
+        options={{ headerShown: false }}
+      />
       )}
       <Stack.Screen 
         name="Login" 
